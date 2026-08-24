@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.10
+
+- Rebalanced the mobile equipment row so the DHW schematic has enough width while remaining beside both boilers.
+- Rebuilt the compact DHW labels as stable callouts and kept the hot, circulation and cold-water lines clear of their text.
+- Increased the hydraulic-separator label, temperature and pressure typography with stronger contrast.
+- Increased the frontend cache-busting build to `b011` so Home Assistant loads the updated module after restart.
+
 ## 0.8.9
 
 - Bound the current H2000 overview to the verified Home Assistant entity IDs, while retaining semantic discovery as a controller-migration fallback.
