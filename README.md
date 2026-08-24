@@ -71,9 +71,14 @@ The intended evolution is:
 
 ## Current UI
 
-Current line: **ZONT UI v0.8.0**.
+Current line: **ZONT UI v0.8.2**.
 
-The start view includes a live heating-system overview, current mode, major nodes and diagnostics. The upper-left button opens the native Home Assistant menu via `hass-toggle-menu`.
+The State view now follows the real hydraulic topology: main and reserve
+boilers, the DHW tank with cold-water pressure and recirculation, hydraulic
+separator, radiator and underfloor-heating circuits, pumps, mixer, summary
+metrics and heating modes. Values are resolved from the live Home Assistant
+entity registry; missing and unavailable sources stay explicit. The upper-left
+button opens the native Home Assistant menu via `hass-toggle-menu`.
 
 ## License
 
