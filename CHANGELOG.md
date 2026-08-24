@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.7
+
+- Increased wide-screen equipment labels and live values by roughly 20–30 percent without changing the approved hydraulic topology.
+- Enlarged DHW, hydroseparator, circuit, legend and metric typography for comfortable desktop and wall-panel viewing.
+- Kept the compact mobile typography and one-screen phone layout unchanged.
+
 ## 0.8.6
 
 - Restyled the hydraulic separator with the same light body treatment as the boiler casings, including a subtle grey outline and shadow.

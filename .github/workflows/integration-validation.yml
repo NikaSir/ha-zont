@@ -24,9 +24,9 @@ jobs:
         run: node --input-type=module --check < custom_components/zont_local/frontend/zont-ui.js
       - name: Check release version synchronization
         run: |
-          grep -F 'VERSION = "0.8.6"' custom_components/zont_local/const.py
-          grep -F '"version": "0.8.6"' custom_components/zont_local/manifest.json
-          grep -F 'version: 0.8.6' dashboard/manifest/zont.yaml
+          grep -F 'VERSION = "0.8.7"' custom_components/zont_local/const.py
+          grep -F '"version": "0.8.7"' custom_components/zont_local/manifest.json
+          grep -F 'version: 0.8.7' dashboard/manifest/zont.yaml
 
   hassfest:
     name: Hassfest
