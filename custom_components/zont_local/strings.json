@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ZONT Local & UI",
+        "description": "Install the ZONT panel host. Local controller support will be added to this integration later."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "ZONT Local & UI is already configured."
+    }
+  }
+}
