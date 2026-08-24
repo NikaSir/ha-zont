@@ -22,11 +22,13 @@ jobs:
           node-version: "24"
       - name: Check frontend module syntax
         run: node --input-type=module --check < custom_components/zont_local/frontend/zont-ui.js
+      - name: Check frontend semantic states
+        run: node tests/test_zont_ui_semantics.cjs
       - name: Check release version synchronization
         run: |
-          grep -F 'VERSION = "0.8.8"' custom_components/zont_local/const.py
-          grep -F '"version": "0.8.8"' custom_components/zont_local/manifest.json
-          grep -F 'version: 0.8.8' dashboard/manifest/zont.yaml
+          grep -F 'VERSION = "0.8.9"' custom_components/zont_local/const.py
+          grep -F '"version": "0.8.9"' custom_components/zont_local/manifest.json
+          grep -F 'version: 0.8.9' dashboard/manifest/zont.yaml
 
   hassfest:
     name: Hassfest
