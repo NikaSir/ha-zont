@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.4
+
+- Returned the DHW boiler to the common equipment row with both heating boilers on mobile.
+- Rebuilt the state page as a compact one-screen hydraulic overview: equipment, hydroseparator, circuits, legend and four key metrics.
+- Preserved the approved connected DHW topology in a scaled mobile schematic.
+- Used the circuit state as a truthful fallback when no dedicated pump entity exists, instead of reporting a false data-loss alarm.
+- Made mixer status wrap without truncation, fixed the legend to a stable 3-by-2 grid and linked the warning badge to Diagnostics.
+
 ## 0.8.3
 
 - Reduced the hydraulic separator to a neutral connective element.
