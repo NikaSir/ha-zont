@@ -3,8 +3,8 @@ kind: PanelManifest
 metadata:
   id: zont
   title: ZONT
-  version: 0.8.3
-  description: Mobile-optimized ZONT heating and DHW topology with explicit availability, actuator status and safe heating-mode controls.
+  version: 0.8.4
+  description: One-screen mobile ZONT heating and DHW overview with compact hydraulic topology, explicit availability and actuator status.
 spec:
   dashboard_path: /dashboard-zont
   subpanel:

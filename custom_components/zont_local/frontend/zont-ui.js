@@ -1,9 +1,9 @@
-// ZONT UI v0.8.3 — HACS-managed application layer.
+// ZONT UI v0.8.4 — HACS-managed application layer.
 // Base renderer and registry discovery are provided by Contract Generated UI.
 import "/contract_generated_ui/frontend/nikas-generated-zont.js";
 
 const ELEMENT_NAME = "nikas-generated-zont";
-const UI_VERSION = "0.8.3";
+const UI_VERSION = "0.8.4";
 const esc = (value) => String(value ?? "—")
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
@@ -12,14 +12,14 @@ const includesAny = (text, words) => {
   return words.some((word) => source.includes(String(word).toLocaleLowerCase()));
 };
 
-function installV083() {
+function installV084() {
   const ElementClass = customElements.get(ELEMENT_NAME);
-  if (!ElementClass || ElementClass.prototype.__zontV083) return false;
+  if (!ElementClass || ElementClass.prototype.__zontV084) return false;
 
   const originalRender = ElementClass.prototype._render;
   if (typeof originalRender !== "function") return false;
 
-  ElementClass.prototype._systemOverviewV083 = function systemOverviewV083(items) {
+  ElementClass.prototype._systemOverviewV084 = function systemOverviewV084(items) {
     const main = this._boilerSet(items, false);
     const reserveBoiler = this._boilerSet(items, true);
     const value = (item, fallback = "—") => {
@@ -163,7 +163,7 @@ function installV083() {
         <i class="z82-pipe z82-loop-branch"></i><i class="z82-pipe z82-loop-return"></i><i class="z82-pipe z82-loop-vertical"></i><i class="z82-flow-arrow loop"></i>
         <i class="z82-pipe z82-cold-pipe"></i><i class="z82-flow-arrow cold"></i>
         <div class="z82-hot-water"><ha-icon icon="mdi:faucet"></ha-icon><span>Выход ГВС</span><strong>${esc(value(dhwTemperature))}</strong></div>
-        <div class="z82-circulation-loop"><ha-icon icon="mdi:pump"></ha-icon><span>Циркуляция ГВС</span><strong>${esc(value(circulationTemperature))}</strong><small>Насос: ${esc(state(circulationState))}</small></div>
+        <div class="z82-circulation-loop"><ha-icon icon="mdi:pump"></ha-icon><span>Циркуляция</span><strong>${esc(value(circulationTemperature))}</strong><small>Насос: ${esc(state(circulationState))}</small></div>
         <div class="z82-cold-water"><ha-icon icon="mdi:gauge"></ha-icon><span>Вход ХВС</span><strong>${esc(value(coldWaterPressure))}</strong></div>
       </div>
     </article>`;
@@ -173,12 +173,14 @@ function installV083() {
 
     const circuitCard = (titleText, icon, set, mixed = false) => {
       const pump = set.pump;
+      const circuitState = pump || set.enabled;
+      const circuitLabel = pump ? "Насос контура" : "Состояние контура";
       return `<article class="z82-circuit-card">
         <header><div><h3>${esc(titleText)}</h3></div><ha-icon class="z82-circuit-icon" icon="${icon}"></ha-icon></header>
         <div class="z82-circuit-device">
-          <div class="z82-pump-art ${active(pump) ? "on" : ""}"><ha-icon icon="mdi:pump"></ha-icon></div>
-          <div><span>Насос контура</span><strong>${esc(state(pump))}</strong></div>
-          ${statusDot(pump)}
+          <div class="z82-pump-art ${active(circuitState) ? "on" : ""}"><ha-icon icon="${pump ? "mdi:pump" : "mdi:heating-coil"}"></ha-icon></div>
+          <div><span>${esc(circuitLabel)}</span><strong>${esc(state(circuitState))}</strong></div>
+          ${statusDot(circuitState)}
         </div>
         ${mixed ? `<div class="z82-mixer"><ha-icon icon="mdi:valve"></ha-icon><div><span>Смесительный кран</span><strong>${esc(mixerText)}</strong></div>${statusDot(mixerPosition || mixerOpening || mixerClosing)}</div>` : ""}
         <div class="z82-circuit-values">
@@ -219,12 +221,16 @@ function installV083() {
 
     const nodeNote = (set) => set.enabled && set.pump ? `Насос: ${state(set.pump).toLocaleLowerCase()}` : "";
 
+    const issueLabel = errors.length > 1 ? `Ошибок: ${errors.length}`
+      : errors.length === 1 ? "Ошибка контроллера"
+        : essentialProblems.length ? `Нет данных: ${essentialProblems.length}` : "";
+
     return `<div class="z82-system ${attention ? "attention" : ""} ${offline ? "offline" : ""}">
       <div class="z82-head">
         <div><span class="z82-eyebrow">СОСТОЯНИЕ СИСТЕМЫ</span><h1>${esc(title)}</h1><p>${esc(subtitle)}</p></div>
         <div class="z82-statuses">
           <div class="z82-online"><i></i><strong>${esc(onlineText)}</strong><small>${esc(freshness)}</small></div>
-          ${attention && !offline ? `<div class="z82-notice"><i></i><span>${errors.length ? "Есть ошибка" : "Часть данных недоступна"}</span></div>` : ""}
+          ${attention && !offline ? `<button type="button" class="z82-notice" data-open-diagnostics><i></i><span>${esc(issueLabel)}</span></button>` : ""}
         </div>
       </div>
 
@@ -267,11 +273,11 @@ function installV083() {
     <section class="z82-section"><span class="z82-eyebrow">ТЕКУЩИЙ РЕЖИМ</span><div class="z82-modes">${modeButtons}</div></section>`;
   };
 
-  ElementClass.prototype._states = function statesV083(items) {
-    return this._systemOverviewV083(items);
+  ElementClass.prototype._states = function statesV084(items) {
+    return this._systemOverviewV084(items);
   };
 
-  ElementClass.prototype._render = function patchedRenderV083(...args) {
+  ElementClass.prototype._render = function patchedRenderV084(...args) {
     const result = originalRender.apply(this, args);
     const root = this.shadowRoot;
     if (!root) return result;
@@ -281,9 +287,11 @@ function installV083() {
 
     root.getElementById("zont-v082-style")?.remove();
 
-    if (!root.getElementById("zont-v083-style")) {
+    root.getElementById("zont-v083-style")?.remove();
+
+    if (!root.getElementById("zont-v084-style")) {
       const style = document.createElement("style");
-      style.id = "zont-v083-style";
+      style.id = "zont-v084-style";
       style.textContent = `
       .header{grid-template-columns:64px 1fr 64px!important;min-height:92px!important;padding:max(10px,env(safe-area-inset-top,0px)) 20px 10px!important;border-bottom:1px solid var(--divider-color,#e5e5e5)!important;box-shadow:none!important}.rail{width:52px!important;height:52px!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 6px 20px rgba(0,0,0,.06)!important}.rail ha-icon{--mdc-icon-size:31px!important}#back{justify-self:start}#refresh{justify-self:end;color:var(--primary-color,#087de0)!important}.heading strong{font-size:24px!important;font-weight:760!important}.heading span{margin-top:5px!important;font-size:14px!important;color:var(--secondary-text-color,#666)!important}
       main{width:min(100%,980px)!important}.z82-system,.z82-section{background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#ddd);border-radius:22px;padding:16px;margin-bottom:16px}.z82-system.attention{border-color:var(--warning-color,#ff9800)}.z82-system.offline{border-color:var(--error-color,#db4437)}.z82-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.z82-eyebrow{font-size:10.5px;font-weight:760;letter-spacing:.14em;color:var(--secondary-text-color,#666)}.z82-head h1{font-size:29px;line-height:1.04;margin:7px 0 4px}.z82-head p{margin:0;color:var(--secondary-text-color,#666);font-size:14px}.z82-online{min-width:112px;display:grid;grid-template-columns:9px auto;gap:2px 7px;align-items:center;padding:10px 12px;border-radius:999px;background:color-mix(in srgb,var(--success-color,#43a047) 10%,var(--card-background-color,#fff));color:var(--success-color,#43a047)}.z82-online i{width:8px;height:8px;border-radius:50%;background:currentColor}.z82-online strong{font-size:12px}.z82-online small{grid-column:1/3;text-align:center;font-size:8.5px;color:var(--secondary-text-color,#777)}.z82-system.attention .z82-online{color:var(--warning-color,#ff9800);background:color-mix(in srgb,var(--warning-color,#ff9800) 10%,var(--card-background-color,#fff))}.z82-system.offline .z82-online{color:var(--error-color,#db4437)}
@@ -323,6 +331,42 @@ function installV083() {
       @media(max-width:640px){.z82-equipment-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.z82-dhw-card{grid-column:1/-1}.z82-dhw-card header{min-height:32px}.z82-dhw-schematic{height:218px;min-height:218px}.z82-boiler-card{padding:10px}.z82-boiler-card h3{font-size:13px}.z82-row{font-size:9px}.z82-row strong{font-size:10px}}
       @media(max-width:520px){main{padding-top:9px!important}.header{grid-template-columns:46px 1fr 46px!important;min-height:68px!important;padding-left:9px!important;padding-right:9px!important}.rail{width:42px!important;height:42px!important}.heading strong{font-size:20px!important}.heading span{font-size:11px!important}.z82-system,.z82-section{padding:11px;border-radius:18px}.z82-head{gap:8px}.z82-head h1{font-size:23px}.z82-head p{font-size:10.5px}.z82-statuses{gap:4px}.z82-online{min-width:88px;padding:7px 8px}.z82-online strong{font-size:10px}.z82-online small{font-size:7px}.z82-notice{font-size:6.8px;padding:4px 7px}.z82-equipment{padding:9px;border-radius:15px}.z82-equipment h3{font-size:12px}.z82-equipment header>span,.z82-equipment h3 span{font-size:8px}.z82-boiler-visual{height:108px}.z82-boiler-art{width:59px;height:93px}.z82-boiler-art:before{left:20px}.z82-flame{--mdc-icon-size:19px}.z82-row{font-size:8.2px}.z82-row strong{font-size:9px}.z82-hydro-stage{height:27px;margin:32px 5% 35px}.z82-hydro strong{font-size:8.5px}.z82-hydro-values{right:6px;gap:4px}.z82-hydro-values span{font-size:6.7px}.z82-hydro-values ha-icon{--mdc-icon-size:9px}.z82-circuits-grid{gap:7px}.z82-circuit-card{padding:10px}.z82-circuit-card h3{font-size:10.5px}.z82-metrics,.z82-nodes,.z82-modes{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.z82-metric{min-height:72px;padding:8px;grid-template-columns:22px 1fr}.z82-metric span{font-size:8px}.z82-metric strong{font-size:11px}.z82-metric small{font-size:7.5px}.z82-node{min-height:80px}.z82-mode{min-height:88px;padding:7px}.z82-mode strong{font-size:9.5px}.z82-mode span{font-size:7.8px}.z82-legend{gap:5px 9px}.z82-legend span{font-size:6.8px}.tab{min-height:50px!important}.tab ha-icon{--mdc-icon-size:21px!important}.tab span{font-size:8.8px!important}}
       @media(max-width:380px){.z82-circuits-grid{grid-template-columns:1fr}.z82-hot-water,.z82-circulation-loop,.z82-cold-water{width:112px}.z82-dhw-temperature{left:79px}.z82-hydro strong{left:40%}}
+
+      /* v0.8.4 — one-screen mobile system overview */
+      .z82-notice{border:0;font:inherit;cursor:pointer}
+      @media(max-width:640px){
+        .z82-equipment-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+        .z82-dhw-card{grid-column:auto}
+      }
+      @media(max-width:520px){
+        main{padding:6px 7px 18px!important}
+        .z82-system{padding:8px;border-radius:16px;margin-bottom:11px}
+        .z82-head{gap:5px}.z82-eyebrow{font-size:8px}.z82-head h1{font-size:20px;margin:4px 0 2px}.z82-head p{font-size:8.5px}
+        .z82-statuses{gap:3px}.z82-online{min-width:77px;padding:5px 6px;grid-template-columns:7px auto;gap:1px 4px}.z82-online i{width:6px;height:6px}.z82-online strong{font-size:8.5px}.z82-online small{font-size:5.8px}.z82-notice{font-size:5.8px;padding:3px 6px}
+
+        .z82-equipment-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:9px}
+        .z82-equipment{padding:5px;border-radius:11px}.z82-equipment header{min-height:27px}.z82-equipment h3{font-size:9.5px}.z82-equipment header>span,.z82-equipment h3 span{margin-top:2px;font-size:6.1px}
+        .z82-boiler-visual{height:66px;gap:2px}.z82-boiler-art{width:39px;height:58px;border-radius:5px}.z82-boiler-art:before{left:14px;top:-5px;width:12px;height:5px}.z82-boiler-art i{left:5px;bottom:7px;width:18px;height:6px}.z82-boiler-art b{left:6px;bottom:7px;width:16px;font-size:4.3px;line-height:6px}.z82-mini-tank{right:3px;bottom:5px;width:12px;height:29px;border-radius:5px}.z82-flame{margin-top:15px;--mdc-icon-size:13px}.z82-boiler-visual .z82-dot{width:10px;height:10px;box-shadow:inset 0 0 0 3px #fff}
+        .z82-rows{gap:2px}.z82-row{gap:2px;font-size:6.8px;line-height:1.05}.z82-row span:before{width:3px;height:3px;margin-right:2px;border-width:1px}.z82-row strong{font-size:7.6px}.z82-state{max-width:58%;overflow:hidden;text-overflow:ellipsis}
+
+        .z82-dhw-card{grid-column:auto}.z82-dhw-card header{min-height:27px}.z82-dhw-schematic{height:133px;min-height:133px;overflow:hidden}
+        .z82-dhw-schematic .z82-tank{left:2px;top:27px;width:35px;height:88px;border-radius:17px 17px 9px 9px}.z82-dhw-schematic .z82-tank:before{left:3px;right:3px;top:4px;height:6px}.z82-dhw-schematic .z82-water{left:4px;right:4px;bottom:4px}.z82-dhw-schematic .z82-port{right:-4px!important;width:6px!important;height:5px!important}.z82-dhw-schematic .z82-port.hot{top:8px}.z82-dhw-schematic .z82-port.loop{top:59px}.z82-dhw-schematic .z82-port.cold{left:14px!important;bottom:-4px}
+        .z82-dhw-temperature{left:1px;right:1px;top:0;display:grid;grid-template-columns:10px minmax(0,1fr) 9px;gap:0 2px}.z82-dhw-temperature ha-icon{grid-row:1/3;--mdc-icon-size:9px}.z82-dhw-temperature strong{font-size:7.4px}.z82-dhw-temperature small{font-size:5.6px}.z82-dhw-temperature .z82-dot{width:8px;height:8px;box-shadow:inset 0 0 0 2px #fff}
+        .z82-hot-pipe{left:37px;right:22px;top:35px;height:2px}.z82-loop-branch{left:64%;top:35px;width:2px;height:30px}.z82-loop-vertical{left:64%;top:65px;width:2px;height:27px}.z82-loop-return{left:37px;right:36%;top:90px;height:2px}.z82-cold-pipe{left:18px;right:22px;top:124px;height:2px}.z82-cold-pipe:before{width:2px;height:10px}
+        .z82-flow-arrow.hot{right:18px;top:32px;border-top-width:4px;border-bottom-width:4px;border-left-width:6px}.z82-flow-arrow.loop{left:38px;top:87px;border-top-width:4px;border-bottom-width:4px;border-right-width:6px}.z82-flow-arrow.cold{left:20px;top:121px;border-top-width:4px;border-bottom-width:4px;border-right-width:6px}
+        .z82-hot-water,.z82-circulation-loop,.z82-cold-water{right:-2px;width:52px;grid-template-columns:12px minmax(0,1fr);column-gap:1px}.z82-hot-water{top:24px}.z82-circulation-loop{top:59px}.z82-cold-water{bottom:-1px}.z82-hot-water ha-icon,.z82-circulation-loop ha-icon,.z82-cold-water ha-icon{--mdc-icon-size:11px}.z82-hot-water span,.z82-circulation-loop span,.z82-cold-water span{font-size:5.6px}.z82-hot-water strong,.z82-circulation-loop strong,.z82-cold-water strong{font-size:6.7px}.z82-circulation-loop small{font-size:5.1px;overflow:hidden;text-overflow:ellipsis}
+
+        .z82-hydro-stage{height:23px;margin:25px 4% 29px}.z82-hydro{border-radius:7px}.z82-hydro strong{font-size:8px}.z82-hydro-values{right:4px;gap:3px}.z82-hydro-values span{font-size:5.6px}.z82-hydro-values ha-icon{--mdc-icon-size:7px}.z82-hydro:before,.z82-hydro:after{top:6px;width:7px;height:11px}.z82-hydro:before{left:-6px}.z82-hydro:after{right:-6px}.z82-air-vent{top:-12px;width:5px;height:12px}.z82-connection{width:2px;height:22px}.z82-connection b{left:-3px;width:7px;height:7px}.z82-connection.down b,.z82-connection.up b{bottom:-3px}.z82-connection.down-bottom b,.z82-connection.up-bottom b{top:-3px}.z82-connection:after{left:-3px;border-left-width:4px;border-right-width:4px}.z82-connection.down:after,.z82-connection.down-bottom:after{border-top-width:5px;bottom:7px}.z82-connection.up:after,.z82-connection.up-bottom:after{border-bottom-width:5px;top:7px}
+
+        .z82-circuits-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.z82-circuit-card{padding:7px;border-radius:13px;display:flex;flex-direction:column}.z82-circuit-card h3{font-size:9px}.z82-circuit-icon{--mdc-icon-size:22px}.z82-circuit-device,.z82-mixer{gap:4px;margin-top:6px}.z82-pump-art{width:27px;height:27px}.z82-pump-art ha-icon{--mdc-icon-size:17px}.z82-circuit-device span,.z82-mixer span{font-size:6.4px}.z82-circuit-device strong,.z82-mixer strong{font-size:7.4px;margin-top:1px}.z82-mixer strong{white-space:normal;line-height:1.05;overflow:visible}.z82-mixer>ha-icon{--mdc-icon-size:25px}.z82-circuit-device .z82-dot,.z82-mixer .z82-dot{width:9px;height:9px;box-shadow:inset 0 0 0 2px #fff}.z82-circuit-values{margin-top:auto;padding-top:7px;gap:4px}.z82-circuit-values>div{gap:1px 5px}.z82-circuit-values span{font-size:6.2px}.z82-circuit-values strong{font-size:8.5px}.z82-circuit-values i{height:2px}
+
+        .z82-legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 5px;margin-top:7px;padding:5px 4px;border-radius:10px}.z82-legend span{justify-content:center;gap:3px;font-size:5.7px;white-space:nowrap}.z82-legend i{width:16px;height:2px}.z82-legend b{width:8px;height:8px;box-shadow:inset 0 0 0 2px #fff}
+        .z82-metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:7px}.z82-metric{min-height:56px;padding:4px;grid-template-columns:14px minmax(0,1fr);gap:1px 3px;border-radius:10px}.z82-metric ha-icon{--mdc-icon-size:15px}.z82-metric span{font-size:5.7px;line-height:1.05}.z82-metric strong{font-size:7.7px}.z82-metric small{font-size:5.5px}
+        .z82-section{padding:9px;border-radius:16px}.z82-nodes,.z82-modes{gap:5px}.z82-node{min-height:68px}.z82-mode{min-height:76px}
+      }
+      @media(max-width:380px){
+        .z82-equipment-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.z82-circuits-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.z82-hydro strong{left:39%}.z82-hot-water,.z82-circulation-loop,.z82-cold-water{width:47px}.z82-hot-water span,.z82-circulation-loop span,.z82-cold-water span{font-size:4.6px}.z82-hot-water strong,.z82-circulation-loop strong,.z82-cold-water strong{font-size:5.8px}
+      }
       `;
       root.appendChild(style);
     }
@@ -335,6 +379,9 @@ function installV083() {
       menu.onclick = () => this.dispatchEvent(new Event("hass-toggle-menu", { bubbles: true, composed: true }));
     }
 
+    const diagnostics = root.querySelector("[data-open-diagnostics]");
+    if (diagnostics) diagnostics.onclick = () => this._selectTab("diagnostics");
+
     const heading = root.querySelector(".heading span");
     if (heading) {
       const base = String(heading.textContent || "Отопление и ГВС").replace(/\s*·\s*UI\s*v?[0-9.]+\s*$/i, "");
@@ -345,8 +392,8 @@ function installV083() {
     return result;
   };
 
-  ElementClass.prototype.__zontV083 = true;
+  ElementClass.prototype.__zontV084 = true;
   return true;
 }
 
-if (!installV083()) customElements.whenDefined(ELEMENT_NAME).then(() => installV083());
+if (!installV084()) customElements.whenDefined(ELEMENT_NAME).then(() => installV084());
