@@ -1,21 +1,19 @@
-// ZONT UI v0.8.0 application shell and live heating overview.
-// Canonical source: NikaSir/ha-zont. Loaded as a HACS-managed Home Assistant integration frontend.
+// ZONT UI v0.8.1 — HACS-managed application layer.
+// Base renderer is provided by Contract Generated UI.
 import "/contract_generated_ui/frontend/nikas-generated-zont.js";
 
 const ELEMENT_NAME = "nikas-generated-zont";
-
-const esc080 = (value) => String(value ?? "—")
+const esc = (v) => String(v ?? "—")
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 
-function installV080() {
-  const ElementClass = customElements.get(ELEMENT_NAME);
-  if (!ElementClass || ElementClass.prototype.__zontV080) return false;
-
-  const originalRender = ElementClass.prototype._render;
+function installV081() {
+  const C = customElements.get(ELEMENT_NAME);
+  if (!C || C.prototype.__zontV081) return false;
+  const originalRender = C.prototype._render;
   if (typeof originalRender !== "function") return false;
 
-  ElementClass.prototype._systemOverviewV080 = function systemOverviewV080(items) {
+  C.prototype._systemOverviewV081 = function(items) {
     const main = this._boilerSet(items, false);
     const radiators = this._findState(items, ["радиатор"], ["температур", "t°", ">>>", "<<<", "датчик"]);
     const floor = this._findState(items, ["тёпл", "тепл", "floor"], ["температур", "t°", ">>>", "<<<", "датчик"]);
@@ -25,68 +23,77 @@ function installV080() {
     const outdoor = this._find(items, ["улиц", "outdoor", "вне дома", "weather"], ["влаж", "humidity"]);
     const indoor = this._find(items, ["гостиная", "комнат", "в доме", "indoor"], ["влаж", "humidity", "целев", "target"]);
     const online = this._find(items, ["online", "подключ", "controller online"]);
-    const errors = items.filter((item) => this._role(item) === "error" && !this._isInactive(item));
-    const problems = items.filter((item) => this._isProblem(item) && !["rssi", "battery"].includes(this._role(item)));
+    const errors = items.filter((i) => this._role(i) === "error" && !this._isInactive(i));
+    const problems = items.filter((i) => this._isProblem(i) && !["rssi", "battery"].includes(this._role(i)));
     const attention = errors.length > 0 || problems.length > 0;
-    const title = attention ? "Требует внимания" : "Система работает";
-    const subtitle = attention ? "Есть ошибка или недоступный источник" : "Отопление и ГВС в норме";
-    const onlineText = online ? (this._isProblem(online) ? "Нет данных" : this._stateText(online)) : "Данные доступны";
     const mode = this._currentMode(items);
-
-    const node = (label, item, icon, state = null) => `<div class="v080-node">
-      <ha-icon icon="${icon}"></ha-icon><span>${esc080(label)}</span>
-      <strong>${esc080(item ? this._value(item) : "—")}</strong>
-      ${state ? `<small>${esc080(state)}</small>` : ""}
-    </div>`;
-    const metric = (label, item, icon, fallback = "—") => `<div class="v080-metric">
-      <ha-icon icon="${icon}"></ha-icon><div><span>${esc080(label)}</span><strong>${esc080(item ? this._value(item) : fallback)}</strong></div>
-    </div>`;
-    const status = (label, item, icon) => `<div class="v080-status ${item && this._isActive(item) ? "on" : ""} ${item && this._isProblem(item) ? "problem" : ""}">
-      <ha-icon icon="${icon}"></ha-icon><strong>${esc080(label)}</strong><span>${esc080(this._stateText(item))}</span>
-    </div>`;
+    const onlineText = online ? (this._isProblem(online) ? "Нет данных" : "Онлайн") : "Онлайн";
+    const val = (item, fallback = "—") => item ? this._value(item) : fallback;
+    const state = (item, fallback = "Нет данных") => item ? this._stateText(item) : fallback;
+    const active = (item) => !!item && this._isActive(item);
 
     const modes = this._modeButtons(items);
-    const modeButtons = modes.length ? modes.map((item) => `<button class="v080-mode ${this._modeActive(item, mode) ? "selected" : ""}" data-mode-entity="${esc080(item.entry.entity_id)}" data-mode-label="${esc080(this._modeLabel(item))}" ${this._busyMode === item.entry.entity_id ? "disabled" : ""}>
-      <ha-icon icon="mdi:radiator"></ha-icon><span>${esc080(this._modeLabel(item))}</span>
-    </button>`).join("") : `<div class="empty">Кнопки режимов ZONT в Home Assistant не найдены.</div>`;
+    const modeButtons = modes.length ? modes.slice(0,4).map((item, idx) => {
+      const labels = ["Отопление", "Эконом", "Лето (ГВС)", "Выключено"];
+      const icons = ["mdi:home-thermometer-outline", "mdi:leaf", "mdi:water-outline", "mdi:power"];
+      const label = this._modeLabel(item) || labels[idx] || "Режим";
+      return `<button class="z81-mode ${this._modeActive(item, mode) ? "selected" : ""}" data-mode-entity="${esc(item.entry.entity_id)}" data-mode-label="${esc(label)}" ${this._busyMode === item.entry.entity_id ? "disabled" : ""}>
+        <ha-icon icon="${icons[idx] || "mdi:radiator"}"></ha-icon><strong>${esc(label)}</strong><span>${this._modeActive(item, mode) ? "Сейчас активен" : "Доступен"}</span>
+      </button>`;
+    }).join("") : `<div class="empty">Режимы ZONT не найдены.</div>`;
 
-    return `<div class="v080-overview ${attention ? "attention" : ""}">
-      <div class="v080-head"><div><span class="eyebrow">СОСТОЯНИЕ СИСТЕМЫ</span><h1>${title}</h1><p>${subtitle}</p></div><div class="v080-online"><i></i>${esc080(onlineText)}</div></div>
-      <div class="v080-scheme">
-        <div class="v080-pipes" aria-hidden="true"><i class="hot a"></i><i class="hot b"></i><i class="hot c"></i><i class="cold a"></i><i class="cold b"></i><i class="cold c"></i></div>
-        ${node("Котёл", main.current || main.supply, "mdi:water-boiler", this._value(main.state, ""))}
-        <div class="v080-circuits"><span>КОНТУРЫ</span>${node("Радиаторы", main.supply, "mdi:radiator", this._stateText(radiators))}${node("Тёплый пол", main.ret, "mdi:heating-coil", this._stateText(floor))}</div>
-        ${node("ГВС", dhw, "mdi:water-boiler", dhw ? "" : "Нет данных")}
-        <div class="v080-pump"><ha-icon icon="mdi:pump"></ha-icon><strong>Циркуляция</strong><span>${esc080(this._stateText(circulation))}</span></div>
+    const statusCard = (label, item, icon, note = "") => `<div class="z81-status ${active(item) ? "on" : ""} ${item && this._isProblem(item) ? "problem" : ""}">
+      <strong>${esc(label)}</strong><ha-icon icon="${icon}"></ha-icon><b>${esc(state(item))}</b>${note ? `<span>${esc(note)}</span>` : ""}
+    </div>`;
+
+    return `<div class="z81-card ${attention ? "attention" : ""}">
+      <div class="z81-head">
+        <div><span class="z81-eyebrow">СОСТОЯНИЕ СИСТЕМЫ</span><h1>${attention ? "Требует внимания" : "Система работает"}</h1><p>${attention ? "Есть ошибка или недоступный источник" : "Отопление и ГВС в норме"}</p></div>
+        <div class="z81-online"><i></i><strong>${esc(onlineText)}</strong><small>Данные актуальны</small></div>
       </div>
-      <div class="v080-metrics">${metric("Режим", null, "mdi:home-thermometer-outline", mode)}${metric("Температура в доме", indoor, "mdi:thermometer")}${metric("Улица", outdoor, "mdi:weather-partly-cloudy")}${metric("Давление", main.pressure, "mdi:gauge")}</div>
+      <div class="z81-plant">
+        <div class="z81-pipe hot h1"></div><div class="z81-pipe hot h2"></div><div class="z81-pipe hot h3"></div>
+        <div class="z81-pipe cold c1"></div><div class="z81-pipe cold c2"></div><div class="z81-pipe cold c3"></div>
+        <div class="z81-unit boiler"><span>Котёл</span><div class="z81-boiler-art"><i></i><b>●</b></div><strong>${esc(val(main.current || main.supply))}</strong><small>${esc(state(main.state, "Нагрев"))}</small></div>
+        <div class="z81-circuits"><div class="z81-circuits-title"><span>Контуры отопления</span><strong>${[radiators,floor].filter(Boolean).length || "—"}</strong><small>Активно</small></div>
+          <div class="z81-circuit"><span>Контур 1 · Радиаторы</span><strong>${esc(val(main.supply))}</strong><i><b style="width:${active(radiators) ? 72 : 12}%"></b></i></div>
+          <div class="z81-circuit"><span>Контур 2 · Тёплый пол</span><strong>${esc(val(main.ret))}</strong><i><b style="width:${active(floor) ? 58 : 12}%"></b></i></div>
+        </div>
+        <div class="z81-unit dhw"><span>ГВС</span><div class="z81-tank-art"><i></i></div><strong>${esc(val(dhw))}</strong><small>${esc(state(dhw, "Готов"))}</small></div>
+        <div class="z81-pump"><ha-icon icon="mdi:pump"></ha-icon><strong>Циркуляция</strong><span>${esc(state(circulation))}</span></div>
+      </div>
+      <div class="z81-metrics">
+        <div><ha-icon icon="mdi:home-thermometer-outline"></ha-icon><span>Режим</span><strong>${esc(mode)}</strong><small>${attention ? "Проверить" : "Активен"}</small></div>
+        <div><ha-icon icon="mdi:thermometer"></ha-icon><span>Температура в доме</span><strong>${esc(val(indoor))}</strong><small>Норма</small></div>
+        <div><ha-icon icon="mdi:weather-partly-cloudy"></ha-icon><span>Уличная температура</span><strong>${esc(val(outdoor))}</strong></div>
+        <div><ha-icon icon="mdi:gauge"></ha-icon><span>Давление системы</span><strong>${esc(val(main.pressure))}</strong><small>Норма</small></div>
+      </div>
     </div>
-    <section><h2>Основные узлы</h2><div class="v080-statuses">${status("Радиаторы", radiators, "mdi:radiator")}${status("Тёплый пол", floor, "mdi:heating-coil")}${status("Циркуляция", circulation, "mdi:pump")}${status("Резерв", reserve, "mdi:water-boiler-off")}</div></section>
-    <section><h2>Текущий режим</h2><div class="v080-modes">${modeButtons}</div></section>`;
+    <section class="z81-section"><span class="z81-eyebrow">ОСНОВНЫЕ УЗЛЫ</span><div class="z81-statuses">${statusCard("Радиаторы", radiators, "mdi:radiator")}${statusCard("Тёплый пол", floor, "mdi:heating-coil")}${statusCard("Циркуляция", circulation, "mdi:pump")}${statusCard("Резерв", reserve, "mdi:water-boiler-off", "Резервный котёл")}</div></section>
+    <section class="z81-section"><span class="z81-eyebrow">ТЕКУЩИЙ РЕЖИМ</span><div class="z81-modes">${modeButtons}</div></section>`;
   };
 
-  ElementClass.prototype._states = function statesV080(items) {
-    return this._systemOverviewV080(items);
-  };
-
-  ElementClass.prototype._render = function patchedRender(...args) {
+  C.prototype._states = function(items) { return this._systemOverviewV081(items); };
+  C.prototype._render = function(...args) {
     const result = originalRender.apply(this, args);
     const root = this.shadowRoot;
     if (!root) return result;
-
-    if (!root.getElementById("zont-v080-style")) {
+    if (!root.getElementById("zont-v081-style")) {
       const style = document.createElement("style");
-      style.id = "zont-v080-style";
+      style.id = "zont-v081-style";
       style.textContent = `
-        .header{grid-template-columns:64px 1fr 64px!important;min-height:92px!important;padding:max(10px,env(safe-area-inset-top,0px)) 20px 10px!important;border-bottom:1px solid var(--divider-color,#e3e3e3)!important;box-shadow:none!important}.rail{width:52px!important;height:52px!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 6px 20px rgba(0,0,0,.06)!important}.rail ha-icon{--mdc-icon-size:31px!important}#back{justify-self:start}#refresh{justify-self:end;color:var(--primary-color,#009fc2)!important}.heading{align-self:center;line-height:1.15}.heading strong{font-size:24px!important;font-weight:750!important;letter-spacing:-.25px}.heading span{margin-top:5px!important;font-size:14px!important;color:var(--secondary-text-color,#666)!important}
-        .v080-overview{background:linear-gradient(135deg,var(--card-background-color,#fff) 58%,color-mix(in srgb,var(--primary-color,#00a6c7) 8%,#fff));border:1px solid var(--divider-color,#ddd);border-radius:24px;padding:18px;margin-bottom:24px;overflow:hidden}.v080-overview.attention{border-color:var(--warning-color,#ff9800)}.v080-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.eyebrow{font-size:11px;font-weight:750;letter-spacing:.14em;color:var(--secondary-text-color,#666)}.v080-head h1{margin:7px 0 3px;font-size:29px;line-height:1.05}.v080-head p{margin:0;color:var(--secondary-text-color,#666);font-size:14px}.v080-online{display:flex;align-items:center;gap:7px;flex:none;padding:9px 12px;border-radius:999px;background:color-mix(in srgb,var(--success-color,#43a047) 10%,var(--card-background-color,#fff));font-size:12px;font-weight:700;color:var(--success-color,#43a047)}.v080-online i{width:8px;height:8px;border-radius:50%;background:currentColor}
-        .v080-scheme{position:relative;margin-top:18px;min-height:250px;padding:18px 12px;display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:12px;align-items:center;border-radius:20px;background:color-mix(in srgb,var(--secondary-background-color,#f2f2f2) 78%,transparent);overflow:hidden}.v080-node,.v080-circuits,.v080-pump{position:relative;z-index:2}.v080-node{min-height:132px;padding:14px 8px;border:1px solid var(--divider-color,#ddd);border-radius:18px;background:color-mix(in srgb,var(--card-background-color,#fff) 92%,transparent);display:flex;flex-direction:column;align-items:center;text-align:center}.v080-node>ha-icon{--mdc-icon-size:40px;color:var(--primary-color,#009fc2);margin:5px 0 8px}.v080-node>span,.v080-circuits>span{font-size:11px;color:var(--secondary-text-color,#777)}.v080-node>strong{font-size:18px;margin-top:5px}.v080-node>small{font-size:10px;margin-top:5px;color:var(--secondary-text-color,#777)}.v080-circuits{display:grid;gap:7px}.v080-circuits>.v080-node{min-height:86px;display:grid;grid-template-columns:34px 1fr;grid-template-rows:auto auto;align-items:center;text-align:left;padding:9px}.v080-circuits>.v080-node ha-icon{grid-row:1/3;margin:0;--mdc-icon-size:29px}.v080-circuits>.v080-node span{font-size:11px}.v080-circuits>.v080-node strong{font-size:15px;margin:0}.v080-circuits>.v080-node small{grid-column:2;font-size:9px;margin:0}.v080-pump{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:grid;grid-template-columns:27px auto;gap:0 6px;align-items:center;padding:7px 11px;border-radius:14px;background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#ddd)}.v080-pump ha-icon{grid-row:1/3;color:var(--success-color,#43a047)}.v080-pump strong{font-size:11px}.v080-pump span{font-size:9px;color:var(--secondary-text-color,#777)}.v080-pipes i{position:absolute;z-index:1;border-radius:8px}.v080-pipes .hot{height:6px;background:#e4564f}.v080-pipes .cold{height:6px;background:#3d9bc9}.v080-pipes .hot.a{left:19%;right:52%;top:42%}.v080-pipes .hot.b{left:47%;right:18%;top:42%}.v080-pipes .hot.c{width:6px;height:34%;left:19%;top:42%}.v080-pipes .cold.a{left:19%;right:52%;bottom:22%}.v080-pipes .cold.b{left:47%;right:18%;bottom:22%}.v080-pipes .cold.c{width:6px;height:22%;right:18%;bottom:22%}
-        .v080-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}.v080-metric{min-height:75px;border:1px solid var(--divider-color,#ddd);border-radius:16px;padding:10px;display:flex;gap:8px;align-items:center;background:color-mix(in srgb,var(--card-background-color,#fff) 88%,transparent)}.v080-metric ha-icon{color:var(--secondary-text-color,#666)}.v080-metric span,.v080-metric strong{display:block}.v080-metric span{font-size:9.5px;color:var(--secondary-text-color,#777)}.v080-metric strong{font-size:14px;margin-top:3px}.v080-statuses{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.v080-status{min-height:105px;padding:12px 6px;border:1px solid var(--divider-color,#ddd);border-radius:17px;background:var(--card-background-color,#fff);display:flex;flex-direction:column;align-items:center;text-align:center}.v080-status ha-icon{--mdc-icon-size:31px;color:var(--secondary-text-color,#777);margin-bottom:8px}.v080-status strong{font-size:11px}.v080-status span{font-size:10px;margin-top:6px;color:var(--secondary-text-color,#777)}.v080-status.on ha-icon,.v080-status.on span{color:var(--success-color,#43a047)}.v080-status.problem{border-color:var(--warning-color,#ff9800)}.v080-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.v080-mode{min-height:68px;border:1.5px solid var(--divider-color,#ddd);border-radius:16px;background:var(--card-background-color,#fff);color:inherit;display:flex;align-items:center;gap:9px;padding:10px 12px;text-align:left}.v080-mode ha-icon{color:var(--primary-color,#009fc2)}.v080-mode span{font-size:12px;font-weight:650}.v080-mode.selected{border-color:var(--primary-color,#009fc2);background:color-mix(in srgb,var(--primary-color,#009fc2) 9%,var(--card-background-color,#fff))}.v080-mode:disabled{opacity:.55}
-        @media(max-width:420px){main{padding-top:12px!important}.header{grid-template-columns:58px 1fr 58px!important;min-height:86px!important;padding-left:12px!important;padding-right:12px!important}.rail{width:48px!important;height:48px!important}.heading strong{font-size:22px!important}.heading span{font-size:12.5px!important}.v080-overview{padding:14px;border-radius:21px}.v080-head h1{font-size:25px}.v080-online{padding:7px 9px;font-size:10px}.v080-scheme{min-height:235px;padding-left:7px;padding-right:7px;gap:7px}.v080-node{padding-left:5px;padding-right:5px}.v080-node>strong{font-size:16px}.v080-metrics,.v080-statuses{grid-template-columns:repeat(2,minmax(0,1fr))}}
+      .header{grid-template-columns:64px 1fr 64px!important;min-height:92px!important;padding:max(10px,env(safe-area-inset-top,0px)) 20px 10px!important;border-bottom:1px solid var(--divider-color,#e5e5e5)!important;box-shadow:none!important}.rail{width:52px!important;height:52px!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 6px 20px rgba(0,0,0,.06)!important}.rail ha-icon{--mdc-icon-size:31px!important}#back{justify-self:start}#refresh{justify-self:end;color:var(--primary-color,#009fc2)!important}.heading strong{font-size:24px!important;font-weight:760!important}.heading span{margin-top:5px!important;font-size:14px!important;color:var(--secondary-text-color,#666)!important}
+      .z81-card,.z81-section{background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#ddd);border-radius:22px;padding:16px;margin-bottom:16px}.z81-card.attention{border-color:var(--warning-color,#ff9800)}.z81-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.z81-eyebrow{font-size:10.5px;font-weight:760;letter-spacing:.14em;color:var(--secondary-text-color,#666)}.z81-head h1{font-size:29px;line-height:1.04;margin:7px 0 4px}.z81-head p{margin:0;color:var(--secondary-text-color,#666);font-size:14px}.z81-online{min-width:112px;display:grid;grid-template-columns:9px auto;gap:2px 7px;align-items:center;padding:10px 12px;border-radius:999px;background:color-mix(in srgb,var(--success-color,#43a047) 10%,#fff);color:var(--success-color,#43a047)}.z81-online i{width:8px;height:8px;border-radius:50%;background:currentColor}.z81-online strong{font-size:12px}.z81-online small{grid-column:1/3;text-align:center;font-size:8.5px;color:var(--secondary-text-color,#777)}
+      .z81-plant{position:relative;display:grid;grid-template-columns:1fr 1.35fr 1fr;gap:10px;align-items:center;min-height:310px;margin-top:16px;padding:16px 8px 46px;border:1px solid var(--divider-color,#ddd);border-radius:20px;background:color-mix(in srgb,var(--secondary-background-color,#f3f3f3) 52%,#fff);overflow:hidden}.z81-unit,.z81-circuits{position:relative;z-index:3}.z81-unit{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px}.z81-unit>span,.z81-circuits-title>span{font-size:11px;font-weight:650}.z81-unit>strong{font-size:17px}.z81-unit>small{font-size:10px;color:var(--secondary-text-color,#777)}
+      .z81-boiler-art{width:74px;height:118px;border-radius:7px;background:linear-gradient(#fff,#ececec);border:1px solid #d8d8d8;box-shadow:0 8px 15px rgba(0,0,0,.08);position:relative;margin:8px 0}.z81-boiler-art:before{content:"";position:absolute;width:24px;height:7px;top:-7px;left:25px;border-radius:4px 4px 0 0;background:#777}.z81-boiler-art i{position:absolute;left:21px;right:21px;bottom:22px;height:15px;border-radius:3px;background:#283b3a}.z81-boiler-art b{position:absolute;right:-8px;bottom:24px;width:22px;height:22px;border-radius:50%;background:var(--success-color,#43a047);color:#fff;font-size:9px;display:grid;place-items:center}.z81-tank-art{width:66px;height:120px;border-radius:30px 30px 14px 14px;background:linear-gradient(90deg,#eee,#fff 35%,#ddd);border:1px solid #ccc;position:relative;margin:8px 0;overflow:hidden}.z81-tank-art:before{content:"";position:absolute;left:8px;right:8px;bottom:8px;height:58%;border-radius:0 0 11px 11px;background:linear-gradient(#8bd1ee,#2196d2)}.z81-tank-art i{position:absolute;left:5px;right:5px;top:7px;height:9px;border-radius:50%;background:#555}
+      .z81-circuits{display:flex;flex-direction:column;gap:10px}.z81-circuits-title{text-align:center}.z81-circuits-title strong{display:block;font-size:21px;margin-top:3px}.z81-circuits-title small{font-size:9px;color:var(--secondary-text-color,#777)}.z81-circuit{padding:10px;border:1px solid var(--divider-color,#ddd);border-radius:14px;background:var(--card-background-color,#fff);display:grid;grid-template-columns:1fr auto;gap:6px}.z81-circuit span{font-size:9px}.z81-circuit strong{font-size:14px}.z81-circuit i{grid-column:1/3;height:5px;border-radius:5px;background:#e5e5e5;overflow:hidden}.z81-circuit i b{display:block;height:100%;background:#f39c12;border-radius:5px}
+      .z81-pipe{position:absolute;z-index:1;border-radius:8px}.z81-pipe.hot{height:5px;background:#e64b47}.z81-pipe.cold{height:5px;background:#2d91c7}.z81-pipe.h1{left:16%;right:51%;top:54%}.z81-pipe.h2{left:48%;right:17%;top:54%}.z81-pipe.h3{width:5px;height:22%;right:17%;top:54%}.z81-pipe.c1{left:16%;right:51%;bottom:18%}.z81-pipe.c2{left:48%;right:17%;bottom:18%}.z81-pipe.c3{width:5px;height:18%;left:16%;bottom:18%}.z81-pump{position:absolute;z-index:4;left:50%;bottom:10px;transform:translateX(-50%);display:grid;grid-template-columns:28px auto;gap:0 6px;align-items:center;padding:7px 11px;border-radius:12px;background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#ddd)}.z81-pump ha-icon{grid-row:1/3;color:var(--success-color,#43a047)}.z81-pump strong{font-size:10.5px}.z81-pump span{font-size:9px;color:var(--secondary-text-color,#777)}
+      .z81-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}.z81-metrics>div{min-height:88px;border:1px solid var(--divider-color,#ddd);border-radius:15px;padding:9px;display:grid;grid-template-columns:25px 1fr;align-content:center;gap:2px 6px}.z81-metrics ha-icon{grid-row:1/4;align-self:center;color:var(--secondary-text-color,#666)}.z81-metrics span{font-size:9px;color:var(--secondary-text-color,#777)}.z81-metrics strong{font-size:13px;line-height:1.12}.z81-metrics small{font-size:8.5px;color:var(--success-color,#43a047)}
+      .z81-statuses,.z81-modes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}.z81-status{min-height:126px;border:1px solid var(--divider-color,#ddd);border-radius:16px;padding:11px 6px;display:flex;flex-direction:column;align-items:center;text-align:center}.z81-status>strong{font-size:10.5px}.z81-status ha-icon{--mdc-icon-size:34px;margin:10px 0 7px;color:var(--secondary-text-color,#666)}.z81-status b{font-size:10px;font-weight:650;color:var(--secondary-text-color,#666)}.z81-status span{font-size:8.5px;color:var(--secondary-text-color,#777);margin-top:6px}.z81-status.on ha-icon,.z81-status.on b{color:var(--success-color,#43a047)}.z81-status.problem{border-color:var(--warning-color,#ff9800)}.z81-mode{min-height:118px;border:1px solid var(--divider-color,#ddd);border-radius:16px;background:var(--card-background-color,#fff);color:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px}.z81-mode ha-icon{--mdc-icon-size:32px;color:var(--secondary-text-color,#666)}.z81-mode strong{font-size:10.5px}.z81-mode span{font-size:8.5px;color:var(--secondary-text-color,#777)}.z81-mode.selected{border-color:var(--primary-color,#009fc2);background:color-mix(in srgb,var(--primary-color,#009fc2) 7%,#fff)}.z81-mode.selected ha-icon,.z81-mode.selected span{color:var(--primary-color,#009fc2)}
+      @media(max-width:420px){main{padding-top:12px!important}.header{grid-template-columns:58px 1fr 58px!important;min-height:86px!important;padding-left:12px!important;padding-right:12px!important}.rail{width:48px!important;height:48px!important}.heading strong{font-size:22px!important}.heading span{font-size:12.5px!important}.z81-card,.z81-section{padding:13px;border-radius:19px}.z81-head h1{font-size:25px}.z81-online{min-width:94px;padding:8px 9px}.z81-plant{min-height:292px;padding-left:5px;padding-right:5px;gap:5px}.z81-boiler-art{width:62px;height:104px}.z81-tank-art{width:57px;height:105px}.z81-circuit{padding:8px}.z81-metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.z81-metrics>div{padding:6px;grid-template-columns:19px 1fr}.z81-metrics ha-icon{--mdc-icon-size:20px}.z81-metrics span{font-size:7.8px}.z81-metrics strong{font-size:11px}.z81-statuses,.z81-modes{gap:5px}.z81-status,.z81-mode{min-height:108px;padding:7px 3px}.z81-status ha-icon,.z81-mode ha-icon{--mdc-icon-size:29px}.z81-status>strong,.z81-mode strong{font-size:9.5px}}
       `;
       root.appendChild(style);
     }
-
     const menu = root.getElementById("back");
     if (menu) {
       const icon = menu.querySelector("ha-icon");
@@ -95,17 +102,14 @@ function installV080() {
       menu.setAttribute("aria-label", "Меню Home Assistant");
       menu.onclick = () => this.dispatchEvent(new Event("hass-toggle-menu", { bubbles: true, composed: true }));
     }
-
     const heading = root.querySelector(".heading span");
     if (heading) {
       const base = String(heading.textContent || "Отопление и ГВС").replace(/\s*·\s*UI\s*v?[0-9.]+\s*$/i, "");
-      heading.textContent = `${base} · UI v0.8.0`;
+      heading.textContent = `${base} · UI v0.8.1`;
     }
     return result;
   };
-
-  ElementClass.prototype.__zontV080 = true;
+  C.prototype.__zontV081 = true;
   return true;
 }
-
-if (!installV080()) customElements.whenDefined(ELEMENT_NAME).then(() => installV080());
+if (!installV081()) customElements.whenDefined(ELEMENT_NAME).then(() => installV081());
