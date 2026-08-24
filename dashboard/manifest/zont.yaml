@@ -3,8 +3,8 @@ kind: PanelManifest
 metadata:
   id: zont
   title: ZONT
-  version: 0.8.4
-  description: One-screen mobile ZONT heating and DHW overview with compact hydraulic topology, explicit availability and actuator status.
+  version: 0.8.5
+  description: Readable one-screen mobile ZONT heating and DHW overview with compact hydraulic topology, explicit availability and actuator status.
 spec:
   dashboard_path: /dashboard-zont
   subpanel:
