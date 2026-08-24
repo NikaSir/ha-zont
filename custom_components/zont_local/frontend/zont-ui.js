@@ -1,9 +1,9 @@
-// ZONT UI v0.8.9 — HACS-managed application layer.
+// ZONT UI v0.8.10 — HACS-managed application layer.
 // Base renderer and registry discovery are provided by Contract Generated UI.
 import "/contract_generated_ui/frontend/nikas-generated-zont.js";
 
 const ELEMENT_NAME = "nikas-generated-zont";
-const UI_VERSION = "0.8.9";
+const UI_VERSION = "0.8.10";
 const STALE_AFTER_MS = 15 * 60 * 1000;
 const ENTITY_BINDINGS = Object.freeze({
   online: ["binary_sensor.nikas_h2000_pro_online"],
@@ -71,9 +71,9 @@ const ageLabel = (ageMs) => {
   return `Обновлено ${hours} ч назад`;
 };
 
-function installV089() {
+function installV0810() {
   const ElementClass = customElements.get(ELEMENT_NAME);
-  if (!ElementClass || ElementClass.prototype.__zontV089) return false;
+  if (!ElementClass || ElementClass.prototype.__zontV0810) return false;
 
   const originalRender = ElementClass.prototype._render;
   if (typeof originalRender !== "function") return false;
@@ -538,9 +538,11 @@ function installV089() {
 
     root.getElementById("zont-v088-style")?.remove();
 
-    if (!root.getElementById("zont-v089-style")) {
+    root.getElementById("zont-v089-style")?.remove();
+
+    if (!root.getElementById("zont-v0810-style")) {
       const style = document.createElement("style");
-      style.id = "zont-v089-style";
+      style.id = "zont-v0810-style";
       style.textContent = `
       .header{grid-template-columns:64px 1fr 64px!important;min-height:92px!important;padding:max(10px,env(safe-area-inset-top,0px)) 20px 10px!important;border-bottom:1px solid var(--divider-color,#e5e5e5)!important;box-shadow:none!important}.rail{width:52px!important;height:52px!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 6px 20px rgba(0,0,0,.06)!important}.rail ha-icon{--mdc-icon-size:31px!important}#back{justify-self:start}#refresh{justify-self:end;color:var(--primary-color,#087de0)!important}.heading strong{font-size:24px!important;font-weight:760!important}.heading span{margin-top:5px!important;font-size:14px!important;color:var(--secondary-text-color,#666)!important}
       main{width:min(100%,980px)!important}.z82-system,.z82-section{background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#ddd);border-radius:22px;padding:16px;margin-bottom:16px}.z82-system.attention{border-color:var(--warning-color,#ff9800)}.z82-system.offline{border-color:var(--error-color,#db4437)}.z82-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.z82-eyebrow{font-size:10.5px;font-weight:760;letter-spacing:.14em;color:var(--secondary-text-color,#666)}.z82-head h1{font-size:29px;line-height:1.04;margin:7px 0 4px}.z82-head p{margin:0;color:var(--secondary-text-color,#666);font-size:14px}.z82-online{min-width:112px;display:grid;grid-template-columns:9px auto;gap:2px 7px;align-items:center;padding:10px 12px;border-radius:999px;background:color-mix(in srgb,var(--success-color,#43a047) 10%,var(--card-background-color,#fff));color:var(--success-color,#43a047)}.z82-online i{width:8px;height:8px;border-radius:50%;background:currentColor}.z82-online strong{font-size:12px}.z82-online small{grid-column:1/3;text-align:center;font-size:8.5px;color:var(--secondary-text-color,#777)}.z82-system.attention .z82-online{color:var(--warning-color,#ff9800);background:color-mix(in srgb,var(--warning-color,#ff9800) 10%,var(--card-background-color,#fff))}.z82-system.offline .z82-online{color:var(--error-color,#db4437)}
@@ -665,6 +667,20 @@ function installV089() {
       .z82-online.online{color:var(--success-color,#43a047)!important;background:color-mix(in srgb,var(--success-color,#43a047) 10%,var(--card-background-color,#fff))!important}
       .z82-online.unknown{color:var(--warning-color,#ff9800)!important;background:color-mix(in srgb,var(--warning-color,#ff9800) 10%,var(--card-background-color,#fff))!important}
       .z82-online.offline{color:var(--error-color,#db4437)!important;background:color-mix(in srgb,var(--error-color,#db4437) 10%,var(--card-background-color,#fff))!important}
+
+      /* v0.8.10 — readable mobile hydroseparator and a stable DHW schematic */
+      @media(max-width:520px){
+        .z82-equipment-grid{grid-template-columns:minmax(0,.92fr) minmax(0,.92fr) minmax(0,1.16fr)}
+        .z82-boiler-card{padding-left:6px;padding-right:6px}.z82-dhw-card{padding-left:6px;padding-right:6px}
+
+        .z82-dhw-schematic{height:154px;min-height:154px}.z82-dhw-schematic .z82-tank{left:1px;top:27px;width:38px;height:110px}.z82-dhw-schematic .z82-port.hot{top:9px}.z82-dhw-schematic .z82-port.loop{top:73px}.z82-dhw-schematic .z82-port.cold{left:15px!important}
+        .z82-dhw-temperature{left:1px;right:1px;top:0;grid-template-columns:12px minmax(0,1fr) 10px;gap:0 3px}.z82-dhw-temperature ha-icon{--mdc-icon-size:11px}.z82-dhw-temperature strong{font-size:9.6px}.z82-dhw-temperature small{font-size:7px}.z82-dhw-temperature .z82-dot{width:9px;height:9px}
+        .z82-hot-pipe{left:39px;right:7px;top:38px;height:2px}.z82-loop-branch{left:46%;top:38px;width:2px;height:39px}.z82-loop-vertical{left:46%;top:77px;width:2px;height:31px}.z82-loop-return{left:39px;right:54%;top:106px;height:2px}.z82-cold-pipe{left:18px;right:7px;top:147px;height:2px}.z82-cold-pipe:before{width:2px;height:12px}
+        .z82-flow-arrow.hot{right:3px;top:35px}.z82-flow-arrow.loop{left:40px;top:103px}.z82-flow-arrow.cold{left:20px;top:144px}
+        .z82-hot-water,.z82-circulation-loop,.z82-cold-water{right:-1px;width:61px;grid-template-columns:14px minmax(0,1fr);column-gap:3px;z-index:5}.z82-hot-water{top:27px}.z82-circulation-loop{top:68px}.z82-cold-water{bottom:-1px}.z82-hot-water ha-icon,.z82-circulation-loop ha-icon,.z82-cold-water ha-icon{position:relative;z-index:2;--mdc-icon-size:14px;background:var(--card-background-color,#fff);border-radius:50%}.z82-hot-water span,.z82-circulation-loop span,.z82-cold-water span,.z82-hot-water strong,.z82-circulation-loop strong,.z82-cold-water strong,.z82-circulation-loop small{position:relative;z-index:2;background:var(--card-background-color,#fff);line-height:1.05}.z82-hot-water span,.z82-circulation-loop span,.z82-cold-water span{font-size:6.8px}.z82-hot-water strong,.z82-circulation-loop strong,.z82-cold-water strong{font-size:8.5px}.z82-circulation-loop small{font-size:6.6px}
+
+        .z82-hydro-stage{height:32px;margin-top:29px;margin-bottom:34px}.z82-hydro{border-radius:9px}.z82-hydro strong{left:42%;font-size:11px;font-weight:800;letter-spacing:.025em}.z82-hydro-values{right:7px;gap:5px;color:#40464b;font-weight:650}.z82-hydro-values span{font-size:9.2px;gap:2px}.z82-hydro-values ha-icon{--mdc-icon-size:11px}.z82-hydro:before,.z82-hydro:after{top:8px;height:16px}
+      }
       `;
       root.appendChild(style);
     }
@@ -690,8 +706,8 @@ function installV089() {
     return result;
   };
 
-  ElementClass.prototype.__zontV089 = true;
+  ElementClass.prototype.__zontV0810 = true;
   return true;
 }
 
-if (!installV089()) customElements.whenDefined(ELEMENT_NAME).then(() => installV089());
+if (!installV0810()) customElements.whenDefined(ELEMENT_NAME).then(() => installV0810());
