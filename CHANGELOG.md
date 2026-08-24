@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.6
+
+- Restyled the hydraulic separator with the same light body treatment as the boiler casings, including a subtle grey outline and shadow.
+- Used the remaining vertical room to enlarge the boiler bodies and DHW tank without breaking the three-card equipment row.
+- Increased the hydraulic-separator height and readings slightly while retaining the complete mobile system overview.
+
 ## 0.8.5
 
 - Increased mobile typography, status marks and equipment graphics while preserving the three-card top row.

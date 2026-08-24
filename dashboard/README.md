@@ -6,7 +6,7 @@ This directory contains the Home Assistant UI layer for ZONT.
 
 The current panel definition is:
 
-- `manifest/zont.yaml` — canonical Contract Generated UI panel manifest, currently v0.8.5.
+- `manifest/zont.yaml` — canonical Contract Generated UI panel manifest, currently v0.8.6.
 
 The concrete Lovelace dashboard is intentionally generated inside Home Assistant from the public manifest plus the private verified entity inventory. Real Home Assistant bindings are therefore not duplicated in this public repository.
 
