@@ -3,8 +3,8 @@ kind: PanelManifest
 metadata:
   id: zont
   title: ZONT
-  version: 0.8.8
-  description: Readable responsive ZONT heating and DHW overview with explicit opening, closing and stationary mixer-valve states.
+  version: 0.8.9
+  description: Reliable responsive ZONT heating and DHW overview with explicit entity bindings, active-error filtering and data freshness.
 spec:
   dashboard_path: /dashboard-zont
   subpanel:
