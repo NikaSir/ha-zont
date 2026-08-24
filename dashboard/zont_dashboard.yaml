@@ -1,0 +1,574 @@
+views:
+  - type: sections
+    title: Котёл
+    path: heating-boiler
+    icon: mdi:water-boiler
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Температура и модуляция
+            heading_style: title
+            grid_options:
+              columns: full
+          - type: gauge
+            entity: >-
+              sensor.kontroller_otopleniia_nikas_h2000_pro_nikas_h2000_pro_ebus_osnovnoi_no2_moduliatsiia
+            min: 0
+            needle: false
+            severity:
+              green: 0
+              yellow: 80
+              red: 1000
+            name: Модуляция
+            grid_options:
+              columns: 6
+          - type: gauge
+            entity: sensor.nikas_h2000_pro_tn_gidrostrelka_2
+            min: 0
+            max: 70
+            needle: false
+            severity:
+              green: 25
+              yellow: 0
+              red: 60
+            name: Гидрострелка
+            grid_options:
+              columns: 6
+          - type: gauge
+            entity: sensor.nikas_h2000_pro_osnovnoi_aktualnaia_temperatura
+            min: 0
+            max: 75
+            needle: false
+            severity:
+              green: 25
+              yellow: 0
+              red: 60
+            name: Котёл →
+            grid_options:
+              columns: 6
+          - type: gauge
+            entity: >-
+              sensor.kontroller_otopleniia_nikas_h2000_pro_nikas_h2000_pro_ebus_osnovnoi_no2_tdeg_obratnogo_potoka
+            min: 0
+            max: 75
+            needle: false
+            severity:
+              green: 25
+              yellow: 0
+              red: 60
+            name: Котёл ←
+            grid_options:
+              columns: 6
+      - type: grid
+        cards:
+          - type: heading
+            heading: Давление
+            heading_style: title
+            grid_options:
+              columns: full
+          - type: gauge
+            entity: >-
+              sensor.kontroller_otopleniia_nikas_h2000_pro_nikas_h2000_pro_ebus_osnovnoi_no2_davlenie_tn
+            min: 0
+            max: 3
+            needle: false
+            severity:
+              green: 1.5
+              yellow: 0
+              red: 2.5
+            name: Давление котла
+            grid_options:
+              columns: 6
+          - type: gauge
+            entity: sensor.nikas_h2000_pro_teplonositel_2
+            max: 3
+            needle: false
+            severity:
+              green: 1.5
+              yellow: 0
+              red: 2.5
+            name: Давление системы
+            grid_options:
+              columns: 6
+          - type: gauge
+            entity: sensor.nikas_h2000_pro_pitevaia_voda
+            min: 0
+            max: 6
+            needle: false
+            severity:
+              green: 2.5
+              yellow: 0
+              red: 4
+            name: Давление ХВС
+            grid_options:
+              columns: 6
+          - type: gauge
+            entity: sensor.nikas_h2000_pro_voda_na_poliv_2
+            min: 0
+            needle: false
+            severity:
+              green: 0
+              yellow: 80
+              red: 1000
+            name: Давление полива
+            grid_options:
+              columns: 6
+            max: 6
+      - type: grid
+        cards:
+          - type: heading
+            heading: Основной котёл
+            heading_style: title
+            grid_options:
+              columns: full
+          - type: tile
+            entity: binary_sensor.nikas_h2000_pro_osnovnoi_sostoianie
+            name: Состояние
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_osnovnoi_aktualnaia_temperatura
+            name: Текущая температура
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_osnovnoi_tselevaia_temperatura
+            name: Целевая температура
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_osnovnoi_oshibka
+            name: Ошибка
+            grid_options:
+              columns: 6
+      - type: grid
+        cards:
+          - type: heading
+            heading: Резервный котёл
+            heading_style: title
+            grid_options:
+              columns: full
+          - type: tile
+            entity: binary_sensor.nikas_h2000_pro_rezervnyi_sostoianie
+            name: Состояние
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_rezervnyi_aktualnaia_temperatura
+            name: Текущая температура
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_rezervnyi_tselevaia_temperatura
+            name: Целевая температура
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_rezervnyi_oshibka
+            name: Ошибка
+            grid_options:
+              columns: 6
+    dense_section_placement: true
+  - type: sections
+    title: Контуры
+    path: heating-circuits
+    icon: mdi:heating-coil
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Радиаторы
+            heading_style: title
+            grid_options:
+              columns: full
+          - type: gauge
+            entity: sensor.nikas_h2000_pro_tn_radiatory_3
+            min: 0
+            max: 75
+            needle: false
+            severity:
+              green: 25
+              yellow: 0
+              red: 60
+            name: Радиаторы →
+            grid_options:
+              columns: 6
+          - type: gauge
+            entity: sensor.nikas_h2000_pro_tn_radiatory_4
+            max: 75
+            needle: false
+            severity:
+              green: 25
+              yellow: 0
+              red: 60
+            name: Радиаторы ←
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: binary_sensor.nikas_h2000_pro_radiatory
+            name: Радиаторы
+            grid_options:
+              columns: 6
+          - chart_type: line
+            period: day
+            type: statistics-graph
+            entities:
+              - entity: sensor.nikas_h2000_pro_tn_radiatory_3
+                name: Радиаторы →
+              - entity: sensor.nikas_h2000_pro_tn_radiatory_4
+                name: Радиаторы ←
+            stat_types:
+              - mean
+            grid_options:
+              columns: full
+      - type: grid
+        cards:
+          - type: heading
+            heading: Тёплый пол
+            heading_style: title
+            grid_options:
+              columns: full
+          - type: gauge
+            entity: sensor.nikas_h2000_pro_tn_teplyi_pol_3
+            min: 0
+            max: 45
+            needle: false
+            severity:
+              green: 20
+              yellow: 0
+              red: 40
+            name: Тёплый пол →
+            grid_options:
+              columns: 6
+          - type: gauge
+            entity: sensor.nikas_h2000_pro_tn_teplyi_pol_4
+            min: 0
+            max: 45
+            needle: false
+            severity:
+              green: 20
+              yellow: 0
+              red: 40
+            name: Тёплый пол ←
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: binary_sensor.nikas_h2000_pro_teplyi_pol
+            name: Тёплый пол
+            grid_options:
+              columns: 6
+          - chart_type: line
+            period: day
+            type: statistics-graph
+            entities:
+              - entity: sensor.nikas_h2000_pro_tn_teplyi_pol_3
+                name: Тёплый пол →
+              - entity: sensor.nikas_h2000_pro_tn_teplyi_pol_4
+                name: Тёплый пол ←
+            stat_types:
+              - mean
+            grid_options:
+              columns: full
+      - type: grid
+        cards:
+          - type: heading
+            heading: Резервный контур
+            heading_style: title
+            grid_options:
+              columns: full
+          - type: tile
+            entity: binary_sensor.nikas_h2000_pro_rezerv_on_off
+            name: Резервный контур
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_tn_rezervnyi_3
+            name: Резерв →
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_tn_rezervnyi_4
+            name: Резерв ←
+            grid_options:
+              columns: 6
+      - type: grid
+        cards:
+          - type: heading
+            heading: Циркуляция
+            heading_style: title
+            grid_options:
+              columns: full
+          - type: tile
+            entity: binary_sensor.nikas_h2000_pro_tsirkuliatsiia
+            name: Циркуляция
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_gv_tsirkuliatsiia_2
+            name: ГВС циркуляция
+            grid_options:
+              columns: 6
+    dense_section_placement: true
+  - type: sections
+    title: Климат
+    path: heating-climate
+    icon: mdi:home-thermometer
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Гостиная
+            heading_style: title
+            grid_options:
+              columns: full
+          - type: tile
+            entity: sensor.nikas_h2000_pro_gostinaia
+            name: Гостиная
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_gostinaia_tdeg_2
+            name: Температура
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_gostinaia_battery
+            name: Батарея
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_gostinaia_tdeg_battery_2
+            name: Батарея датчика °C
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_gostinaia_rssi
+            name: RSSI
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_gostinaia_tdeg_rssi_2
+            name: RSSI датчика °C
+            grid_options:
+              columns: 6
+      - type: grid
+        cards:
+          - type: heading
+            heading: Детская 1
+            heading_style: title
+            grid_options:
+              columns: full
+          - type: tile
+            entity: sensor.nikas_h2000_pro_detskaia_1
+            name: Детская 1
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_detskaia_1_tdeg_2
+            name: Температура
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_detskaia_1_battery
+            name: Батарея
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_detskaia_1_tdeg_battery
+            name: Батарея датчика °C
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_detskaia_1_rssi
+            name: RSSI
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_detskaia_1_tdeg_rssi
+            name: RSSI датчика °C
+            grid_options:
+              columns: 6
+      - type: grid
+        cards:
+          - type: heading
+            heading: Детская 2
+            heading_style: title
+            grid_options:
+              columns: full
+          - type: tile
+            entity: sensor.nikas_h2000_pro_detskaia_2
+            name: Детская 2
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_detskaia_2_tdeg_2
+            name: Температура
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_detskaia_2_battery
+            name: Батарея
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_detskaia_2_tdeg_battery
+            name: Батарея датчика °C
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_detskaia_2_rssi
+            name: RSSI
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_detskaia_2_tdeg_rssi_2
+            name: RSSI датчика °C
+            grid_options:
+              columns: 6
+      - type: grid
+        cards:
+          - type: heading
+            heading: Улица и погода
+            heading_style: title
+            grid_options:
+              columns: full
+          - type: tile
+            entity: sensor.nikas_h2000_pro_ulichnyi_datchik_2
+            name: Уличный датчик
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_pogoda_iz_interneta_2
+            name: Погода из интернета
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_ulichnyi_datchik_battery_2
+            name: Батарея уличного датчика
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_ulichnyi_datchik_rssi_2
+            name: RSSI уличного датчика
+            grid_options:
+              columns: 6
+          - chart_type: line
+            period: day
+            type: statistics-graph
+            entities:
+              - entity: sensor.nikas_h2000_pro_ebus_osnovnoi_tdeg_vne_doma
+                name: eBUS улица
+              - entity: sensor.nikas_h2000_pro_ulichnyi_datchik
+                name: Уличный датчик
+              - entity: sensor.nikas_h2000_pro_pogoda_iz_interneta
+                name: Интернет
+            stat_types:
+              - mean
+            grid_options:
+              columns: full
+    dense_section_placement: true
+  - type: sections
+    title: Состояние
+    path: heating-status
+    icon: mdi:heart-pulse
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Контроллер
+            heading_style: title
+            grid_options:
+              columns: full
+          - type: tile
+            entity: binary_sensor.nikas_h2000_pro_online
+            name: Контроллер online
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_pitanie
+            name: Питание
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_napriazhenie_pitaniia_3
+            name: Напряжение питания
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: sensor.nikas_h2000_pro_napriazhenie_batarei_2
+            name: Напряжение батареи
+            grid_options:
+              columns: 6
+      - type: grid
+        cards:
+          - type: heading
+            heading: Исполнительные механизмы
+            heading_style: title
+            grid_options:
+              columns: full
+          - type: tile
+            entity: binary_sensor.nikas_h2000_pro_otkrytie
+            name: Открытие
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: binary_sensor.nikas_h2000_pro_zakrytie
+            name: Закрытие
+            grid_options:
+              columns: 6
+    dense_section_placement: true
+  - type: sections
+    title: Диагностика
+    path: heating-diagnostics
+    icon: mdi:stethoscope
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: eBUS — дополнительный канал
+            heading_style: title
+            grid_options:
+              columns: full
+          - type: tile
+            entity: >-
+              sensor.kontroller_otopleniia_nikas_h2000_pro_nikas_h2000_pro_ebus_osnovnoi_no2_davlenie_tn
+            name: Давление котла №2
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: >-
+              sensor.kontroller_otopleniia_nikas_h2000_pro_nikas_h2000_pro_ebus_osnovnoi_no2_moduliatsiia
+            name: Модуляция №2
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: >-
+              sensor.kontroller_otopleniia_nikas_h2000_pro_nikas_h2000_pro_ebus_osnovnoi_no2_tdeg_vne_doma
+            name: Улица eBUS №2
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: >-
+              sensor.kontroller_otopleniia_nikas_h2000_pro_nikas_h2000_pro_ebus_osnovnoi_no2_tdeg_gvs
+            name: ГВС №2
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: >-
+              sensor.kontroller_otopleniia_nikas_h2000_pro_nikas_h2000_pro_ebus_osnovnoi_no2_tdeg_obratnogo_potoka
+            name: Обратка №2
+            grid_options:
+              columns: 6
+          - type: tile
+            entity: >-
+              sensor.kontroller_otopleniia_nikas_h2000_pro_nikas_h2000_pro_ebus_osnovnoi_no2_tdeg_tn
+            name: Подача №2
+            grid_options:
+              columns: 6
+    dense_section_placement: true
