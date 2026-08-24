@@ -1,9 +1,9 @@
-// ZONT UI v0.8.7 — HACS-managed application layer.
+// ZONT UI v0.8.8 — HACS-managed application layer.
 // Base renderer and registry discovery are provided by Contract Generated UI.
 import "/contract_generated_ui/frontend/nikas-generated-zont.js";
 
 const ELEMENT_NAME = "nikas-generated-zont";
-const UI_VERSION = "0.8.7";
+const UI_VERSION = "0.8.8";
 const esc = (value) => String(value ?? "—")
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
@@ -12,14 +12,14 @@ const includesAny = (text, words) => {
   return words.some((word) => source.includes(String(word).toLocaleLowerCase()));
 };
 
-function installV087() {
+function installV088() {
   const ElementClass = customElements.get(ELEMENT_NAME);
-  if (!ElementClass || ElementClass.prototype.__zontV087) return false;
+  if (!ElementClass || ElementClass.prototype.__zontV088) return false;
 
   const originalRender = ElementClass.prototype._render;
   if (typeof originalRender !== "function") return false;
 
-  ElementClass.prototype._systemOverviewV087 = function systemOverviewV087(items) {
+  ElementClass.prototype._systemOverviewV088 = function systemOverviewV088(items) {
     const main = this._boilerSet(items, false);
     const reserveBoiler = this._boilerSet(items, true);
     const value = (item, fallback = "—") => {
@@ -92,12 +92,21 @@ function installV087() {
     const reserveState = this._findState(items, ["резерв", "reserve"], ["температур", "t°", "ошиб"])
       || reserveBoiler.state;
     const mixerItems = scope(["смесител", "mixing", "кран", "valve"]);
-    const mixerPosition = numericIn(mixerItems, ["полож", "position", "процент", "%"]) || numericIn(mixerItems);
     const mixerOpening = this._findState(mixerItems, ["открытие", "opening"]);
     const mixerClosing = this._findState(mixerItems, ["закрытие", "closing"]);
-    const mixerText = mixerPosition ? `Открыт на ${value(mixerPosition)}`
-      : mixerOpening || mixerClosing ? this._mixerState(mixerOpening, mixerClosing)
-        : "Положение не определено";
+    const mixerOpeningActive = active(mixerOpening);
+    const mixerClosingActive = active(mixerClosing);
+    const mixerConflict = mixerOpeningActive && mixerClosingActive;
+    const mixerSignalsKnown = valid(mixerOpening) && valid(mixerClosing);
+    const mixerText = mixerConflict ? "Ошибка сигналов"
+      : mixerOpeningActive ? "Открывается"
+        : mixerClosingActive ? "Закрывается"
+          : mixerSignalsKnown ? "Неподвижен" : "Нет данных";
+    const mixerSignalItem = mixerOpeningActive ? mixerOpening
+      : mixerClosingActive ? mixerClosing : mixerOpening || mixerClosing;
+    const mixerDot = () => mixerConflict
+      ? '<i class="z82-dot problem" title="Одновременно включены открытие и закрытие"></i>'
+      : statusDot(mixerSignalItem);
 
     const errors = items.filter((item) => this._role(item) === "error" && !this._isInactive(item));
     const essentials = [
@@ -182,7 +191,7 @@ function installV087() {
           <div><span>${esc(circuitLabel)}</span><strong>${esc(state(circuitState))}</strong></div>
           ${statusDot(circuitState)}
         </div>
-        ${mixed ? `<div class="z82-mixer"><ha-icon icon="mdi:valve"></ha-icon><div><span>Смесительный кран</span><strong>${esc(mixerText)}</strong></div>${statusDot(mixerPosition || mixerOpening || mixerClosing)}</div>` : ""}
+        ${mixed ? `<div class="z82-mixer"><ha-icon icon="mdi:valve"></ha-icon><div><span>Смесительный кран</span><strong>${esc(mixerText)}</strong></div>${mixerDot()}</div>` : ""}
         <div class="z82-circuit-values">
           <div><span>Подача</span><i class="hot"></i><strong>${esc(value(set.supply || set.current))}</strong></div>
           <div><span>Обратка</span><i class="cold"></i><strong>${esc(value(set.ret))}</strong></div>
@@ -273,11 +282,11 @@ function installV087() {
     <section class="z82-section"><span class="z82-eyebrow">ТЕКУЩИЙ РЕЖИМ</span><div class="z82-modes">${modeButtons}</div></section>`;
   };
 
-  ElementClass.prototype._states = function statesV087(items) {
-    return this._systemOverviewV087(items);
+  ElementClass.prototype._states = function statesV088(items) {
+    return this._systemOverviewV088(items);
   };
 
-  ElementClass.prototype._render = function patchedRenderV087(...args) {
+  ElementClass.prototype._render = function patchedRenderV088(...args) {
     const result = originalRender.apply(this, args);
     const root = this.shadowRoot;
     if (!root) return result;
@@ -295,9 +304,11 @@ function installV087() {
 
     root.getElementById("zont-v086-style")?.remove();
 
-    if (!root.getElementById("zont-v087-style")) {
+    root.getElementById("zont-v087-style")?.remove();
+
+    if (!root.getElementById("zont-v088-style")) {
       const style = document.createElement("style");
-      style.id = "zont-v087-style";
+      style.id = "zont-v088-style";
       style.textContent = `
       .header{grid-template-columns:64px 1fr 64px!important;min-height:92px!important;padding:max(10px,env(safe-area-inset-top,0px)) 20px 10px!important;border-bottom:1px solid var(--divider-color,#e5e5e5)!important;box-shadow:none!important}.rail{width:52px!important;height:52px!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 6px 20px rgba(0,0,0,.06)!important}.rail ha-icon{--mdc-icon-size:31px!important}#back{justify-self:start}#refresh{justify-self:end;color:var(--primary-color,#087de0)!important}.heading strong{font-size:24px!important;font-weight:760!important}.heading span{margin-top:5px!important;font-size:14px!important;color:var(--secondary-text-color,#666)!important}
       main{width:min(100%,980px)!important}.z82-system,.z82-section{background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#ddd);border-radius:22px;padding:16px;margin-bottom:16px}.z82-system.attention{border-color:var(--warning-color,#ff9800)}.z82-system.offline{border-color:var(--error-color,#db4437)}.z82-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.z82-eyebrow{font-size:10.5px;font-weight:760;letter-spacing:.14em;color:var(--secondary-text-color,#666)}.z82-head h1{font-size:29px;line-height:1.04;margin:7px 0 4px}.z82-head p{margin:0;color:var(--secondary-text-color,#666);font-size:14px}.z82-online{min-width:112px;display:grid;grid-template-columns:9px auto;gap:2px 7px;align-items:center;padding:10px 12px;border-radius:999px;background:color-mix(in srgb,var(--success-color,#43a047) 10%,var(--card-background-color,#fff));color:var(--success-color,#43a047)}.z82-online i{width:8px;height:8px;border-radius:50%;background:currentColor}.z82-online strong{font-size:12px}.z82-online small{grid-column:1/3;text-align:center;font-size:8.5px;color:var(--secondary-text-color,#777)}.z82-system.attention .z82-online{color:var(--warning-color,#ff9800);background:color-mix(in srgb,var(--warning-color,#ff9800) 10%,var(--card-background-color,#fff))}.z82-system.offline .z82-online{color:var(--error-color,#db4437)}
@@ -443,8 +454,8 @@ function installV087() {
     return result;
   };
 
-  ElementClass.prototype.__zontV087 = true;
+  ElementClass.prototype.__zontV088 = true;
   return true;
 }
 
-if (!installV087()) customElements.whenDefined(ELEMENT_NAME).then(() => installV087());
+if (!installV088()) customElements.whenDefined(ELEMENT_NAME).then(() => installV088());

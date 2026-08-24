@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.8
+
+- Replaced the incorrect mixer-valve position message with the real three-state movement model: opening, closing or stationary.
+- Reported unavailable actuator signals as missing data instead of a normal stationary state.
+- Added an explicit conflict warning for the impossible case where opening and closing are active simultaneously.
+
 ## 0.8.7
 
 - Increased wide-screen equipment labels and live values by roughly 20–30 percent without changing the approved hydraulic topology.
