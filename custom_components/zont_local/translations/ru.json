@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ZONT Local & UI",
+        "description": "Установить хост панели ZONT. Поддержка локального контроллера будет добавлена в эту же интеграцию позже."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "ZONT Local & UI уже настроена."
+    }
+  }
+}
