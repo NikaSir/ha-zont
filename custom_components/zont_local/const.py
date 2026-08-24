@@ -1,0 +1,12 @@
+"""Constants for ZONT Local & UI."""
+
+DOMAIN = "zont_local"
+NAME = "ZONT Local & UI"
+VERSION = "0.8.0"
+
+FRONTEND_DIRECTORY = "frontend"
+FRONTEND_FILENAME = "zont-ui.js"
+FRONTEND_STATIC_PATH = f"/{DOMAIN}/frontend/{FRONTEND_FILENAME}"
+FRONTEND_BUILD = "b001"
+FRONTEND_MODULE_URL = f"{FRONTEND_STATIC_PATH}?build={FRONTEND_BUILD}"
+FRONTEND_STATIC_REGISTERED = "frontend_static_registered"
