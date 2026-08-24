@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.3
+
+- Reduced the hydraulic separator to a neutral connective element.
+- Added compact hydraulic-separator temperature and system-pressure readings on the right.
+- Restored the connected DHW topology: hot-water outlet and faucet, recirculation loop and pump, cold-water inlet and pressure gauge.
+- Reflowed the mobile equipment area to two boiler cards plus a full-width DHW card.
+- Separated online availability from warnings and clarified active, off and unavailable states.
+- Distinguished circuit enable state from the current pump state where both entities are available.
+- Compacted the header, bottom navigation, node cards and mobile metric/mode grids.
+
 ## 0.8.2
 
 - Rebuilt the State view around the approved live hydraulic topology.
@@ -10,4 +20,3 @@
 - Preserved safe ZONT mode buttons; pumps and mixer remain monitoring-only.
 - Kept missing, unknown and unavailable telemetry explicit.
 - Added frontend syntax and release-version checks to CI.
-
