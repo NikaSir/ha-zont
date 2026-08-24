@@ -1,0 +1,13 @@
+{
+  "domain": "zont_local",
+  "name": "ZONT Local & UI",
+  "codeowners": ["@NikaSir"],
+  "config_flow": true,
+  "dependencies": ["frontend", "http"],
+  "documentation": "https://github.com/NikaSir/ha-zont",
+  "integration_type": "hub",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/NikaSir/ha-zont/issues",
+  "requirements": [],
+  "version": "0.8.0"
+}
