@@ -1,9 +1,9 @@
-// ZONT UI v0.8.10 — HACS-managed application layer.
+// ZONT UI v0.8.11 — HACS-managed application layer.
 // Base renderer and registry discovery are provided by Contract Generated UI.
 import "/contract_generated_ui/frontend/nikas-generated-zont.js";
 
 const ELEMENT_NAME = "nikas-generated-zont";
-const UI_VERSION = "0.8.10";
+const UI_VERSION = "0.8.11";
 const STALE_AFTER_MS = 15 * 60 * 1000;
 const ENTITY_BINDINGS = Object.freeze({
   online: ["binary_sensor.nikas_h2000_pro_online"],
@@ -71,9 +71,9 @@ const ageLabel = (ageMs) => {
   return `Обновлено ${hours} ч назад`;
 };
 
-function installV0810() {
+function installV0811() {
   const ElementClass = customElements.get(ELEMENT_NAME);
-  if (!ElementClass || ElementClass.prototype.__zontV0810) return false;
+  if (!ElementClass || ElementClass.prototype.__zontV0811) return false;
 
   const originalRender = ElementClass.prototype._render;
   if (typeof originalRender !== "function") return false;
@@ -395,9 +395,10 @@ function installV0810() {
         <div class="z82-dhw-temperature"><ha-icon icon="mdi:thermometer"></ha-icon><strong>${esc(value(dhwTemperature))}</strong><small>${esc(dhwStatusText)}</small>${statusDot(dhwState || dhwTemperature)}</div>
         <i class="z82-pipe z82-hot-pipe"></i><i class="z82-flow-arrow hot"></i>
         <i class="z82-pipe z82-loop-branch"></i><i class="z82-pipe z82-loop-return"></i><i class="z82-pipe z82-loop-vertical"></i><i class="z82-flow-arrow loop"></i>
+        <span class="z82-loop-pump ${statusClass(circulationState)}" title="Насос циркуляции: ${esc(state(circulationState))}"><ha-icon icon="mdi:pump"></ha-icon></span>
         <i class="z82-pipe z82-cold-pipe"></i><i class="z82-flow-arrow cold"></i>
         <div class="z82-hot-water"><ha-icon icon="mdi:faucet"></ha-icon><span>Выход ГВС</span><strong>${esc(value(dhwTemperature))}</strong></div>
-        <div class="z82-circulation-loop"><ha-icon icon="mdi:pump"></ha-icon><span>Циркуляция</span><strong>${esc(value(circulationTemperature))}</strong><small>${esc(state(circulationState))}</small></div>
+        <div class="z82-circulation-loop"><span>Циркуляция</span><strong>${esc(value(circulationTemperature))}</strong><small>${esc(state(circulationState))}</small></div>
         <div class="z82-cold-water"><ha-icon icon="mdi:gauge"></ha-icon><span>Вход ХВС</span><strong>${esc(value(coldWaterPressure))}</strong></div>
       </div>
     </article>`;
@@ -412,7 +413,7 @@ function installV0810() {
       return `<article class="z82-circuit-card">
         <header><div><h3>${esc(titleText)}</h3></div><ha-icon class="z82-circuit-icon" icon="${icon}"></ha-icon></header>
         <div class="z82-circuit-device">
-          <div class="z82-pump-art ${active(circuitState) ? "on" : ""}"><ha-icon icon="${pump ? "mdi:pump" : "mdi:heating-coil"}"></ha-icon></div>
+          <div class="z82-pump-art ${statusClass(circuitState)}"><ha-icon icon="mdi:pump"></ha-icon></div>
           <div><span>${esc(circuitLabel)}</span><strong>${esc(state(circuitState))}</strong></div>
           ${statusDot(circuitState)}
         </div>
@@ -540,9 +541,11 @@ function installV0810() {
 
     root.getElementById("zont-v089-style")?.remove();
 
-    if (!root.getElementById("zont-v0810-style")) {
+    root.getElementById("zont-v0810-style")?.remove();
+
+    if (!root.getElementById("zont-v0811-style")) {
       const style = document.createElement("style");
-      style.id = "zont-v0810-style";
+      style.id = "zont-v0811-style";
       style.textContent = `
       .header{grid-template-columns:64px 1fr 64px!important;min-height:92px!important;padding:max(10px,env(safe-area-inset-top,0px)) 20px 10px!important;border-bottom:1px solid var(--divider-color,#e5e5e5)!important;box-shadow:none!important}.rail{width:52px!important;height:52px!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 6px 20px rgba(0,0,0,.06)!important}.rail ha-icon{--mdc-icon-size:31px!important}#back{justify-self:start}#refresh{justify-self:end;color:var(--primary-color,#087de0)!important}.heading strong{font-size:24px!important;font-weight:760!important}.heading span{margin-top:5px!important;font-size:14px!important;color:var(--secondary-text-color,#666)!important}
       main{width:min(100%,980px)!important}.z82-system,.z82-section{background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#ddd);border-radius:22px;padding:16px;margin-bottom:16px}.z82-system.attention{border-color:var(--warning-color,#ff9800)}.z82-system.offline{border-color:var(--error-color,#db4437)}.z82-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.z82-eyebrow{font-size:10.5px;font-weight:760;letter-spacing:.14em;color:var(--secondary-text-color,#666)}.z82-head h1{font-size:29px;line-height:1.04;margin:7px 0 4px}.z82-head p{margin:0;color:var(--secondary-text-color,#666);font-size:14px}.z82-online{min-width:112px;display:grid;grid-template-columns:9px auto;gap:2px 7px;align-items:center;padding:10px 12px;border-radius:999px;background:color-mix(in srgb,var(--success-color,#43a047) 10%,var(--card-background-color,#fff));color:var(--success-color,#43a047)}.z82-online i{width:8px;height:8px;border-radius:50%;background:currentColor}.z82-online strong{font-size:12px}.z82-online small{grid-column:1/3;text-align:center;font-size:8.5px;color:var(--secondary-text-color,#777)}.z82-system.attention .z82-online{color:var(--warning-color,#ff9800);background:color-mix(in srgb,var(--warning-color,#ff9800) 10%,var(--card-background-color,#fff))}.z82-system.offline .z82-online{color:var(--error-color,#db4437)}
@@ -681,6 +684,16 @@ function installV0810() {
 
         .z82-hydro-stage{height:32px;margin-top:29px;margin-bottom:34px}.z82-hydro{border-radius:9px}.z82-hydro strong{left:42%;font-size:11px;font-weight:800;letter-spacing:.025em}.z82-hydro-values{right:7px;gap:5px;color:#40464b;font-weight:650}.z82-hydro-values span{font-size:9.2px;gap:2px}.z82-hydro-values ha-icon{--mdc-icon-size:11px}.z82-hydro:before,.z82-hydro:after{top:8px;height:16px}
       }
+
+      /* v0.8.11 — physical pump symbols and clean DHW callouts */
+      .z82-loop-pump{position:absolute;left:67%;top:105px;z-index:7;width:28px;height:28px;box-sizing:border-box;transform:translate(-50%,-50%);display:grid;place-items:center;border:2px solid currentColor;border-radius:50%;background:#171717;color:#842197;box-shadow:0 0 0 2px var(--card-background-color,#fff)}.z82-loop-pump ha-icon{--mdc-icon-size:18px}.z82-loop-pump.off{color:var(--secondary-text-color,#888)}.z82-loop-pump.ready{color:var(--primary-color,#087de0)}.z82-loop-pump.problem{color:var(--warning-color,#ff9800)}
+      .z82-pump-art.off{color:var(--secondary-text-color,#777)}.z82-pump-art.ready{color:var(--primary-color,#087de0)}.z82-pump-art.problem{color:var(--warning-color,#ff9800)}
+      .z82-circulation-loop{box-sizing:border-box;grid-template-columns:minmax(0,1fr);padding-left:35px}
+      .z82-hot-water:before,.z82-circulation-loop:before,.z82-cold-water:before{content:"";position:absolute;top:-2px;right:-2px;bottom:-2px;z-index:1;border-radius:4px;background:var(--card-background-color,#fff);pointer-events:none}.z82-hot-water:before,.z82-cold-water:before{left:26px}.z82-circulation-loop:before{left:33px}.z82-hot-water>*,.z82-circulation-loop>*,.z82-cold-water>*{position:relative;z-index:2}
+      @media(max-width:520px){
+        .z82-loop-pump{left:46%;top:92px;width:20px;height:20px;border-width:1.5px;box-shadow:0 0 0 1.5px var(--card-background-color,#fff)}.z82-loop-pump ha-icon{--mdc-icon-size:13px}
+        .z82-circulation-loop{grid-template-columns:minmax(0,1fr);padding-left:20px}.z82-hot-water:before,.z82-cold-water:before{left:16px}.z82-circulation-loop:before{left:18px}
+      }
       `;
       root.appendChild(style);
     }
@@ -706,8 +719,8 @@ function installV0810() {
     return result;
   };
 
-  ElementClass.prototype.__zontV0810 = true;
+  ElementClass.prototype.__zontV0811 = true;
   return true;
 }
 
-if (!installV0810()) customElements.whenDefined(ELEMENT_NAME).then(() => installV0810());
+if (!installV0811()) customElements.whenDefined(ELEMENT_NAME).then(() => installV0811());
