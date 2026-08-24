@@ -3,8 +3,8 @@ kind: PanelManifest
 metadata:
   id: zont
   title: ZONT
-  version: 0.8.0
-  description: Semantic ZONT panel with unified application header, actuator status and safe heating-mode controls.
+  version: 0.8.2
+  description: Live ZONT heating and DHW topology with explicit availability, actuator status and safe heating-mode controls.
 spec:
   dashboard_path: /dashboard-zont
   subpanel:
@@ -19,12 +19,12 @@ spec:
       include_disabled: false
   views:
     - id: states
-      title: Состояния
-      icon: mdi:pump
+      title: Состояние
+      icon: mdi:home-thermometer-outline
       path: states
       order: 0
       renderer: subpanel_placeholder_v1
-      placeholder: Насосы, смесительный привод и режимы отопления.
+      placeholder: Котлы, ГВС, гидрострелка, отопительные контуры, насосы и текущий режим.
       readonly:
         domains:
           - sensor

@@ -12,6 +12,22 @@ permissions:
   contents: read
 
 jobs:
+  ui:
+    name: UI syntax and version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - name: Check frontend module syntax
+        run: node --input-type=module --check < custom_components/zont_local/frontend/zont-ui.js
+      - name: Check release version synchronization
+        run: |
+          grep -F 'VERSION = "0.8.2"' custom_components/zont_local/const.py
+          grep -F '"version": "0.8.2"' custom_components/zont_local/manifest.json
+          grep -F 'version: 0.8.2' dashboard/manifest/zont.yaml
+
   hassfest:
     name: Hassfest
     runs-on: ubuntu-latest
