@@ -1,9 +1,9 @@
-// ZONT UI v0.8.4 — HACS-managed application layer.
+// ZONT UI v0.8.5 — HACS-managed application layer.
 // Base renderer and registry discovery are provided by Contract Generated UI.
 import "/contract_generated_ui/frontend/nikas-generated-zont.js";
 
 const ELEMENT_NAME = "nikas-generated-zont";
-const UI_VERSION = "0.8.4";
+const UI_VERSION = "0.8.5";
 const esc = (value) => String(value ?? "—")
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
@@ -12,14 +12,14 @@ const includesAny = (text, words) => {
   return words.some((word) => source.includes(String(word).toLocaleLowerCase()));
 };
 
-function installV084() {
+function installV085() {
   const ElementClass = customElements.get(ELEMENT_NAME);
-  if (!ElementClass || ElementClass.prototype.__zontV084) return false;
+  if (!ElementClass || ElementClass.prototype.__zontV085) return false;
 
   const originalRender = ElementClass.prototype._render;
   if (typeof originalRender !== "function") return false;
 
-  ElementClass.prototype._systemOverviewV084 = function systemOverviewV084(items) {
+  ElementClass.prototype._systemOverviewV085 = function systemOverviewV085(items) {
     const main = this._boilerSet(items, false);
     const reserveBoiler = this._boilerSet(items, true);
     const value = (item, fallback = "—") => {
@@ -163,7 +163,7 @@ function installV084() {
         <i class="z82-pipe z82-loop-branch"></i><i class="z82-pipe z82-loop-return"></i><i class="z82-pipe z82-loop-vertical"></i><i class="z82-flow-arrow loop"></i>
         <i class="z82-pipe z82-cold-pipe"></i><i class="z82-flow-arrow cold"></i>
         <div class="z82-hot-water"><ha-icon icon="mdi:faucet"></ha-icon><span>Выход ГВС</span><strong>${esc(value(dhwTemperature))}</strong></div>
-        <div class="z82-circulation-loop"><ha-icon icon="mdi:pump"></ha-icon><span>Циркуляция</span><strong>${esc(value(circulationTemperature))}</strong><small>Насос: ${esc(state(circulationState))}</small></div>
+        <div class="z82-circulation-loop"><ha-icon icon="mdi:pump"></ha-icon><span>Циркуляция</span><strong>${esc(value(circulationTemperature))}</strong><small>${esc(state(circulationState))}</small></div>
         <div class="z82-cold-water"><ha-icon icon="mdi:gauge"></ha-icon><span>Вход ХВС</span><strong>${esc(value(coldWaterPressure))}</strong></div>
       </div>
     </article>`;
@@ -273,11 +273,11 @@ function installV084() {
     <section class="z82-section"><span class="z82-eyebrow">ТЕКУЩИЙ РЕЖИМ</span><div class="z82-modes">${modeButtons}</div></section>`;
   };
 
-  ElementClass.prototype._states = function statesV084(items) {
-    return this._systemOverviewV084(items);
+  ElementClass.prototype._states = function statesV085(items) {
+    return this._systemOverviewV085(items);
   };
 
-  ElementClass.prototype._render = function patchedRenderV084(...args) {
+  ElementClass.prototype._render = function patchedRenderV085(...args) {
     const result = originalRender.apply(this, args);
     const root = this.shadowRoot;
     if (!root) return result;
@@ -289,9 +289,11 @@ function installV084() {
 
     root.getElementById("zont-v083-style")?.remove();
 
-    if (!root.getElementById("zont-v084-style")) {
+    root.getElementById("zont-v084-style")?.remove();
+
+    if (!root.getElementById("zont-v085-style")) {
       const style = document.createElement("style");
-      style.id = "zont-v084-style";
+      style.id = "zont-v085-style";
       style.textContent = `
       .header{grid-template-columns:64px 1fr 64px!important;min-height:92px!important;padding:max(10px,env(safe-area-inset-top,0px)) 20px 10px!important;border-bottom:1px solid var(--divider-color,#e5e5e5)!important;box-shadow:none!important}.rail{width:52px!important;height:52px!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 6px 20px rgba(0,0,0,.06)!important}.rail ha-icon{--mdc-icon-size:31px!important}#back{justify-self:start}#refresh{justify-self:end;color:var(--primary-color,#087de0)!important}.heading strong{font-size:24px!important;font-weight:760!important}.heading span{margin-top:5px!important;font-size:14px!important;color:var(--secondary-text-color,#666)!important}
       main{width:min(100%,980px)!important}.z82-system,.z82-section{background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#ddd);border-radius:22px;padding:16px;margin-bottom:16px}.z82-system.attention{border-color:var(--warning-color,#ff9800)}.z82-system.offline{border-color:var(--error-color,#db4437)}.z82-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.z82-eyebrow{font-size:10.5px;font-weight:760;letter-spacing:.14em;color:var(--secondary-text-color,#666)}.z82-head h1{font-size:29px;line-height:1.04;margin:7px 0 4px}.z82-head p{margin:0;color:var(--secondary-text-color,#666);font-size:14px}.z82-online{min-width:112px;display:grid;grid-template-columns:9px auto;gap:2px 7px;align-items:center;padding:10px 12px;border-radius:999px;background:color-mix(in srgb,var(--success-color,#43a047) 10%,var(--card-background-color,#fff));color:var(--success-color,#43a047)}.z82-online i{width:8px;height:8px;border-radius:50%;background:currentColor}.z82-online strong{font-size:12px}.z82-online small{grid-column:1/3;text-align:center;font-size:8.5px;color:var(--secondary-text-color,#777)}.z82-system.attention .z82-online{color:var(--warning-color,#ff9800);background:color-mix(in srgb,var(--warning-color,#ff9800) 10%,var(--card-background-color,#fff))}.z82-system.offline .z82-online{color:var(--error-color,#db4437)}
@@ -367,6 +369,31 @@ function installV084() {
       @media(max-width:380px){
         .z82-equipment-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.z82-circuits-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.z82-hydro strong{left:39%}.z82-hot-water,.z82-circulation-loop,.z82-cold-water{width:47px}.z82-hot-water span,.z82-circulation-loop span,.z82-cold-water span{font-size:4.6px}.z82-hot-water strong,.z82-circulation-loop strong,.z82-cold-water strong{font-size:5.8px}
       }
+
+      /* v0.8.5 — readability pass while retaining the one-screen topology */
+      @media(max-width:520px){
+        .z82-online{min-width:82px;padding:6px 7px}.z82-online strong{font-size:9.8px}.z82-online small{font-size:6.6px}.z82-notice{font-size:7px;padding:4px 7px}
+
+        .z82-equipment{padding:7px}.z82-equipment header{min-height:31px}.z82-equipment h3{font-size:11px}.z82-equipment header>span,.z82-equipment h3 span{font-size:7.3px}
+        .z82-boiler-visual{height:74px}.z82-boiler-art{width:44px;height:66px}.z82-boiler-art:before{left:15px;top:-6px;width:14px;height:6px}.z82-boiler-art i{left:6px;bottom:8px;width:20px;height:7px}.z82-boiler-art b{left:7px;bottom:8px;width:18px;font-size:4.8px;line-height:7px}.z82-mini-tank{width:14px;height:34px}.z82-flame{--mdc-icon-size:15px}.z82-boiler-visual .z82-dot{width:12px;height:12px}
+        .z82-rows{gap:3px}.z82-row{font-size:7.8px;line-height:1.12}.z82-row span:before{width:4px;height:4px;margin-right:3px}.z82-row strong{font-size:8.9px}
+
+        .z82-dhw-schematic{height:148px;min-height:148px}.z82-dhw-schematic .z82-tank{left:2px;top:30px;width:40px;height:100px}.z82-dhw-schematic .z82-port.hot{top:9px}.z82-dhw-schematic .z82-port.loop{top:67px}.z82-dhw-schematic .z82-port.cold{left:16px!important}
+        .z82-dhw-temperature{top:1px;grid-template-columns:12px minmax(0,1fr) 10px;gap:0 3px}.z82-dhw-temperature ha-icon{--mdc-icon-size:11px}.z82-dhw-temperature strong{font-size:9.2px}.z82-dhw-temperature small{font-size:6.7px}.z82-dhw-temperature .z82-dot{width:9px;height:9px}
+        .z82-hot-pipe{left:42px;right:24px;top:39px}.z82-loop-branch{left:64%;top:39px;height:35px}.z82-loop-vertical{left:64%;top:74px;height:27px}.z82-loop-return{left:42px;right:36%;top:99px}.z82-cold-pipe{left:21px;right:24px;top:140px}.z82-cold-pipe:before{height:11px}
+        .z82-flow-arrow.hot{right:20px;top:36px}.z82-flow-arrow.loop{left:43px;top:96px}.z82-flow-arrow.cold{left:23px;top:137px}
+        .z82-hot-water,.z82-circulation-loop,.z82-cold-water{right:-2px;width:56px;grid-template-columns:14px minmax(0,1fr);column-gap:2px}.z82-hot-water{top:27px}.z82-circulation-loop{top:67px}.z82-cold-water{bottom:0}.z82-hot-water ha-icon,.z82-circulation-loop ha-icon,.z82-cold-water ha-icon{--mdc-icon-size:13px}.z82-hot-water span,.z82-circulation-loop span,.z82-cold-water span{font-size:6.2px}.z82-hot-water strong,.z82-circulation-loop strong,.z82-cold-water strong{font-size:7.8px}.z82-circulation-loop small{font-size:6.3px}
+
+        .z82-hydro-stage{height:25px;margin-top:27px;margin-bottom:31px}.z82-hydro strong{font-size:9.3px}.z82-hydro-values{gap:5px}.z82-hydro-values span{font-size:7px}.z82-hydro-values ha-icon{--mdc-icon-size:9px}
+
+        .z82-circuit-card{padding:9px}.z82-circuit-card h3{font-size:10.5px}.z82-circuit-icon{--mdc-icon-size:26px}.z82-circuit-device,.z82-mixer{gap:6px;margin-top:8px}.z82-pump-art{width:32px;height:32px}.z82-pump-art ha-icon{--mdc-icon-size:20px}.z82-circuit-device span,.z82-mixer span{font-size:7.6px}.z82-circuit-device strong,.z82-mixer strong{font-size:9px}.z82-mixer strong{font-size:9.2px;line-height:1.12}.z82-mixer>ha-icon{--mdc-icon-size:29px}.z82-circuit-device .z82-dot,.z82-mixer .z82-dot{width:11px;height:11px}.z82-circuit-values{padding-top:9px;gap:6px}.z82-circuit-values span{font-size:7.5px}.z82-circuit-values strong{font-size:10.5px}.z82-circuit-values i{height:3px}
+
+        .z82-legend{gap:6px 7px;padding:7px 5px}.z82-legend span{gap:4px;font-size:7.1px}.z82-legend i{width:20px;height:3px}.z82-legend b{width:10px;height:10px}
+        .z82-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}.z82-metric{min-height:62px;padding:7px;grid-template-columns:20px minmax(0,1fr);gap:1px 5px;border-radius:12px}.z82-metric ha-icon{--mdc-icon-size:20px}.z82-metric span{font-size:8px;line-height:1.1}.z82-metric strong{font-size:11px}.z82-metric small{font-size:7.4px}
+      }
+      @media(max-width:380px){
+        .z82-equipment h3{font-size:10px}.z82-row{font-size:7.1px}.z82-row strong{font-size:8px}.z82-hot-water,.z82-circulation-loop,.z82-cold-water{width:50px}.z82-hot-water span,.z82-circulation-loop span,.z82-cold-water span{font-size:5.5px}.z82-hot-water strong,.z82-circulation-loop strong,.z82-cold-water strong{font-size:7px}.z82-circulation-loop small{font-size:5.6px}
+      }
       `;
       root.appendChild(style);
     }
@@ -392,8 +419,8 @@ function installV084() {
     return result;
   };
 
-  ElementClass.prototype.__zontV084 = true;
+  ElementClass.prototype.__zontV085 = true;
   return true;
 }
 
-if (!installV084()) customElements.whenDefined(ELEMENT_NAME).then(() => installV084());
+if (!installV085()) customElements.whenDefined(ELEMENT_NAME).then(() => installV085());

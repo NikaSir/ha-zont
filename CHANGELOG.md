@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.5
+
+- Increased mobile typography, status marks and equipment graphics while preserving the three-card top row.
+- Enlarged the connected DHW schematic and shortened the circulation-pump status to avoid truncation.
+- Increased hydroseparator readings, circuit controls and temperatures for comfortable phone viewing.
+- Changed the four key metrics from a tiny single row to a readable 2-by-2 grid while retaining the complete system overview within one mobile viewport.
+
 ## 0.8.4
 
 - Returned the DHW boiler to the common equipment row with both heating boilers on mobile.
