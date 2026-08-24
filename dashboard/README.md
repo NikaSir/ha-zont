@@ -2,18 +2,32 @@
 
 This directory contains the Home Assistant UI layer for ZONT.
 
+## Current canonical source
+
+The current panel definition is:
+
+- `manifest/zont.yaml` — canonical Contract Generated UI panel manifest, currently v0.7.0.
+
+The concrete Lovelace dashboard is intentionally generated inside Home Assistant from the public manifest plus the private verified entity inventory. Real Home Assistant bindings are therefore not duplicated in this public repository.
+
+## Baseline reference
+
+- `zont_dashboard.yaml` — protected static heating baseline retained as a migration/reference artifact. It contains the historical real entity IDs and must not be treated as the canonical generated ZONT panel.
+
 ## Current role
 
-The dashboard is the active part of the project while the existing ZONT controller remains in service. It may use entities exposed by the current Home Assistant setup, but those entities are considered temporary implementation details.
+The dashboard is the active part of the project while the existing ZONT controller remains in service. Entities exposed by the current Home Assistant setup are temporary implementation details and do not define the future local-integration API.
 
 ## UI contract
 
-The dashboard should follow the project-wide Home Assistant layout principles:
+The dashboard follows the project-wide Home Assistant principles:
 
 - Status → Control → Diagnostics.
-- Unknown/unavailable states are shown explicitly and are not treated as normal.
+- Unknown/unavailable states are explicit and are not treated as normal.
 - Long press opens more-info where applicable.
 - Operational information is prioritized over engineering telemetry.
-- Control elements must not imply local control until a verified local integration exists.
+- Control elements must not imply verified local control until the future local integration provides it.
 
-Future dashboard files and generated Lovelace assets should be stored below this directory.
+## Ownership boundary
+
+`ha-zont` owns the ZONT-specific dashboard source and, later, the native local ZONT integration. `ha-contract-generated-ui` remains the shared renderer/generator platform used to build the dashboard from the manifest and verified inventory.
