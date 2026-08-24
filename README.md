@@ -1,43 +1,79 @@
 # ha-zont
 
-ZONT dashboard and future local integration for Home Assistant.
+ZONT Local & UI for Home Assistant.
 
 ## Project status
 
-**Phase 1 — Dashboard / UI**
+**Phase 1 — HACS-managed ZONT UI**
 
-The repository currently hosts the ZONT user interface layer for Home Assistant. The existing controller is treated as a temporary data source and is not the architectural foundation of the project.
+The repository now ships a Home Assistant custom integration with domain `zont_local`. HACS installs it to:
 
-**Phase 2 — Local integration**
+```text
+/config/custom_components/zont_local
+```
 
-After migration to a new ZONT controller, this repository will also host a native Home Assistant integration focused on local telemetry and local control where the controller/protocol permits it.
+The integration registers the ZONT frontend package and makes the panel release/update lifecycle independent from manual file copying. Updates are delivered through HACS in the same way as the other NikaS custom integrations: download the new commit/version and restart Home Assistant when requested.
+
+The current controller remains a temporary data source and is not the protocol baseline for future local control.
+
+**Phase 2 — Local controller integration**
+
+After migration to a new ZONT controller, the same `zont_local` integration will gain local discovery, telemetry, diagnostics and verified local control. Existing `zont` / `zont_ha` domains are intentionally not reused, avoiding conflicts during migration.
+
+## HACS installation
+
+Add this repository to HACS as a **Custom repository** with category **Integration**:
+
+```text
+https://github.com/NikaSir/ha-zont
+```
+
+Then download **ZONT Local & UI**, restart Home Assistant and add the integration once from **Settings → Devices & services → Add integration**. The first configuration entry only enables the HACS-managed UI host; controller settings will be introduced later when the local protocol is implemented.
 
 ## Architecture
 
 ```text
 ha-zont/
-├── dashboard/              # Current ZONT Lovelace/UI assets
+├── custom_components/
+│   └── zont_local/
+│       ├── __init__.py
+│       ├── config_flow.py
+│       ├── const.py
+│       ├── manifest.json
+│       ├── strings.json
+│       ├── translations/
+│       └── frontend/
+│           └── zont-ui.js
+├── dashboard/              # UI contract / manifest and baseline assets
+├── frontend/               # Development/reference frontend source
 ├── docs/                   # Architecture, controller and protocol notes
-└── custom_components/
-    └── zont/               # Reserved for the future HA integration
+├── hacs.json
+└── LICENSE
 ```
+
+Current runtime split:
+
+`Contract Generated UI base renderer → ha-zont ZONT application layer → Home Assistant entities`
 
 The intended evolution is:
 
-`Dashboard → new controller → local protocol research → read-only integration → local control → production integration`
+`HACS-managed UI → new controller → local protocol research → read-only integration → local control → production integration`
 
 ## Design principles
 
-- Local-first communication for the future integration.
-- Cloud access is optional and must not be the only control path where local access is available.
+- Local-first communication for the future controller integration.
+- No collision with existing `zont` or `zont_ha` integrations during migration.
 - Read-only telemetry is implemented before write/control operations.
 - UI is separated from the transport/API layer.
 - Controller-specific limitations are documented explicitly.
 - No write operation is enabled until its behavior is verified on real hardware.
+- The repository is the canonical owner of ZONT-specific UI and future local integration code.
 
-## Current scope
+## Current UI
 
-The current repository scope is the ZONT dashboard/menu for the Home Assistant NikaS project. The existing controller may provide temporary entities to the dashboard, but compatibility with that controller does not define the future integration API.
+Current line: **ZONT UI v0.8.0**.
+
+The start view includes a live heating-system overview, current mode, major nodes and diagnostics. The upper-left button opens the native Home Assistant menu via `hass-toggle-menu`.
 
 ## License
 
