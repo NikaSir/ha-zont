@@ -1,9 +1,9 @@
-// ZONT UI v0.8.5 — HACS-managed application layer.
+// ZONT UI v0.8.6 — HACS-managed application layer.
 // Base renderer and registry discovery are provided by Contract Generated UI.
 import "/contract_generated_ui/frontend/nikas-generated-zont.js";
 
 const ELEMENT_NAME = "nikas-generated-zont";
-const UI_VERSION = "0.8.5";
+const UI_VERSION = "0.8.6";
 const esc = (value) => String(value ?? "—")
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
@@ -12,14 +12,14 @@ const includesAny = (text, words) => {
   return words.some((word) => source.includes(String(word).toLocaleLowerCase()));
 };
 
-function installV085() {
+function installV086() {
   const ElementClass = customElements.get(ELEMENT_NAME);
-  if (!ElementClass || ElementClass.prototype.__zontV085) return false;
+  if (!ElementClass || ElementClass.prototype.__zontV086) return false;
 
   const originalRender = ElementClass.prototype._render;
   if (typeof originalRender !== "function") return false;
 
-  ElementClass.prototype._systemOverviewV085 = function systemOverviewV085(items) {
+  ElementClass.prototype._systemOverviewV086 = function systemOverviewV086(items) {
     const main = this._boilerSet(items, false);
     const reserveBoiler = this._boilerSet(items, true);
     const value = (item, fallback = "—") => {
@@ -273,11 +273,11 @@ function installV085() {
     <section class="z82-section"><span class="z82-eyebrow">ТЕКУЩИЙ РЕЖИМ</span><div class="z82-modes">${modeButtons}</div></section>`;
   };
 
-  ElementClass.prototype._states = function statesV085(items) {
-    return this._systemOverviewV085(items);
+  ElementClass.prototype._states = function statesV086(items) {
+    return this._systemOverviewV086(items);
   };
 
-  ElementClass.prototype._render = function patchedRenderV085(...args) {
+  ElementClass.prototype._render = function patchedRenderV086(...args) {
     const result = originalRender.apply(this, args);
     const root = this.shadowRoot;
     if (!root) return result;
@@ -291,9 +291,11 @@ function installV085() {
 
     root.getElementById("zont-v084-style")?.remove();
 
-    if (!root.getElementById("zont-v085-style")) {
+    root.getElementById("zont-v085-style")?.remove();
+
+    if (!root.getElementById("zont-v086-style")) {
       const style = document.createElement("style");
-      style.id = "zont-v085-style";
+      style.id = "zont-v086-style";
       style.textContent = `
       .header{grid-template-columns:64px 1fr 64px!important;min-height:92px!important;padding:max(10px,env(safe-area-inset-top,0px)) 20px 10px!important;border-bottom:1px solid var(--divider-color,#e5e5e5)!important;box-shadow:none!important}.rail{width:52px!important;height:52px!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 6px 20px rgba(0,0,0,.06)!important}.rail ha-icon{--mdc-icon-size:31px!important}#back{justify-self:start}#refresh{justify-self:end;color:var(--primary-color,#087de0)!important}.heading strong{font-size:24px!important;font-weight:760!important}.heading span{margin-top:5px!important;font-size:14px!important;color:var(--secondary-text-color,#666)!important}
       main{width:min(100%,980px)!important}.z82-system,.z82-section{background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#ddd);border-radius:22px;padding:16px;margin-bottom:16px}.z82-system.attention{border-color:var(--warning-color,#ff9800)}.z82-system.offline{border-color:var(--error-color,#db4437)}.z82-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.z82-eyebrow{font-size:10.5px;font-weight:760;letter-spacing:.14em;color:var(--secondary-text-color,#666)}.z82-head h1{font-size:29px;line-height:1.04;margin:7px 0 4px}.z82-head p{margin:0;color:var(--secondary-text-color,#666);font-size:14px}.z82-online{min-width:112px;display:grid;grid-template-columns:9px auto;gap:2px 7px;align-items:center;padding:10px 12px;border-radius:999px;background:color-mix(in srgb,var(--success-color,#43a047) 10%,var(--card-background-color,#fff));color:var(--success-color,#43a047)}.z82-online i{width:8px;height:8px;border-radius:50%;background:currentColor}.z82-online strong{font-size:12px}.z82-online small{grid-column:1/3;text-align:center;font-size:8.5px;color:var(--secondary-text-color,#777)}.z82-system.attention .z82-online{color:var(--warning-color,#ff9800);background:color-mix(in srgb,var(--warning-color,#ff9800) 10%,var(--card-background-color,#fff))}.z82-system.offline .z82-online{color:var(--error-color,#db4437)}
@@ -394,6 +396,16 @@ function installV085() {
       @media(max-width:380px){
         .z82-equipment h3{font-size:10px}.z82-row{font-size:7.1px}.z82-row strong{font-size:8px}.z82-hot-water,.z82-circulation-loop,.z82-cold-water{width:50px}.z82-hot-water span,.z82-circulation-loop span,.z82-cold-water span{font-size:5.5px}.z82-hot-water strong,.z82-circulation-loop strong,.z82-cold-water strong{font-size:7px}.z82-circulation-loop small{font-size:5.6px}
       }
+
+      /* v0.8.6 — light hydraulic separator and fuller use of vertical space */
+      .z82-hydro{box-sizing:border-box;border:1px solid #c9c9c9;background:linear-gradient(115deg,#ececec 0,#fff 44%,#dedede);box-shadow:0 4px 10px rgba(0,0,0,.09);color:var(--primary-text-color,#202124)}
+      .z82-hydro-values{color:var(--secondary-text-color,#666)}
+      .z82-hydro:before,.z82-hydro:after{box-sizing:border-box;border-color:#b8b8b8;background:linear-gradient(115deg,#e6e6e6,#fff 48%,#d7d7d7)}
+      @media(max-width:520px){
+        .z82-boiler-visual{height:84px}.z82-boiler-art{width:47px;height:73px}.z82-boiler-art:before{left:16px;top:-6px;width:15px;height:6px}.z82-boiler-art i{left:6px;bottom:9px;width:21px;height:7px}.z82-boiler-art b{left:7px;bottom:9px;width:19px}.z82-mini-tank{right:4px;bottom:7px;width:15px;height:38px}.z82-flame{margin-top:18px;--mdc-icon-size:17px}
+        .z82-dhw-schematic .z82-tank{top:26px;height:106px}.z82-dhw-schematic .z82-port.loop{top:71px}.z82-hot-pipe{top:35px}.z82-loop-branch{top:35px;height:38px}.z82-loop-vertical{top:73px;height:31px}.z82-loop-return{top:102px}.z82-cold-pipe{top:142px}.z82-flow-arrow.hot{top:32px}.z82-flow-arrow.loop{top:99px}.z82-flow-arrow.cold{top:139px}.z82-hot-water{top:23px}.z82-circulation-loop{top:67px}
+        .z82-hydro-stage{height:29px;margin-top:27px;margin-bottom:31px}.z82-hydro{border-radius:8px}.z82-hydro:before,.z82-hydro:after{top:7px;height:15px}.z82-hydro strong{font-size:9.5px}.z82-hydro-values span{font-size:7.2px}
+      }
       `;
       root.appendChild(style);
     }
@@ -419,8 +431,8 @@ function installV085() {
     return result;
   };
 
-  ElementClass.prototype.__zontV085 = true;
+  ElementClass.prototype.__zontV086 = true;
   return true;
 }
 
-if (!installV085()) customElements.whenDefined(ELEMENT_NAME).then(() => installV085());
+if (!installV086()) customElements.whenDefined(ELEMENT_NAME).then(() => installV086());
