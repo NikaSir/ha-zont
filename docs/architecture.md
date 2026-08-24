@@ -8,6 +8,8 @@
 
 The existing controller remains a temporary source of Home Assistant entities. The dashboard is developed independently from the transport implementation so that replacing the controller does not require redesigning the UI from scratch.
 
+While that controller remains installed, the application layer prefers a documented map of its verified entity IDs. Semantic name matching is retained only as a compatibility fallback. The future local integration must replace these temporary bindings with stable entity semantics rather than inheriting the current controller's names.
+
 ## Phase 2 — Controller research
 
 When the new ZONT controller is installed:
@@ -36,3 +38,5 @@ Expected layers:
 ## Safety rules
 
 Heating control is a safety-relevant function. The integration must not invent state, silently substitute unavailable telemetry, or issue unverified commands. Loss of communication must remain distinguishable from a normal controller state.
+
+An error source is operationally active only when its available state is non-zero/non-clear. An unavailable error source is reported as unknown, not as an active fault and not as a healthy state. Connectivity and freshness are separate signals: a controller can be online while its measurements are stale.

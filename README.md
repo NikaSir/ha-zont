@@ -71,13 +71,16 @@ The intended evolution is:
 
 ## Current UI
 
-Current line: **ZONT UI v0.8.8**.
+Current line: **ZONT UI v0.8.9**.
 
 The State view now follows the real hydraulic topology: main and reserve
 boilers, the DHW tank with cold-water pressure and recirculation, hydraulic
 separator, radiator and underfloor-heating circuits, pumps, mixer, summary
-metrics and heating modes. Values are resolved from the live Home Assistant
-entity registry; missing and unavailable sources stay explicit. The upper-left
+metrics and heating modes. Verified H2000 entity IDs are preferred for the
+current controller, with semantic discovery retained as a migration fallback.
+Only active non-zero controller errors raise the warning badge; communication
+and data freshness are reported independently. Missing, stale and unavailable
+sources stay explicit. The upper-left
 button opens the native Home Assistant menu via `hass-toggle-menu`.
 
 ## License

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.9
+
+- Bound the current H2000 overview to the verified Home Assistant entity IDs, while retaining semantic discovery as a controller-migration fallback.
+- Counted only active non-zero controller errors; clear values such as `0`, `0.0`, `off` and `no errors` no longer trigger the warning badge.
+- Made controller connectivity and data freshness independent, explicit three-state signals instead of assuming that missing telemetry is online and current.
+- Removed invented static controller facts from Diagnostics and replaced them with live online, power and voltage entities.
+- Corrected meter ranges for heating pressure, DHW/irrigation pressure, underfloor heating and boiler/radiator temperatures.
+- Applied the same five-result mixer model throughout the panel: stationary, opening, closing, signal conflict or unavailable.
+- Increased the frontend cache-busting build to `b010` so Home Assistant loads the updated module after restart.
+
 ## 0.8.8
 
 - Replaced the incorrect mixer-valve position message with the real three-state movement model: opening, closing or stationary.
