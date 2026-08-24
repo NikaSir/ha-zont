@@ -1,9 +1,53 @@
-// ZONT UI v0.8.8 — HACS-managed application layer.
+// ZONT UI v0.8.9 — HACS-managed application layer.
 // Base renderer and registry discovery are provided by Contract Generated UI.
 import "/contract_generated_ui/frontend/nikas-generated-zont.js";
 
 const ELEMENT_NAME = "nikas-generated-zont";
-const UI_VERSION = "0.8.8";
+const UI_VERSION = "0.8.9";
+const STALE_AFTER_MS = 15 * 60 * 1000;
+const ENTITY_BINDINGS = Object.freeze({
+  online: ["binary_sensor.nikas_h2000_pro_online"],
+  controllerPower: ["sensor.nikas_h2000_pro_pitanie"],
+  supplyVoltage: ["sensor.nikas_h2000_pro_napriazhenie_pitaniia_3"],
+  batteryVoltage: ["sensor.nikas_h2000_pro_napriazhenie_batarei_2"],
+  mainState: ["binary_sensor.nikas_h2000_pro_osnovnoi_sostoianie"],
+  mainCurrent: ["sensor.nikas_h2000_pro_osnovnoi_aktualnaia_temperatura"],
+  mainTarget: ["sensor.nikas_h2000_pro_osnovnoi_tselevaia_temperatura"],
+  mainError: ["sensor.nikas_h2000_pro_osnovnoi_oshibka"],
+  mainReturn: ["sensor.kontroller_otopleniia_nikas_h2000_pro_nikas_h2000_pro_ebus_osnovnoi_no2_tdeg_obratnogo_potoka"],
+  mainModulation: ["sensor.kontroller_otopleniia_nikas_h2000_pro_nikas_h2000_pro_ebus_osnovnoi_no2_moduliatsiia"],
+  mainPressure: ["sensor.kontroller_otopleniia_nikas_h2000_pro_nikas_h2000_pro_ebus_osnovnoi_no2_davlenie_tn"],
+  reserveState: ["binary_sensor.nikas_h2000_pro_rezervnyi_sostoianie"],
+  reserveCurrent: ["sensor.nikas_h2000_pro_rezervnyi_aktualnaia_temperatura"],
+  reserveTarget: ["sensor.nikas_h2000_pro_rezervnyi_tselevaia_temperatura"],
+  reserveError: ["sensor.nikas_h2000_pro_rezervnyi_oshibka"],
+  dhwTemperature: ["sensor.kontroller_otopleniia_nikas_h2000_pro_nikas_h2000_pro_ebus_osnovnoi_no2_tdeg_gvs"],
+  coldWaterPressure: ["sensor.nikas_h2000_pro_pitevaia_voda"],
+  systemPressure: ["sensor.nikas_h2000_pro_teplonositel_2"],
+  hydraulicTemperature: ["sensor.nikas_h2000_pro_tn_gidrostrelka_2"],
+  radiatorsState: ["binary_sensor.nikas_h2000_pro_radiatory"],
+  radiatorsSupply: ["sensor.nikas_h2000_pro_tn_radiatory_3"],
+  radiatorsReturn: ["sensor.nikas_h2000_pro_tn_radiatory_4"],
+  floorState: ["binary_sensor.nikas_h2000_pro_teplyi_pol"],
+  floorSupply: ["sensor.nikas_h2000_pro_tn_teplyi_pol_3"],
+  floorReturn: ["sensor.nikas_h2000_pro_tn_teplyi_pol_4"],
+  circulationState: ["binary_sensor.nikas_h2000_pro_tsirkuliatsiia"],
+  circulationTemperature: ["sensor.nikas_h2000_pro_gv_tsirkuliatsiia_2"],
+  mixerOpening: ["binary_sensor.nikas_h2000_pro_otkrytie"],
+  mixerClosing: ["binary_sensor.nikas_h2000_pro_zakrytie"],
+  indoorTemperature: ["sensor.nikas_h2000_pro_gostinaia_tdeg_2", "sensor.nikas_h2000_pro_gostinaia"],
+  outdoorTemperature: [
+    "sensor.nikas_h2000_pro_ulichnyi_datchik_2",
+    "sensor.nikas_h2000_pro_ebus_osnovnoi_tdeg_vne_doma",
+    "sensor.nikas_h2000_pro_pogoda_iz_interneta_2",
+  ],
+});
+const clearErrorStates = new Set([
+  "", "0", "0.0", "off", "false", "ok", "normal", "none", "clear", "idle", "no error", "no errors",
+  "нет", "нет ошибки", "нет ошибок", "ошибок нет", "отсутствует", "отсутствуют", "—", "-",
+]);
+const onlineStates = new Set(["on", "online", "connected", "подключен", "подключено", "в сети", "true", "1"]);
+const offlineStates = new Set(["off", "offline", "disconnected", "отключен", "отключено", "нет связи", "false", "0"]);
 const esc = (value) => String(value ?? "—")
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
@@ -12,16 +56,163 @@ const includesAny = (text, words) => {
   return words.some((word) => source.includes(String(word).toLocaleLowerCase()));
 };
 
-function installV088() {
+const rawState = (item) => String(item?.state?.state ?? "").trim().toLocaleLowerCase();
+const updateTimestamp = (item) => {
+  const raw = item?.state?.last_reported || item?.state?.last_updated || item?.state?.last_changed;
+  const timestamp = raw ? Date.parse(raw) : NaN;
+  return Number.isFinite(timestamp) ? timestamp : null;
+};
+const ageLabel = (ageMs) => {
+  if (!Number.isFinite(ageMs) || ageMs < 0) return "Свежесть неизвестна";
+  const minutes = Math.floor(ageMs / 60000);
+  if (minutes < 1) return "Обновлено сейчас";
+  if (minutes < 60) return `Обновлено ${minutes} мин назад`;
+  const hours = Math.floor(minutes / 60);
+  return `Обновлено ${hours} ч назад`;
+};
+
+function installV089() {
   const ElementClass = customElements.get(ELEMENT_NAME);
-  if (!ElementClass || ElementClass.prototype.__zontV088) return false;
+  if (!ElementClass || ElementClass.prototype.__zontV089) return false;
 
   const originalRender = ElementClass.prototype._render;
   if (typeof originalRender !== "function") return false;
 
-  ElementClass.prototype._systemOverviewV088 = function systemOverviewV088(items) {
-    const main = this._boilerSet(items, false);
-    const reserveBoiler = this._boilerSet(items, true);
+  const originalRole = ElementClass.prototype._role;
+  const originalMeterScale = ElementClass.prototype._meterScale;
+  const originalBoilerSet = ElementClass.prototype._boilerSet;
+  const bound = (items, key) => {
+    const ids = ENTITY_BINDINGS[key] || [];
+    for (const entityId of ids) {
+      const item = items.find((candidate) => candidate?.entry?.entity_id === entityId);
+      if (item) return item;
+    }
+    return null;
+  };
+
+  ElementClass.prototype._boundV089 = function boundV089(items, key, fallback = null) {
+    return bound(items, key) || (typeof fallback === "function" ? fallback() : fallback);
+  };
+
+  ElementClass.prototype._isActiveErrorV089 = function isActiveErrorV089(item) {
+    if (!item || this._isProblem(item)) return false;
+    const state = rawState(item);
+    if (clearErrorStates.has(state) || /^0(?:[.,]0+)?(?:\s|$)/.test(state) || this._isInactive(item)) return false;
+    const numeric = Number(state.replace(",", "."));
+    if (Number.isFinite(numeric)) return numeric !== 0;
+    return true;
+  };
+
+  ElementClass.prototype._role = function roleV089(item) {
+    const text = this._text(item);
+    if (includesAny(text, ["циркуляц", "circulation"])) return "circulation";
+    return originalRole.call(this, item);
+  };
+
+  ElementClass.prototype._meterScale = function meterScaleV089(item) {
+    const role = this._role(item);
+    const text = this._text(item);
+    if (["pressure_dhw", "pressure_irrigation"].includes(role)) return [0, 6];
+    if (["pressure_system", "pressure_boiler"].includes(role)) return [0, 3];
+    if (includesAny(text, ["тёпл", "тепл", "warm floor", "floor heating"])) return [0, 45];
+    if (includesAny(text, ["радиатор", "котел", "котёл", "boiler", "гидрострел"])) return [0, 75];
+    return originalMeterScale.call(this, item);
+  };
+
+  ElementClass.prototype._mixerState = function mixerStateV089(opening, closing) {
+    const openingValid = !!opening && !this._isProblem(opening);
+    const closingValid = !!closing && !this._isProblem(closing);
+    if (!openingValid || !closingValid) return "Нет данных";
+    const openingActive = this._isActive(opening);
+    const closingActive = this._isActive(closing);
+    if (openingActive && closingActive) return "Ошибка сигналов";
+    if (openingActive) return "Открывается";
+    if (closingActive) return "Закрывается";
+    return "Неподвижен";
+  };
+
+  ElementClass.prototype._boilerSet = function boilerSetV089(items, reserve = false) {
+    const fallback = originalBoilerSet.call(this, items, reserve);
+    if (reserve) {
+      return {
+        ...fallback,
+        state: this._boundV089(items, "reserveState", fallback.state),
+        current: this._boundV089(items, "reserveCurrent", fallback.current),
+        supply: this._boundV089(items, "reserveCurrent", fallback.supply || fallback.current),
+        target: this._boundV089(items, "reserveTarget", fallback.target),
+        error: this._boundV089(items, "reserveError", fallback.error),
+      };
+    }
+    return {
+      ...fallback,
+      state: this._boundV089(items, "mainState", fallback.state),
+      current: this._boundV089(items, "mainCurrent", fallback.current),
+      supply: this._boundV089(items, "mainCurrent", fallback.supply || fallback.current),
+      target: this._boundV089(items, "mainTarget", fallback.target),
+      ret: this._boundV089(items, "mainReturn", fallback.ret),
+      modulation: this._boundV089(items, "mainModulation", fallback.modulation),
+      pressure: this._boundV089(items, "mainPressure", fallback.pressure),
+      error: this._boundV089(items, "mainError", fallback.error),
+    };
+  };
+
+  ElementClass.prototype._diagnostics = function diagnosticsV089(items) {
+    const controllerItems = this._unique([
+      this._boundV089(items, "online", () => this._find(items, ["online", "controller online", "подключ"])),
+      this._boundV089(items, "controllerPower", () => this._find(items, ["питан", "power"])),
+      this._boundV089(items, "supplyVoltage", () => this._find(items, ["напряжение питан", "supply voltage"])),
+      this._boundV089(items, "batteryVoltage", () => this._find(items, ["напряжение батар", "battery voltage"])),
+    ]);
+    const errorSources = this._unique(items.filter((item) => this._role(item) === "error"));
+    const activeErrors = errorSources.filter((item) => this._isActiveErrorV089(item));
+    const unavailableErrors = errorSources.filter((item) => this._isProblem(item));
+    const actualProblems = this._unique(items.filter((item) =>
+      this._isProblem(item) && !["rssi", "battery", "error"].includes(this._role(item)))).slice(0, 12);
+    const eBus = this._unique(items.filter((item) =>
+      includesAny(this._text(item), ["ebus"])
+      && ["modulation", "pressure_boiler", "temperature", "dhw", "return", "supply"].includes(this._role(item))))
+      .slice(0, 10);
+    const controllerHtml = controllerItems.length
+      ? controllerItems.map((item) => this._compactCard(item)).join("")
+      : '<div class="empty problem">Телеметрия контроллера не найдена.</div>';
+    const errorHtml = activeErrors.length
+      ? activeErrors.slice(0, 8).map((item) => this._compactCard(item)).join("")
+      : unavailableErrors.length
+        ? '<div class="empty problem">Состояние ошибок недоступно.</div>'
+        : '<div class="ok-card"><ha-icon icon="mdi:check-circle-outline"></ha-icon><span>Активных ошибок нет</span></div>';
+    const problemsHtml = actualProblems.length
+      ? actualProblems.map((item) => this._compactCard(item)).join("") : "";
+    const eBusHtml = eBus.length
+      ? eBus.map((item) => this._compactCard(item)).join("")
+      : '<div class="empty">Данные eBUS не найдены.</div>';
+    return `${this._section("Контроллер H2000+ Pro", this._grid(controllerHtml))}`
+      + `${this._section("Активные ошибки", this._grid(errorHtml))}`
+      + `${problemsHtml ? this._section("Проблемы доступности", this._grid(problemsHtml)) : ""}`
+      + `${this._section("eBUS", this._grid(eBusHtml))}`;
+  };
+
+  ElementClass.prototype._systemOverviewV089 = function systemOverviewV089(items) {
+    const mainFallback = this._boilerSet(items, false);
+    const reserveFallback = this._boilerSet(items, true);
+    const main = {
+      ...mainFallback,
+      state: this._boundV089(items, "mainState", mainFallback.state),
+      current: this._boundV089(items, "mainCurrent", mainFallback.current),
+      supply: this._boundV089(items, "mainCurrent", mainFallback.supply || mainFallback.current),
+      target: this._boundV089(items, "mainTarget", mainFallback.target),
+      ret: this._boundV089(items, "mainReturn", mainFallback.ret),
+      modulation: this._boundV089(items, "mainModulation", mainFallback.modulation),
+      pressure: this._boundV089(items, "mainPressure", mainFallback.pressure),
+      error: this._boundV089(items, "mainError", mainFallback.error),
+    };
+    const reserveBoiler = {
+      ...reserveFallback,
+      state: this._boundV089(items, "reserveState", reserveFallback.state),
+      current: this._boundV089(items, "reserveCurrent", reserveFallback.current),
+      supply: this._boundV089(items, "reserveCurrent", reserveFallback.supply || reserveFallback.current),
+      target: this._boundV089(items, "reserveTarget", reserveFallback.target),
+      error: this._boundV089(items, "reserveError", reserveFallback.error),
+    };
     const value = (item, fallback = "—") => {
       if (!item) return fallback;
       return this._isProblem(item) ? "Нет данных" : this._value(item, fallback);
@@ -60,6 +251,12 @@ function installV088() {
     };
     const radiators = circuit(radiatorItems);
     const floor = circuit(floorItems);
+    radiators.supply = this._boundV089(items, "radiatorsSupply", radiators.supply);
+    radiators.ret = this._boundV089(items, "radiatorsReturn", radiators.ret);
+    radiators.enabled = this._boundV089(items, "radiatorsState", radiators.enabled);
+    floor.supply = this._boundV089(items, "floorSupply", floor.supply);
+    floor.ret = this._boundV089(items, "floorReturn", floor.ret);
+    floor.enabled = this._boundV089(items, "floorState", floor.enabled);
     radiators.pump ||= items.find((item) => this._isStateLike(item)
       && includesAny(this._text(item), ["радиатор", "radiator"])
       && includesAny(this._text(item), ["насос", "pump"]));
@@ -67,66 +264,94 @@ function installV088() {
       && includesAny(this._text(item), ["тёпл", "тепл", "floor"])
       && includesAny(this._text(item), ["насос", "pump"]));
 
-    const circulationState = circulationItems.find((item) =>
-      this._isStateLike(item) && includesAny(this._text(item), ["насос", "pump"]))
+    const circulationState = this._boundV089(items, "circulationState", () =>
+      circulationItems.find((item) => this._isStateLike(item)
+        && includesAny(this._text(item), ["насос", "pump"]))
       || this._findState(circulationItems, ["включ", "active", "состояни", "status"])
-      || this._findState(items, ["циркуляц"], ["температур", "t°"]);
-    const circulationTemperature = numericIn(circulationItems, ["температур", "temperature", "t°"])
-      || numericIn(circulationItems);
-    const dhwTemperature = numericIn(dhwItems, ["температур", "temperature", "t°"], ["циркуляц", "хвс", "давлен"])
-      || numericIn(dhwItems, [], ["циркуляц", "хвс", "давлен"]);
+      || this._findState(items, ["циркуляц"], ["температур", "t°"]));
+    const circulationTemperature = this._boundV089(items, "circulationTemperature", () =>
+      numericIn(circulationItems, ["температур", "temperature", "t°"])
+      || numericIn(circulationItems));
+    const dhwTemperature = this._boundV089(items, "dhwTemperature", () =>
+      numericIn(dhwItems, ["температур", "temperature", "t°"], ["циркуляц", "хвс", "давлен"])
+      || numericIn(dhwItems, [], ["циркуляц", "хвс", "давлен"]));
     const dhwState = this._findState(dhwItems, ["готов", "нагрев", "состояни", "status", "active", "включ"], ["циркуляц"]);
-    const coldWaterPressure = items.find((item) => {
+    const coldWaterPressure = this._boundV089(items, "coldWaterPressure", () => items.find((item) => {
       const text = this._text(item);
       return includesAny(text, ["давлен", "pressure"])
         && includesAny(text, ["хвс", "питьев", "cold water"])
         && !includesAny(text, ["полив"]);
-    });
-    const systemPressure = this._find(items, ["давлен", "pressure"], ["хвс", "питьев", "полив", "cold water"])
-      || main.pressure;
-    const hydraulicTemperature = numericIn(scope(["гидрострел", "hydraulic"]), ["температур", "temperature", "t°"])
-      || numericIn(scope(["гидрострел", "hydraulic"]));
-    const indoor = this._find(items, ["гостиная", "комнат", "в доме", "indoor"], ["влаж", "humidity", "целев", "target"]);
-    const outdoor = this._find(items, ["улиц", "outdoor", "вне дома", "weather"], ["влаж", "humidity"]);
-    const online = this._find(items, ["online", "подключ", "controller online"]);
-    const reserveState = this._findState(items, ["резерв", "reserve"], ["температур", "t°", "ошиб"])
-      || reserveBoiler.state;
+    }));
+    const systemPressure = this._boundV089(items, "systemPressure", () =>
+      this._find(items, ["давлен", "pressure"], ["хвс", "питьев", "полив", "cold water"])
+      || main.pressure);
+    const hydraulicTemperature = this._boundV089(items, "hydraulicTemperature", () =>
+      numericIn(scope(["гидрострел", "hydraulic"]), ["температур", "temperature", "t°"])
+      || numericIn(scope(["гидрострел", "hydraulic"])));
+    const indoor = this._boundV089(items, "indoorTemperature", () =>
+      this._find(items, ["гостиная", "комнат", "в доме", "indoor"], ["влаж", "humidity", "целев", "target"]));
+    const outdoor = this._boundV089(items, "outdoorTemperature", () =>
+      this._find(items, ["улиц", "outdoor", "вне дома", "weather"], ["влаж", "humidity"]));
+    const online = this._boundV089(items, "online", () =>
+      this._find(items, ["online", "подключ", "controller online"]));
+    const reserveState = this._boundV089(items, "reserveState", () =>
+      this._findState(items, ["резерв", "reserve"], ["температур", "t°", "ошиб"])
+      || reserveBoiler.state);
     const mixerItems = scope(["смесител", "mixing", "кран", "valve"]);
-    const mixerOpening = this._findState(mixerItems, ["открытие", "opening"]);
-    const mixerClosing = this._findState(mixerItems, ["закрытие", "closing"]);
+    const mixerOpening = this._boundV089(items, "mixerOpening", () =>
+      this._findState(mixerItems, ["открытие", "opening"]));
+    const mixerClosing = this._boundV089(items, "mixerClosing", () =>
+      this._findState(mixerItems, ["закрытие", "closing"]));
     const mixerOpeningActive = active(mixerOpening);
     const mixerClosingActive = active(mixerClosing);
     const mixerConflict = mixerOpeningActive && mixerClosingActive;
-    const mixerSignalsKnown = valid(mixerOpening) && valid(mixerClosing);
-    const mixerText = mixerConflict ? "Ошибка сигналов"
-      : mixerOpeningActive ? "Открывается"
-        : mixerClosingActive ? "Закрывается"
-          : mixerSignalsKnown ? "Неподвижен" : "Нет данных";
+    const mixerText = this._mixerState(mixerOpening, mixerClosing);
     const mixerSignalItem = mixerOpeningActive ? mixerOpening
       : mixerClosingActive ? mixerClosing : mixerOpening || mixerClosing;
     const mixerDot = () => mixerConflict
       ? '<i class="z82-dot problem" title="Одновременно включены открытие и закрытие"></i>'
       : statusDot(mixerSignalItem);
 
-    const errors = items.filter((item) => this._role(item) === "error" && !this._isInactive(item));
+    const errorSources = items.filter((item) => this._role(item) === "error");
+    const errors = errorSources.filter((item) => this._isActiveErrorV089(item));
+    const errorDataProblems = errorSources.filter((item) => this._isProblem(item));
     const essentials = [
       main.current || main.supply, main.ret, reserveBoiler.current || reserveBoiler.supply,
       dhwTemperature, systemPressure, indoor, outdoor,
-    ].filter(Boolean);
-    const essentialProblems = essentials.filter((item) => this._isProblem(item));
+    ];
+    const essentialProblems = essentials.filter((item) => !item || this._isProblem(item));
     const usableCount = items.filter((item) => !this._isProblem(item)).length;
-    const offline = items.length > 0 && usableCount === 0;
-    const attention = offline || errors.length > 0 || essentialProblems.length > 0;
-    const title = offline ? "Нет связи" : errors.length ? "Требует внимания"
-      : essentialProblems.length ? "Ограниченные данные" : "Система работает";
+    const onlineState = rawState(online);
+    const onlineActive = !!online && !this._isProblem(online)
+      && (this._isActive(online) || onlineStates.has(onlineState));
+    const onlineInactive = !!online && !this._isProblem(online)
+      && (this._isInactive(online) || offlineStates.has(onlineState));
+    const offline = usableCount === 0 || onlineInactive;
+    const connectionUnknown = !offline && (!online || this._isProblem(online) || !onlineActive);
+    const timestamps = items.map(updateTimestamp).filter((timestamp) => timestamp != null);
+    const latestTimestamp = timestamps.length ? Math.max(...timestamps) : null;
+    const dataAge = latestTimestamp == null ? null : Math.max(0, Date.now() - latestTimestamp);
+    const stale = dataAge != null && dataAge > STALE_AFTER_MS;
+    const freshnessUnknown = dataAge == null;
+    const actuatorProblem = mixerConflict;
+    const attention = offline || connectionUnknown || stale || freshnessUnknown
+      || errors.length > 0 || errorDataProblems.length > 0 || essentialProblems.length > 0 || actuatorProblem;
+    const title = offline ? "Нет связи" : errors.length || actuatorProblem ? "Требует внимания"
+      : connectionUnknown || stale || freshnessUnknown || errorDataProblems.length || essentialProblems.length ? "Ограниченные данные"
+        : "Система работает";
     const subtitle = offline ? "Телеметрия ZONT недоступна"
       : errors.length ? "Проверьте сообщения контроллера"
-        : essentialProblems.length ? "Часть показаний временно недоступна" : "Отопление и ГВС в норме";
+        : actuatorProblem ? "Проверьте сигналы смесительного крана"
+          : connectionUnknown ? "Состояние связи с контроллером неизвестно"
+            : stale ? "Показания давно не обновлялись"
+              : freshnessUnknown ? "Время обновления данных неизвестно"
+                : errorDataProblems.length ? "Состояние ошибок контроллера недоступно"
+                  : essentialProblems.length ? "Часть показаний временно недоступна" : "Отопление и ГВС в норме";
     const onlineText = offline ? "Нет связи"
-      : online && this._isProblem(online) ? "Нет данных"
-        : online && this._isInactive(online) ? value(online)
-          : "Онлайн";
-    const freshness = offline ? "Источник недоступен" : "Данные актуальны";
+      : connectionUnknown ? "Нет данных" : "Онлайн";
+    const onlineTone = offline ? "offline" : connectionUnknown ? "unknown" : "online";
+    const freshness = offline ? "Источник недоступен"
+      : freshnessUnknown ? "Свежесть неизвестна" : ageLabel(dataAge);
     const mode = this._currentMode(items);
 
     const statusClass = (item) => active(item) ? "on"
@@ -232,13 +457,18 @@ function installV088() {
 
     const issueLabel = errors.length > 1 ? `Ошибок: ${errors.length}`
       : errors.length === 1 ? "Ошибка контроллера"
-        : essentialProblems.length ? `Нет данных: ${essentialProblems.length}` : "";
+        : actuatorProblem ? "Ошибка крана"
+          : errorDataProblems.length ? "Ошибки: нет данных"
+            : essentialProblems.length ? `Нет данных: ${essentialProblems.length}`
+            : stale ? "Данные устарели"
+              : connectionUnknown ? "Связь: нет данных"
+                : freshnessUnknown ? "Свежесть: нет данных" : "";
 
     return `<div class="z82-system ${attention ? "attention" : ""} ${offline ? "offline" : ""}">
       <div class="z82-head">
         <div><span class="z82-eyebrow">СОСТОЯНИЕ СИСТЕМЫ</span><h1>${esc(title)}</h1><p>${esc(subtitle)}</p></div>
         <div class="z82-statuses">
-          <div class="z82-online"><i></i><strong>${esc(onlineText)}</strong><small>${esc(freshness)}</small></div>
+          <div class="z82-online ${onlineTone}"><i></i><strong>${esc(onlineText)}</strong><small>${esc(freshness)}</small></div>
           ${attention && !offline ? `<button type="button" class="z82-notice" data-open-diagnostics><i></i><span>${esc(issueLabel)}</span></button>` : ""}
         </div>
       </div>
@@ -282,11 +512,11 @@ function installV088() {
     <section class="z82-section"><span class="z82-eyebrow">ТЕКУЩИЙ РЕЖИМ</span><div class="z82-modes">${modeButtons}</div></section>`;
   };
 
-  ElementClass.prototype._states = function statesV088(items) {
-    return this._systemOverviewV088(items);
+  ElementClass.prototype._states = function statesV089(items) {
+    return this._systemOverviewV089(items);
   };
 
-  ElementClass.prototype._render = function patchedRenderV088(...args) {
+  ElementClass.prototype._render = function patchedRenderV089(...args) {
     const result = originalRender.apply(this, args);
     const root = this.shadowRoot;
     if (!root) return result;
@@ -306,9 +536,11 @@ function installV088() {
 
     root.getElementById("zont-v087-style")?.remove();
 
-    if (!root.getElementById("zont-v088-style")) {
+    root.getElementById("zont-v088-style")?.remove();
+
+    if (!root.getElementById("zont-v089-style")) {
       const style = document.createElement("style");
-      style.id = "zont-v088-style";
+      style.id = "zont-v089-style";
       style.textContent = `
       .header{grid-template-columns:64px 1fr 64px!important;min-height:92px!important;padding:max(10px,env(safe-area-inset-top,0px)) 20px 10px!important;border-bottom:1px solid var(--divider-color,#e5e5e5)!important;box-shadow:none!important}.rail{width:52px!important;height:52px!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 6px 20px rgba(0,0,0,.06)!important}.rail ha-icon{--mdc-icon-size:31px!important}#back{justify-self:start}#refresh{justify-self:end;color:var(--primary-color,#087de0)!important}.heading strong{font-size:24px!important;font-weight:760!important}.heading span{margin-top:5px!important;font-size:14px!important;color:var(--secondary-text-color,#666)!important}
       main{width:min(100%,980px)!important}.z82-system,.z82-section{background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#ddd);border-radius:22px;padding:16px;margin-bottom:16px}.z82-system.attention{border-color:var(--warning-color,#ff9800)}.z82-system.offline{border-color:var(--error-color,#db4437)}.z82-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.z82-eyebrow{font-size:10.5px;font-weight:760;letter-spacing:.14em;color:var(--secondary-text-color,#666)}.z82-head h1{font-size:29px;line-height:1.04;margin:7px 0 4px}.z82-head p{margin:0;color:var(--secondary-text-color,#666);font-size:14px}.z82-online{min-width:112px;display:grid;grid-template-columns:9px auto;gap:2px 7px;align-items:center;padding:10px 12px;border-radius:999px;background:color-mix(in srgb,var(--success-color,#43a047) 10%,var(--card-background-color,#fff));color:var(--success-color,#43a047)}.z82-online i{width:8px;height:8px;border-radius:50%;background:currentColor}.z82-online strong{font-size:12px}.z82-online small{grid-column:1/3;text-align:center;font-size:8.5px;color:var(--secondary-text-color,#777)}.z82-system.attention .z82-online{color:var(--warning-color,#ff9800);background:color-mix(in srgb,var(--warning-color,#ff9800) 10%,var(--card-background-color,#fff))}.z82-system.offline .z82-online{color:var(--error-color,#db4437)}
@@ -429,6 +661,10 @@ function installV088() {
         .z82-circuit-card h3{font-size:17px}.z82-circuit-icon{--mdc-icon-size:35px}.z82-circuit-device span,.z82-mixer span{font-size:11.5px}.z82-circuit-device strong,.z82-mixer strong{font-size:13.5px}.z82-circuit-device .z82-dot,.z82-mixer .z82-dot{width:15px;height:15px}.z82-circuit-values span{font-size:11px}.z82-circuit-values strong{font-size:14px}
         .z82-legend span{font-size:10.5px}.z82-metric span{font-size:10.5px}.z82-metric strong{font-size:14px}.z82-metric small{font-size:10px}
       }
+      /* v0.8.9 — connection state must not inherit the general warning colour */
+      .z82-online.online{color:var(--success-color,#43a047)!important;background:color-mix(in srgb,var(--success-color,#43a047) 10%,var(--card-background-color,#fff))!important}
+      .z82-online.unknown{color:var(--warning-color,#ff9800)!important;background:color-mix(in srgb,var(--warning-color,#ff9800) 10%,var(--card-background-color,#fff))!important}
+      .z82-online.offline{color:var(--error-color,#db4437)!important;background:color-mix(in srgb,var(--error-color,#db4437) 10%,var(--card-background-color,#fff))!important}
       `;
       root.appendChild(style);
     }
@@ -454,8 +690,8 @@ function installV088() {
     return result;
   };
 
-  ElementClass.prototype.__zontV088 = true;
+  ElementClass.prototype.__zontV089 = true;
   return true;
 }
 
-if (!installV088()) customElements.whenDefined(ELEMENT_NAME).then(() => installV088());
+if (!installV089()) customElements.whenDefined(ELEMENT_NAME).then(() => installV089());
