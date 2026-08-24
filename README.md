@@ -71,7 +71,7 @@ The intended evolution is:
 
 ## Current UI
 
-Current line: **ZONT UI v0.8.10**.
+Current line: **ZONT UI v0.8.11**.
 
 The State view now follows the real hydraulic topology: main and reserve
 boilers, the DHW tank with cold-water pressure and recirculation, hydraulic

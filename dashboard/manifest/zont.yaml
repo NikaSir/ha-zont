@@ -3,8 +3,8 @@ kind: PanelManifest
 metadata:
   id: zont
   title: ZONT
-  version: 0.8.10
-  description: Readable responsive ZONT heating and DHW overview with a stable mobile hydraulic schematic and explicit live-data states.
+  version: 0.8.11
+  description: Readable responsive ZONT heating and DHW overview with line-mounted circulation equipment and explicit live-data states.
 spec:
   dashboard_path: /dashboard-zont
   subpanel:

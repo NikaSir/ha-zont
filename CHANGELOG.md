@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.11
+
+- Returned the DHW circulation pump to the purple circulation line as a dedicated physical node.
+- Replaced the misleading heating-coil glyphs in circuit status rows with industrial pump symbols.
+- Isolated the DHW and cold-water callout text from the coloured pipes so values no longer acquire line-like dashes.
+- Increased the frontend cache-busting build to `b012` so Home Assistant loads the updated module after restart.
+
 ## 0.8.10
 
 - Rebalanced the mobile equipment row so the DHW schematic has enough width while remaining beside both boilers.

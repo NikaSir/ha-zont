@@ -49,4 +49,7 @@ assert.deepEqual(panel._meterScale(item("2.6", "pressure_dhw")), [0, 6]);
 assert.deepEqual(panel._meterScale(item("1.7", "pressure_system")), [0, 3]);
 assert.deepEqual(panel._meterScale(item("25", "temperature", "тёплый пол")), [0, 45]);
 
+assert.match(source, /class="z82-loop-pump/, "DHW circulation pump must be a physical line node");
+assert.match(source, /z82-pump-art[\s\S]{0,160}<ha-icon icon="mdi:pump"/, "heating circuit status rows must use a pump symbol");
+
 console.log("ZONT frontend semantic scenarios passed");
