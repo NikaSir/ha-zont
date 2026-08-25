@@ -1,23 +1,23 @@
 {
   "schema_version": 1,
-  "ui_version": "0.8.12",
+  "ui_version": "0.8.13",
   "public_root": "/zont_local_panel/",
   "assets": [
     {
-      "path": "assets/zont-boiler-casing-v0812.webp",
+      "path": "assets/zont-boiler-casing-v0813.webp",
       "role": "boiler_casing",
       "format": "webp",
       "transparent": true,
-      "width": 360,
-      "height": 560
+      "width": 282,
+      "height": 540
     },
     {
-      "path": "assets/zont-dhw-shell-v0812.webp",
+      "path": "assets/zont-dhw-shell-v0813.webp",
       "role": "dhw_tank_shell",
       "format": "webp",
       "transparent": true,
-      "width": 360,
-      "height": 600
+      "width": 280,
+      "height": 551
     }
   ]
 }
