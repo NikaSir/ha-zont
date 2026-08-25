@@ -1,43 +1,23 @@
 {
   "schema_version": 1,
-  "ui_version": "0.8.16",
+  "ui_version": "0.8.17",
   "public_root": "/zont_local_panel/",
-  "ha_menu_event": {
-    "type": "hass-toggle-menu",
-    "bubbles": true,
-    "composed": true
-  },
-  "zoom_policy": {
-    "scope": "central_work_area_only",
-    "engine": "transform_owned_canvas",
-    "min_percent": 75,
-    "max_percent": 200,
-    "default_percent": 100,
-    "permanent_controls": false,
-    "reset_gesture": "two_finger_double_tap",
-    "snap_to_100_percent": {
-      "min_percent": 97,
-      "max_percent": 103
-    },
-    "persistence": "localStorage",
-    "persistence_scope": "panel_client"
-  },
   "assets": [
     {
-      "path": "assets/zont-boiler-casing-v0813.webp",
+      "path": "assets/zont-boiler-casing-v0812.webp",
       "role": "boiler_casing",
       "format": "webp",
       "transparent": true,
-      "width": 282,
-      "height": 540
+      "width": 360,
+      "height": 560
     },
     {
-      "path": "assets/zont-dhw-shell-v0813.webp",
+      "path": "assets/zont-dhw-shell-v0812.webp",
       "role": "dhw_tank_shell",
       "format": "webp",
       "transparent": true,
-      "width": 280,
-      "height": 551
+      "width": 360,
+      "height": 600
     }
   ]
 }

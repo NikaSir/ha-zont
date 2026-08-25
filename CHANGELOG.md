@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.17
+
+- Restored the exact approved UI 0.8.12 system overview: boilers, DHW, white hydraulic separator, heating circuits and live metrics.
+- Rebuilt the panel as one autonomous JavaScript bundle by embedding the generic renderer before the approved ZONT application layer.
+- Removed all runtime module imports so Home Assistant cannot register only the sidebar item while leaving the panel blank.
+- Rolled back the unsuccessful 0.8.15–0.8.16 zoom/loading changes; stable scaling will be reintroduced separately after the baseline is confirmed.
+- Restored the original v0.8.12 equipment artwork and increased cache busting to `b018`.
+
+
 ## 0.8.16
 
 - Restored the approved system-overview edition on the `Состояние` tab instead of the generic actuator page.
