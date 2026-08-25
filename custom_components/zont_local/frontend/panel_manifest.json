@@ -1,7 +1,27 @@
 {
   "schema_version": 1,
-  "ui_version": "0.8.14",
+  "ui_version": "0.8.15",
   "public_root": "/zont_local_panel/",
+  "ha_menu_event": {
+    "type": "hass-toggle-menu",
+    "bubbles": true,
+    "composed": true
+  },
+  "zoom_policy": {
+    "scope": "central_work_area_only",
+    "engine": "transform_owned_canvas",
+    "min_percent": 75,
+    "max_percent": 200,
+    "default_percent": 100,
+    "permanent_controls": false,
+    "reset_gesture": "two_finger_double_tap",
+    "snap_to_100_percent": {
+      "min_percent": 97,
+      "max_percent": 103
+    },
+    "persistence": "localStorage",
+    "persistence_scope": "panel_client"
+  },
   "assets": [
     {
       "path": "assets/zont-boiler-casing-v0813.webp",

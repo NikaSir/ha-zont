@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.15
+
+- Rebuilt the work area as exactly one transform-owned canvas using `translate3d(x,y,0) scale(s)`.
+- Removed the intermediate permanent zoom dock and all native scroll/CSS zoom state from the work viewport.
+- Added focal two-finger pinch, one-finger canvas pan, 75–200% bounds, 97–103% snap and a two-finger double-tap reset.
+- Persisted the complete `{scale,x,y}` state per ZONT panel client and restored it before the next rendered frame.
+- Added pointer-cancel and post-gesture click guards so pan/pinch cannot accidentally open entity details.
+- Kept the Home Assistant menu header and full-width bottom navigation outside the transformed canvas.
+- Increased the frontend cache-busting build to `b016`.
+
 ## 0.8.14
 
 - Added panel-local pinch-to-zoom on phones and tablets, anchored to the midpoint between both touches.
