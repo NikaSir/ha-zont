@@ -1,10 +1,10 @@
-// ZONT UI v0.8.15 — HACS-managed application layer.
-// Base renderer and registry discovery are provided by Contract Generated UI.
-import "/contract_generated_ui/frontend/nikas-generated-zont.js";
+// ZONT UI v0.8.16 — HACS-managed application layer.
+// The generated panel owns the base element. This module waits for that element
+// instead of importing its implementation through a second, fragile URL.
 
 const ELEMENT_NAME = "nikas-generated-zont";
-const UI_VERSION = "0.8.15";
-const ASSET_VERSION = "0.8.15";
+const UI_VERSION = "0.8.16";
+const ASSET_VERSION = "0.8.16";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0813.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0813.webp?v=${ASSET_VERSION}`;
@@ -117,9 +117,37 @@ const ageLabel = (ageMs) => {
   return `Обновлено ${hours} ч назад`;
 };
 
-function installV0815() {
+const livePanels = (root = document) => {
+  const found = [];
+  const visit = (node) => {
+    if (!node?.querySelectorAll) return;
+    found.push(...node.querySelectorAll(ELEMENT_NAME));
+    node.querySelectorAll("*").forEach((element) => {
+      if (element.shadowRoot) visit(element.shadowRoot);
+    });
+  };
+  visit(root);
+  return found;
+};
+
+const refreshLivePanels = () => {
+  if (typeof document === "undefined") return;
+  requestAnimationFrame(() => {
+  livePanels().forEach((panel) => {
+    panel._active = panel._tabFromLocation?.() || panel._active;
+    if (typeof panel._queue === "function") panel._queue();
+    else if (typeof panel._render === "function") panel._render();
+  });
+  });
+};
+
+function installV0816() {
   const ElementClass = customElements.get(ELEMENT_NAME);
-  if (!ElementClass || ElementClass.prototype.__zontV0815) return false;
+  if (!ElementClass) return false;
+  if (ElementClass.prototype.__zontV0816) {
+    refreshLivePanels();
+    return true;
+  }
 
   const originalRender = ElementClass.prototype._render;
   if (typeof originalRender !== "function") return false;
@@ -1035,8 +1063,9 @@ function installV0815() {
     return result;
   };
 
-  ElementClass.prototype.__zontV0815 = true;
+  ElementClass.prototype.__zontV0816 = true;
+  refreshLivePanels();
   return true;
 }
 
-if (!installV0815()) customElements.whenDefined(ELEMENT_NAME).then(() => installV0815());
+if (!installV0816()) customElements.whenDefined(ELEMENT_NAME).then(() => installV0816());

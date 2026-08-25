@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.16
+
+- Restored the approved system-overview edition on the `Состояние` tab instead of the generic actuator page.
+- Removed the fragile second URL import of the generated ZONT renderer; the application layer now waits for the panel element already registered by Home Assistant.
+- Added deep discovery and immediate refresh of an already-open ZONT panel so the approved UI is applied without waiting for the next telemetry update.
+- Preserved the transform-owned canvas, focal pinch, panning and saved `{scale,x,y}` state from UI 0.8.15.
+- Increased the frontend cache-busting build to `b017`.
+
 ## 0.8.15
 
 - Rebuilt the work area as exactly one transform-owned canvas using `translate3d(x,y,0) scale(s)`.

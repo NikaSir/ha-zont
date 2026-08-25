@@ -3,7 +3,7 @@ kind: PanelManifest
 metadata:
   id: zont
   title: ZONT
-  version: 0.8.15
+  version: 0.8.16
   description: Responsive ZONT heating and DHW overview with an iOS-stable transform-owned canvas, focal pinch and live hydraulic states.
 spec:
   dashboard_path: /dashboard-zont

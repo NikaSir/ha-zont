@@ -71,9 +71,12 @@ assert.doesNotMatch(source, /scrollLeft\s*=/, "native horizontal scroll must not
 assert.doesNotMatch(source, /scrollTop\s*=/, "native vertical scroll must not own canvas state");
 assert.doesNotMatch(source, /\.scrollTo\(/, "native scrolling must not own canvas state");
 assert.doesNotMatch(source, /style\.zoom/, "CSS zoom must not be used");
+assert.doesNotMatch(source, /^import\s+.*contract_generated_ui/m, "ZONT application layer must not depend on a second renderer URL");
+assert.match(source, /customElements\.whenDefined\(ELEMENT_NAME\)/, "application layer must wait for the generated panel element");
+assert.match(source, /livePanels\(\)\.forEach/, "an already-open base panel must be refreshed after the ZONT layer installs");
 
 const panelManifest = JSON.parse(fs.readFileSync("custom_components/zont_local/frontend/panel_manifest.json", "utf8"));
-assert.equal(panelManifest.ui_version, "0.8.15");
+assert.equal(panelManifest.ui_version, "0.8.16");
 assert.equal(panelManifest.zoom_policy.engine, "transform_owned_canvas");
 assert.equal(panelManifest.zoom_policy.permanent_controls, false);
 assert.equal(panelManifest.zoom_policy.reset_gesture, "two_finger_double_tap");

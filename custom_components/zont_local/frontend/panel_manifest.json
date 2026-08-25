@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "ui_version": "0.8.15",
+  "ui_version": "0.8.16",
   "public_root": "/zont_local_panel/",
   "ha_menu_event": {
     "type": "hass-toggle-menu",
