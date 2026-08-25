@@ -3,7 +3,9 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 const fullSource = fs.readFileSync("custom_components/zont_local/frontend/zont-ui.js", "utf8");
-assert.match(fullSource, /Semantic ZONT panel for Contract Generated UI/, "standalone bundle must embed the generic renderer");
+assert.match(fullSource, /Standalone semantic ZONT panel/, "standalone bundle must embed the generic renderer");
+assert.match(fullSource, /const ELEMENT_NAME = "zont-local-panel"/, "ZONT must use its integration-owned custom element");
+assert.doesNotMatch(fullSource, /nikas-generated-zont/, "ZONT must not reuse the retired shared custom element");
 assert.doesNotMatch(fullSource, /^import\s+/m, "standalone bundle must not use runtime imports");
 const appMarker = "// ZONT UI v0.8.17";
 const appOffset = fullSource.indexOf(appMarker);
@@ -64,5 +66,13 @@ for (const asset of panelManifest.assets) {
   assert.ok(fs.existsSync(path), `declared panel asset must exist: ${path}`);
   assert.match(source, new RegExp(asset.path.split("/").at(-1).replaceAll(".", "\\.")), `frontend must reference ${asset.path}`);
 }
+
+const integrationSource = fs.readFileSync("custom_components/zont_local/__init__.py", "utf8");
+const constantsSource = fs.readFileSync("custom_components/zont_local/const.py", "utf8");
+assert.match(integrationSource, /panel_custom\.async_register_panel/, "zont_local must register its own HA panel");
+assert.match(integrationSource, /module_url=FRONTEND_MODULE_URL/, "panel registration must load the local bundle");
+assert.doesNotMatch(integrationSource, /add_extra_js_url/, "ZONT must not be injected globally into Home Assistant");
+assert.match(constantsSource, /PANEL_URL_PATH = "dashboard-zont"/, "the existing public route must remain stable");
+assert.match(constantsSource, /PANEL_WEB_COMPONENT_NAME = "zont-local-panel"/, "the panel element must be ZONT-owned");
 
 console.log("ZONT frontend semantic scenarios passed");

@@ -12,7 +12,7 @@ The repository now ships a Home Assistant custom integration with domain `zont_l
 /config/custom_components/zont_local
 ```
 
-The integration registers the ZONT frontend package and makes the panel release/update lifecycle independent from manual file copying. Updates are delivered through HACS in the same way as the other NikaS custom integrations: download the new commit/version and restart Home Assistant when requested.
+The integration itself registers `/dashboard-zont`, serves its frontend package and owns the complete panel lifecycle. Updates are delivered through HACS from the latest `main` commit and require a Home Assistant restart when requested.
 
 The current controller remains a temporary data source and is not the protocol baseline for future local control.
 
@@ -44,16 +44,17 @@ ha-zont/
 │       ├── translations/
 │       └── frontend/
 │           └── zont-ui.js
-├── dashboard/              # UI contract / manifest and baseline assets
-├── frontend/               # Development/reference frontend source
+├── dashboard/              # Local panel manifest and protected baseline
 ├── docs/                   # Architecture, controller and protocol notes
 ├── hacs.json
 └── LICENSE
 ```
 
-Current runtime split:
+Current runtime path:
 
-`Contract Generated UI base renderer → ha-zont ZONT application layer → Home Assistant entities`
+`zont_local panel registration → local ZONT bundle/assets → Home Assistant entities`
+
+`ha-zont` has no runtime, installation or publication dependency on another repository.
 
 The intended evolution is:
 
@@ -69,9 +70,13 @@ The intended evolution is:
 - No write operation is enabled until its behavior is verified on real hardware.
 - The repository is the canonical owner of ZONT-specific UI and future local integration code.
 
+## Publication
+
+Updates are committed directly to `main` and validated there. The project does not use release branches, Git tags or GitHub Releases; HACS installs the current integration version from this repository.
+
 ## Current UI
 
-Current line: **ZONT UI v0.8.17** (approved v0.8.12 layout, standalone bundle).
+Current integration: **0.8.18**. Frontend: **ZONT UI v0.8.17** (approved v0.8.12 layout, standalone bundle).
 
 The State view now follows the real hydraulic topology: main and reserve
 boilers, the DHW tank with cold-water pressure and recirculation, hydraulic

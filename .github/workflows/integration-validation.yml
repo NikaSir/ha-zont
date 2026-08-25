@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-      - "release/**"
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -24,11 +22,13 @@ jobs:
         run: node --input-type=module --check < custom_components/zont_local/frontend/zont-ui.js
       - name: Check frontend semantic states
         run: node tests/test_zont_ui_semantics.cjs
-      - name: Check release version synchronization
+      - name: Check standalone panel registration
+        run: python tests/test_panel_registration.py
+      - name: Check main version synchronization
         run: |
-          grep -F 'VERSION = "0.8.17"' custom_components/zont_local/const.py
-          grep -F '"version": "0.8.17"' custom_components/zont_local/manifest.json
-          grep -F 'version: 0.8.17' dashboard/manifest/zont.yaml
+          grep -F 'VERSION = "0.8.18"' custom_components/zont_local/const.py
+          grep -F '"version": "0.8.18"' custom_components/zont_local/manifest.json
+          grep -F 'version: 0.8.18' dashboard/manifest/zont.yaml
 
   hassfest:
     name: Hassfest

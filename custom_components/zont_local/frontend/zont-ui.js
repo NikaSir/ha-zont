@@ -1,7 +1,7 @@
-// Semantic ZONT panel for Contract Generated UI.
+// Standalone semantic ZONT panel owned by the zont_local integration.
 // Read-mostly: physical actuators are monitored; only ZONT heating-mode buttons are actionable.
 (() => {
-  const ELEMENT_NAME = "nikas-generated-zont";
+  const ELEMENT_NAME = "zont-local-panel";
   if (customElements.get(ELEMENT_NAME)) return;
 
   const CONTROLLER_FACTS = [
@@ -488,7 +488,7 @@
 // ZONT UI v0.8.17 — standalone restoration of the approved v0.8.12 application layer.
 // The generic renderer is embedded above; no runtime import chain is required.
 
-const ELEMENT_NAME = "nikas-generated-zont";
+const ELEMENT_NAME = "zont-local-panel";
 const UI_VERSION = "0.8.17";
 const ASSET_VERSION = "0.8.17";
 const ASSET_ROOT = "/zont_local_panel/assets";

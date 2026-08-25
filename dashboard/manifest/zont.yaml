@@ -1,148 +1,38 @@
-api_version: nikas.home-assistant/panel-manifest/v1
+api_version: zont.local/panel-manifest/v1
 kind: PanelManifest
 metadata:
   id: zont
   title: ZONT
-  version: 0.8.17
-  description: Approved ZONT heating and DHW system overview, restored as one autonomous frontend bundle.
+  version: 0.8.18
+  description: Standalone ZONT heating and DHW panel owned and registered by zont_local.
 spec:
-  dashboard_path: /dashboard-zont
-  subpanel:
-    template: standard_v1
-    navigation: main
-    parent: house.heating
-    source:
-      kind: entity_registry
-      platforms:
-        - zont
-        - zont_ha
-      include_disabled: false
-  views:
+  frontend_url_path: dashboard-zont
+  webcomponent_name: zont-local-panel
+  sidebar_title: ZONT
+  sidebar_icon: mdi:pump
+  parent:
+    id: house.heating
+    title: Отопление и ГВС
+    path: /dashboard-house/heating
+  source:
+    kind: entity_registry
+    platforms:
+      - zont
+      - zont_ha
+    include_disabled: false
+  tabs:
     - id: states
-      title: Состояние
-      icon: mdi:home-thermometer-outline
-      path: states
-      order: 0
-      renderer: subpanel_placeholder_v1
-      placeholder: Котлы, ГВС, гидрострелка, отопительные контуры, насосы и текущий режим.
-      readonly:
-        domains:
-          - sensor
-          - binary_sensor
-          - switch
-          - climate
-          - button
-        include_keywords:
-          - насос
-          - pump
-          - открытие
-          - закрытие
-          - смеситель
-          - valve
-          - радиатор
-          - тёплый пол
-          - теплый пол
-          - циркуляц
-          - резерв
-          - режим
-          - mode
-          - комфорт
-          - отпуск
-          - автоматика
-        limit: 50
-      modules: []
+      label: Состояние
+      icon: mdi:pump
     - id: boilers
-      title: Котлы
+      label: Котлы
       icon: mdi:water-boiler
-      path: boilers
-      order: 1
-      renderer: subpanel_placeholder_v1
-      placeholder: Основной и резервный котлы, температуры, давление и модуляция.
-      readonly:
-        domains:
-          - climate
-          - sensor
-          - binary_sensor
-        include_keywords:
-          - boiler
-          - котел
-          - котёл
-          - основной
-          - резерв
-          - ebus
-          - modulation
-          - модуляц
-          - pressure
-          - давлен
-        limit: 50
-      modules: []
     - id: heating
-      title: Отопление
+      label: Отопление
       icon: mdi:radiator
-      path: heating
-      order: 2
-      renderer: subpanel_placeholder_v1
-      placeholder: Радиаторы, тёплый пол, ГВС, циркуляция и резервный контур.
-      readonly:
-        domains:
-          - climate
-          - sensor
-          - binary_sensor
-        include_keywords:
-          - radiator
-          - радиатор
-          - warm floor
-          - floor
-          - тёплый пол
-          - теплый пол
-          - circulation
-          - циркуляц
-          - reserve
-          - резерв
-          - гвс
-          - dhw
-          - гидрострел
-        limit: 50
-      modules: []
     - id: sensors
-      title: Датчики
+      label: Датчики
       icon: mdi:home-thermometer-outline
-      path: sensors
-      order: 3
-      renderer: subpanel_placeholder_v1
-      placeholder: Помещения, улица, влажность, батареи, RSSI и давление.
-      readonly:
-        domains:
-          - sensor
-          - binary_sensor
-        include_keywords:
-          - temperature
-          - температур
-          - humidity
-          - влажн
-          - battery
-          - батаре
-          - rssi
-          - signal
-          - street
-          - outdoor
-          - улиц
-          - weather
-          - погод
-          - pressure
-          - давлен
-        limit: 50
-      modules: []
     - id: diagnostics
-      title: Диагностика
+      label: Диагностика
       icon: mdi:heart-pulse
-      path: diagnostics
-      order: 4
-      renderer: subpanel_placeholder_v1
-      placeholder: Контроллер H2000+ Pro, питание, ошибки, доступность и eBUS.
-      readonly:
-        domains:
-          - sensor
-          - binary_sensor
-        limit: 50
-      modules: []

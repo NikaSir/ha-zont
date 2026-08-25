@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.18
+
+- Moved `/dashboard-zont` registration into `zont_local`; ZONT no longer depends on another integration to create its Home Assistant panel.
+- Replaced global JavaScript injection with one integration-owned `panel_custom` registration and a dedicated `zont-local-panel` custom element.
+- Kept the approved UI 0.8.17 bundle and v0.8.12 system layout unchanged while eliminating the startup-order race that could expose the old actuator page or a blank panel.
+- Returned publication to direct `main` updates. This repository uses no release branches, Git tags or GitHub Releases.
+- Increased the frontend cache-busting build to `b019`.
+
 ## 0.8.17
 
 - Restored the exact approved UI 0.8.12 system overview: boilers, DHW, white hydraulic separator, heating circuits and live metrics.

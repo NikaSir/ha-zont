@@ -1,13 +1,13 @@
 # NikaS Specialized Panel UI Standard v1.3
 
 **Status:** REQUIRED  
-**Canonical source:** `NikaSir/ha-contract-generated-ui`  
+**Canonical source for ZONT:** `NikaSir/ha-zont`
 **Canonical standards:** Shell v1.3 · Zoom v1.3 · Integration UI v1.4 · Frontend Delivery v1.1  
 **Reference field implementation:** Stark SolarPower UI 0.5.6
 
 ## Ownership
 
-This repository owns domain/integration UI, entities, telemetry, commands, cards and diagnostics. Shared NikaS standards own application-shell behavior and release invariants.
+This repository owns the ZONT panel shell, domain UI, entities, telemetry, commands, cards, diagnostics and delivery invariants.
 
 **Migration rule:** do not refactor domain UI during shell-only migration.
 
@@ -78,7 +78,7 @@ Shell reconciliation is idempotent across Home Assistant updates: no nested wrap
 - no Base64 image payload when normal asset is suitable;
 - background/context art contains no live measurements/statuses;
 - device art, SVG paths, labels, values and status overlays remain separate runtime layers;
-- changed assets use release/build cache busting.
+- changed assets use commit/build cache busting.
 
 ## Frontend delivery
 
@@ -96,4 +96,4 @@ Primary acceptance is Home Assistant Companion App on iPhone Pro Max portrait.
 
 Verify: safe area not missing/doubled; `☰` opens native HA menu; Header geometry; selector fit; first useful state; Bottom Tab clearance; pinch/pan; two-finger reset; 97–103% snap; `Масштаб 100%` confirmation; no shell duplication after repeated HA state updates; peer context/scale persistence; explicit unreliable states; more-info/global-action behavior.
 
-> Canonical policy remains in `ha-contract-generated-ui`; newer canonical standards override this synchronized snapshot.
+> This is the local ZONT standard. Changes are reviewed and published with `ha-zont` itself.
