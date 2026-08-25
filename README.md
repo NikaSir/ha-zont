@@ -71,7 +71,7 @@ The intended evolution is:
 
 ## Current UI
 
-Current line: **ZONT UI v0.8.11**.
+Current line: **ZONT UI v0.8.12**.
 
 The State view now follows the real hydraulic topology: main and reserve
 boilers, the DHW tank with cold-water pressure and recirculation, hydraulic
@@ -82,6 +82,13 @@ Only active non-zero controller errors raise the warning badge; communication
 and data freshness are reported independently. Missing, stale and unavailable
 sources stay explicit. The upper-left
 button opens the native Home Assistant menu via `hass-toggle-menu`.
+
+Equipment casing artwork is stored locally under
+`custom_components/zont_local/frontend/assets/` and served by Home Assistant
+from `/zont_local_panel/`. The boiler and DHW casing images are presentation
+layers only; water level, hydraulic lines, pumps, states, temperatures and
+pressures remain live UI elements backed by Home Assistant entities. Versioned
+asset URLs provide deterministic browser cache invalidation.
 
 ## License
 

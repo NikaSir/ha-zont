@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.12
+
+- Added transparent local WebP artwork for the boiler casing and DHW tank shell under the integration's packaged `frontend/assets` directory.
+- Registered `/zont_local_panel/` as a Home Assistant static route and versioned every asset URL for deterministic cache invalidation.
+- Kept water level, hydraulic lines, pumps, temperatures, pressures and state indicators as live entity-driven layers above the artwork.
+- Added a panel asset manifest and CI checks that reject missing or unreferenced resources.
+- Increased the frontend cache-busting build to `b013`.
+
 ## 0.8.11
 
 - Returned the DHW circulation pump to the purple circulation line as a dedicated physical node.

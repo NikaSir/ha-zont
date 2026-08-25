@@ -20,6 +20,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         FRONTEND_DIRECTORY,
         FRONTEND_FILENAME,
         FRONTEND_MODULE_URL,
+        FRONTEND_PUBLIC_STATIC_PATH,
         FRONTEND_STATIC_PATH,
         FRONTEND_STATIC_REGISTERED,
     )
@@ -33,7 +34,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     FRONTEND_STATIC_PATH,
                     str(frontend_root / FRONTEND_FILENAME),
                     False,
-                )
+                ),
+                StaticPathConfig(
+                    FRONTEND_PUBLIC_STATIC_PATH,
+                    str(frontend_root),
+                    True,
+                ),
             ]
         )
         domain_data[FRONTEND_STATIC_REGISTERED] = True

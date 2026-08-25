@@ -52,4 +52,12 @@ assert.deepEqual(panel._meterScale(item("25", "temperature", "тёплый по�
 assert.match(source, /class="z82-loop-pump/, "DHW circulation pump must be a physical line node");
 assert.match(source, /z82-pump-art[\s\S]{0,160}<ha-icon icon="mdi:pump"/, "heating circuit status rows must use a pump symbol");
 
+const panelManifest = JSON.parse(fs.readFileSync("custom_components/zont_local/frontend/panel_manifest.json", "utf8"));
+assert.equal(panelManifest.ui_version, "0.8.12");
+for (const asset of panelManifest.assets) {
+  const path = `custom_components/zont_local/frontend/${asset.path}`;
+  assert.ok(fs.existsSync(path), `declared panel asset must exist: ${path}`);
+  assert.match(source, new RegExp(asset.path.split("/").at(-1).replaceAll(".", "\\.")), `frontend must reference ${asset.path}`);
+}
+
 console.log("ZONT frontend semantic scenarios passed");
