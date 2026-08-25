@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.14
+
+- Added panel-local pinch-to-zoom on phones and tablets, anchored to the midpoint between both touches.
+- Added persistent `− / % / +` controls; tapping the percentage restores 100%.
+- Kept the panel header and bottom navigation outside the scaled workspace and enabled panning while enlarged.
+- Preserved the existing responsive mobile and desktop layouts before applying visual scale.
+- Increased the frontend cache-busting build to `b015`.
+
 ## 0.8.13
 
 - Removed transparent padding from the packaged boiler and DHW artwork so the equipment is larger without expanding the overview grid.

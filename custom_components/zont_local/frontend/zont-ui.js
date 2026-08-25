@@ -1,14 +1,18 @@
-// ZONT UI v0.8.13 — HACS-managed application layer.
+// ZONT UI v0.8.14 — HACS-managed application layer.
 // Base renderer and registry discovery are provided by Contract Generated UI.
 import "/contract_generated_ui/frontend/nikas-generated-zont.js";
 
 const ELEMENT_NAME = "nikas-generated-zont";
-const UI_VERSION = "0.8.13";
-const ASSET_VERSION = "0.8.13";
+const UI_VERSION = "0.8.14";
+const ASSET_VERSION = "0.8.14";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0813.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0813.webp?v=${ASSET_VERSION}`;
 const STALE_AFTER_MS = 15 * 60 * 1000;
+const ZOOM_STORAGE_KEY = "nikas.panel.zont.zoom.v1";
+const ZOOM_MIN = 0.8;
+const ZOOM_MAX = 2;
+const ZOOM_STEP = 0.1;
 const ENTITY_BINDINGS = Object.freeze({
   online: ["binary_sensor.nikas_h2000_pro_online"],
   controllerPower: ["sensor.nikas_h2000_pro_pitanie"],
@@ -75,9 +79,9 @@ const ageLabel = (ageMs) => {
   return `Обновлено ${hours} ч назад`;
 };
 
-function installV0813() {
+function installV0814() {
   const ElementClass = customElements.get(ELEMENT_NAME);
-  if (!ElementClass || ElementClass.prototype.__zontV0813) return false;
+  if (!ElementClass || ElementClass.prototype.__zontV0814) return false;
 
   const originalRender = ElementClass.prototype._render;
   if (typeof originalRender !== "function") return false;
@@ -524,6 +528,124 @@ function installV0813() {
     return this._systemOverviewV089(items);
   };
 
+  ElementClass.prototype._loadZoomV0814 = function loadZoomV0814() {
+    if (Number.isFinite(this._zontZoom)) return this._zontZoom;
+    let stored = 1;
+    try { stored = Number(localStorage.getItem(ZOOM_STORAGE_KEY) || 1); } catch (_error) { /* private storage */ }
+    this._zontZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number.isFinite(stored) ? stored : 1));
+    return this._zontZoom;
+  };
+
+  ElementClass.prototype._applyZoomLayoutV0814 = function applyZoomLayoutV0814() {
+    const main = this._zontZoomMain;
+    const stage = this._zontZoomStage;
+    const canvas = this._zontZoomCanvas;
+    if (!main?.isConnected || !stage?.isConnected || !canvas?.isConnected) return;
+    const zoom = this._loadZoomV0814();
+    const style = getComputedStyle(main);
+    const width = Math.max(1, main.clientWidth - parseFloat(style.paddingLeft || 0) - parseFloat(style.paddingRight || 0));
+    const offset = zoom < 1 ? (width - width * zoom) / 2 : 0;
+    canvas.style.width = `${width}px`;
+    canvas.style.transform = `translateX(${offset}px) scale(${zoom})`;
+    stage.style.width = `${Math.max(width, width * zoom)}px`;
+    stage.style.height = `${Math.ceil(canvas.scrollHeight * zoom)}px`;
+    this._zontZoomWidth = width;
+    const header = this.shadowRoot?.querySelector(".header");
+    const bottom = this.shadowRoot?.querySelector(".bottom");
+    const viewportHeight = window.visualViewport?.height || window.innerHeight;
+    const top = main.getBoundingClientRect().top;
+    const bottomHeight = bottom?.getBoundingClientRect().height || 0;
+    const availableHeight = Math.floor(viewportHeight - top - bottomHeight);
+    if (availableHeight > 220) main.style.height = `${availableHeight}px`;
+    const percent = this.shadowRoot?.querySelector("[data-zont-zoom-reset]");
+    if (percent) percent.textContent = `${Math.round(zoom * 100)}%`;
+    if (header) header.style.flex = "none";
+  };
+
+  ElementClass.prototype._setZoomV0814 = function setZoomV0814(next, clientX = null, clientY = null, persist = true) {
+    const main = this._zontZoomMain;
+    if (!main) return;
+    const oldZoom = this._loadZoomV0814();
+    const zoom = Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next)) * 100) / 100;
+    const rect = main.getBoundingClientRect();
+    const localX = clientX == null ? main.clientWidth / 2 : clientX - rect.left;
+    const localY = clientY == null ? main.clientHeight / 2 : clientY - rect.top;
+    const width = this._zontZoomWidth || main.clientWidth;
+    const oldOffset = oldZoom < 1 ? (width - width * oldZoom) / 2 : 0;
+    const contentX = (main.scrollLeft + localX - oldOffset) / oldZoom;
+    const contentY = (main.scrollTop + localY) / oldZoom;
+    this._zontZoom = zoom;
+    this._applyZoomLayoutV0814();
+    const newOffset = zoom < 1 ? (width - width * zoom) / 2 : 0;
+    main.scrollLeft = Math.max(0, contentX * zoom + newOffset - localX);
+    main.scrollTop = Math.max(0, contentY * zoom - localY);
+    this._zontViewportScroll = [main.scrollLeft, main.scrollTop];
+    if (persist) {
+      try { localStorage.setItem(ZOOM_STORAGE_KEY, String(zoom)); } catch (_error) { /* private storage */ }
+    }
+  };
+
+  ElementClass.prototype._installZoomV0814 = function installZoomV0814(root) {
+    const main = root.querySelector("main");
+    const app = root.querySelector(".app");
+    if (!main || !app) return;
+    main.classList.add("z14-zoom-viewport");
+    const stage = document.createElement("div");
+    stage.className = "z14-zoom-stage";
+    const canvas = document.createElement("div");
+    canvas.className = "z14-zoom-canvas";
+    while (main.firstChild) canvas.appendChild(main.firstChild);
+    stage.appendChild(canvas);
+    main.appendChild(stage);
+
+    const controls = document.createElement("div");
+    controls.className = "z14-zoom-controls";
+    controls.setAttribute("aria-label", "Масштаб рабочей области");
+    controls.innerHTML = `<button type="button" data-zont-zoom-out aria-label="Уменьшить масштаб">−</button><button type="button" class="z14-zoom-value" data-zont-zoom-reset aria-label="Вернуть масштаб 100%">100%</button><button type="button" data-zont-zoom-in aria-label="Увеличить масштаб">+</button>`;
+    app.appendChild(controls);
+
+    this._zontZoomMain = main;
+    this._zontZoomStage = stage;
+    this._zontZoomCanvas = canvas;
+    this._loadZoomV0814();
+    controls.querySelector("[data-zont-zoom-out]").onclick = () => this._setZoomV0814(this._zontZoom - ZOOM_STEP);
+    controls.querySelector("[data-zont-zoom-in]").onclick = () => this._setZoomV0814(this._zontZoom + ZOOM_STEP);
+    controls.querySelector("[data-zont-zoom-reset]").onclick = () => this._setZoomV0814(1);
+
+    main.addEventListener("scroll", () => { this._zontViewportScroll = [main.scrollLeft, main.scrollTop]; }, { passive: true });
+    main.addEventListener("touchstart", (event) => {
+      if (event.touches.length !== 2) return;
+      const [a, b] = event.touches;
+      this._zontPinch = { distance: Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY), zoom: this._zontZoom };
+    }, { passive: true });
+    main.addEventListener("touchmove", (event) => {
+      if (event.touches.length !== 2 || !this._zontPinch) return;
+      event.preventDefault();
+      const [a, b] = event.touches;
+      const distance = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+      const centerX = (a.clientX + b.clientX) / 2;
+      const centerY = (a.clientY + b.clientY) / 2;
+      this._setZoomV0814(this._zontPinch.zoom * distance / Math.max(1, this._zontPinch.distance), centerX, centerY, false);
+    }, { passive: false });
+    const finishPinch = () => {
+      if (!this._zontPinch) return;
+      this._zontPinch = null;
+      try { localStorage.setItem(ZOOM_STORAGE_KEY, String(this._zontZoom)); } catch (_error) { /* private storage */ }
+    };
+    main.addEventListener("touchend", finishPinch, { passive: true });
+    main.addEventListener("touchcancel", finishPinch, { passive: true });
+
+    this._zontResizeObserver?.disconnect();
+    if (typeof ResizeObserver !== "undefined") {
+      this._zontResizeObserver = new ResizeObserver(() => this._applyZoomLayoutV0814());
+      this._zontResizeObserver.observe(main);
+    }
+    requestAnimationFrame(() => {
+      this._applyZoomLayoutV0814();
+      if (this._zontViewportScroll) main.scrollTo(...this._zontViewportScroll);
+    });
+  };
+
   ElementClass.prototype._render = function patchedRenderV089(...args) {
     const result = originalRender.apply(this, args);
     const root = this.shadowRoot;
@@ -553,9 +675,10 @@ function installV0813() {
     root.getElementById("zont-v0811-style")?.remove();
 
     root.getElementById("zont-v0812-style")?.remove();
-    if (!root.getElementById("zont-v0813-style")) {
+    root.getElementById("zont-v0813-style")?.remove();
+    if (!root.getElementById("zont-v0814-style")) {
       const style = document.createElement("style");
-      style.id = "zont-v0813-style";
+      style.id = "zont-v0814-style";
       style.textContent = `
       .header{grid-template-columns:64px 1fr 64px!important;min-height:92px!important;padding:max(10px,env(safe-area-inset-top,0px)) 20px 10px!important;border-bottom:1px solid var(--divider-color,#e5e5e5)!important;box-shadow:none!important}.rail{width:52px!important;height:52px!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 6px 20px rgba(0,0,0,.06)!important}.rail ha-icon{--mdc-icon-size:31px!important}#back{justify-self:start}#refresh{justify-self:end;color:var(--primary-color,#087de0)!important}.heading strong{font-size:24px!important;font-weight:760!important}.heading span{margin-top:5px!important;font-size:14px!important;color:var(--secondary-text-color,#666)!important}
       main{width:min(100%,980px)!important}.z82-system,.z82-section{background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#ddd);border-radius:22px;padding:16px;margin-bottom:16px}.z82-system.attention{border-color:var(--warning-color,#ff9800)}.z82-system.offline{border-color:var(--error-color,#db4437)}.z82-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.z82-eyebrow{font-size:10.5px;font-weight:760;letter-spacing:.14em;color:var(--secondary-text-color,#666)}.z82-head h1{font-size:29px;line-height:1.04;margin:7px 0 4px}.z82-head p{margin:0;color:var(--secondary-text-color,#666);font-size:14px}.z82-online{min-width:112px;display:grid;grid-template-columns:9px auto;gap:2px 7px;align-items:center;padding:10px 12px;border-radius:999px;background:color-mix(in srgb,var(--success-color,#43a047) 10%,var(--card-background-color,#fff));color:var(--success-color,#43a047)}.z82-online i{width:8px;height:8px;border-radius:50%;background:currentColor}.z82-online strong{font-size:12px}.z82-online small{grid-column:1/3;text-align:center;font-size:8.5px;color:var(--secondary-text-color,#777)}.z82-system.attention .z82-online{color:var(--warning-color,#ff9800);background:color-mix(in srgb,var(--warning-color,#ff9800) 10%,var(--card-background-color,#fff))}.z82-system.offline .z82-online{color:var(--error-color,#db4437)}
@@ -722,6 +845,11 @@ function installV0813() {
         .z82-loop-pump{left:52%;top:94px;width:17px;height:17px;border-width:1.5px}.z82-loop-pump ha-icon{--mdc-icon-size:11px}.z82-hot-water{top:26px}.z82-circulation-loop{top:70px}.z82-cold-water{bottom:-1px}
         .z82-circuit-type{gap:6px;margin-top:8px}.z82-circuit-type>ha-icon{--mdc-icon-size:29px}.z82-circuit-type span{font-size:7.6px}.z82-circuit-type strong{font-size:9.2px;margin-top:1px}
       }
+
+      /* v0.8.14 — panel-local zoom controls and midpoint-anchored pinch zoom */
+      .app{height:100dvh;overflow:hidden}.z14-zoom-viewport{overflow:auto!important;overscroll-behavior:contain;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch;scrollbar-width:thin}.z14-zoom-stage{position:relative;min-width:100%;margin:0 auto}.z14-zoom-canvas{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+      .z14-zoom-controls{position:fixed;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:30;display:grid;grid-template-columns:38px 58px 38px;overflow:hidden;border:1px solid var(--divider-color,#d7d7d7);border-radius:14px;background:color-mix(in srgb,var(--card-background-color,#fff) 94%,transparent);box-shadow:0 5px 18px rgba(0,0,0,.14);backdrop-filter:blur(10px)}.z14-zoom-controls button{height:38px;padding:0;border:0;border-right:1px solid var(--divider-color,#ddd);background:transparent;color:var(--primary-text-color,#202124);font:700 19px/1 system-ui;touch-action:manipulation}.z14-zoom-controls button:last-child{border-right:0}.z14-zoom-controls .z14-zoom-value{font-size:12px;font-weight:750;color:var(--primary-color,#0097a7)}
+      @media(max-width:520px){.z14-zoom-controls{right:max(8px,env(safe-area-inset-right,0px));bottom:calc(62px + env(safe-area-inset-bottom,0px));grid-template-columns:34px 52px 34px;border-radius:12px}.z14-zoom-controls button{height:34px;font-size:17px}.z14-zoom-controls .z14-zoom-value{font-size:11px}}
       `;
       root.appendChild(style);
     }
@@ -744,11 +872,12 @@ function installV0813() {
     }
     const statesLabel = root.querySelector('button[data-tab="states"] span');
     if (statesLabel) statesLabel.textContent = "Состояние";
+    this._installZoomV0814(root);
     return result;
   };
 
-  ElementClass.prototype.__zontV0813 = true;
+  ElementClass.prototype.__zontV0814 = true;
   return true;
 }
 
-if (!installV0813()) customElements.whenDefined(ELEMENT_NAME).then(() => installV0813());
+if (!installV0814()) customElements.whenDefined(ELEMENT_NAME).then(() => installV0814());

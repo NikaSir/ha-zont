@@ -52,9 +52,14 @@ assert.deepEqual(panel._meterScale(item("25", "temperature", "тёплый по�
 assert.match(source, /class="z82-loop-pump/, "DHW circulation pump must be a physical line node");
 assert.match(source, /z82-pump-art[\s\S]{0,160}<ha-icon icon="mdi:pump"/, "heating circuit status rows must use a pump symbol");
 assert.match(source, /Тип контура<\/span><strong>Прямой/, "direct radiator topology should balance the circuit cards");
+assert.match(source, /data-zont-zoom-out/, "panel must expose zoom-out control");
+assert.match(source, /data-zont-zoom-reset/, "panel must expose a 100% reset control");
+assert.match(source, /data-zont-zoom-in/, "panel must expose zoom-in control");
+assert.match(source, /touches\.length !== 2/, "panel must support two-finger pinch zoom");
+assert.match(source, /localStorage\.setItem\(ZOOM_STORAGE_KEY/, "panel zoom must persist per device");
 
 const panelManifest = JSON.parse(fs.readFileSync("custom_components/zont_local/frontend/panel_manifest.json", "utf8"));
-assert.equal(panelManifest.ui_version, "0.8.13");
+assert.equal(panelManifest.ui_version, "0.8.14");
 for (const asset of panelManifest.assets) {
   const path = `custom_components/zont_local/frontend/${asset.path}`;
   assert.ok(fs.existsSync(path), `declared panel asset must exist: ${path}`);
