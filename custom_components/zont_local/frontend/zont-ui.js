@@ -1,13 +1,13 @@
-// ZONT UI v0.8.12 — HACS-managed application layer.
+// ZONT UI v0.8.13 — HACS-managed application layer.
 // Base renderer and registry discovery are provided by Contract Generated UI.
 import "/contract_generated_ui/frontend/nikas-generated-zont.js";
 
 const ELEMENT_NAME = "nikas-generated-zont";
-const UI_VERSION = "0.8.12";
-const ASSET_VERSION = "0.8.12";
+const UI_VERSION = "0.8.13";
+const ASSET_VERSION = "0.8.13";
 const ASSET_ROOT = "/zont_local_panel/assets";
-const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
-const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
+const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0813.webp?v=${ASSET_VERSION}`;
+const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0813.webp?v=${ASSET_VERSION}`;
 const STALE_AFTER_MS = 15 * 60 * 1000;
 const ENTITY_BINDINGS = Object.freeze({
   online: ["binary_sensor.nikas_h2000_pro_online"],
@@ -75,9 +75,9 @@ const ageLabel = (ageMs) => {
   return `Обновлено ${hours} ч назад`;
 };
 
-function installV0812() {
+function installV0813() {
   const ElementClass = customElements.get(ELEMENT_NAME);
-  if (!ElementClass || ElementClass.prototype.__zontV0812) return false;
+  if (!ElementClass || ElementClass.prototype.__zontV0813) return false;
 
   const originalRender = ElementClass.prototype._render;
   if (typeof originalRender !== "function") return false;
@@ -422,7 +422,9 @@ function installV0812() {
           <div><span>${esc(circuitLabel)}</span><strong>${esc(state(circuitState))}</strong></div>
           ${statusDot(circuitState)}
         </div>
-        ${mixed ? `<div class="z82-mixer"><ha-icon icon="mdi:valve"></ha-icon><div><span>Смесительный кран</span><strong>${esc(mixerText)}</strong></div>${mixerDot()}</div>` : ""}
+        ${mixed
+          ? `<div class="z82-mixer"><ha-icon icon="mdi:valve"></ha-icon><div><span>Смесительный кран</span><strong>${esc(mixerText)}</strong></div>${mixerDot()}</div>`
+          : `<div class="z82-circuit-type"><ha-icon icon="mdi:pipe-valve"></ha-icon><div><span>Тип контура</span><strong>Прямой</strong></div></div>`}
         <div class="z82-circuit-values">
           <div><span>Подача</span><i class="hot"></i><strong>${esc(value(set.supply || set.current))}</strong></div>
           <div><span>Обратка</span><i class="cold"></i><strong>${esc(value(set.ret))}</strong></div>
@@ -550,9 +552,10 @@ function installV0812() {
 
     root.getElementById("zont-v0811-style")?.remove();
 
-    if (!root.getElementById("zont-v0812-style")) {
+    root.getElementById("zont-v0812-style")?.remove();
+    if (!root.getElementById("zont-v0813-style")) {
       const style = document.createElement("style");
-      style.id = "zont-v0812-style";
+      style.id = "zont-v0813-style";
       style.textContent = `
       .header{grid-template-columns:64px 1fr 64px!important;min-height:92px!important;padding:max(10px,env(safe-area-inset-top,0px)) 20px 10px!important;border-bottom:1px solid var(--divider-color,#e5e5e5)!important;box-shadow:none!important}.rail{width:52px!important;height:52px!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 6px 20px rgba(0,0,0,.06)!important}.rail ha-icon{--mdc-icon-size:31px!important}#back{justify-self:start}#refresh{justify-self:end;color:var(--primary-color,#087de0)!important}.heading strong{font-size:24px!important;font-weight:760!important}.heading span{margin-top:5px!important;font-size:14px!important;color:var(--secondary-text-color,#666)!important}
       main{width:min(100%,980px)!important}.z82-system,.z82-section{background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#ddd);border-radius:22px;padding:16px;margin-bottom:16px}.z82-system.attention{border-color:var(--warning-color,#ff9800)}.z82-system.offline{border-color:var(--error-color,#db4437)}.z82-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.z82-eyebrow{font-size:10.5px;font-weight:760;letter-spacing:.14em;color:var(--secondary-text-color,#666)}.z82-head h1{font-size:29px;line-height:1.04;margin:7px 0 4px}.z82-head p{margin:0;color:var(--secondary-text-color,#666);font-size:14px}.z82-online{min-width:112px;display:grid;grid-template-columns:9px auto;gap:2px 7px;align-items:center;padding:10px 12px;border-radius:999px;background:color-mix(in srgb,var(--success-color,#43a047) 10%,var(--card-background-color,#fff));color:var(--success-color,#43a047)}.z82-online i{width:8px;height:8px;border-radius:50%;background:currentColor}.z82-online strong{font-size:12px}.z82-online small{grid-column:1/3;text-align:center;font-size:8.5px;color:var(--secondary-text-color,#777)}.z82-system.attention .z82-online{color:var(--warning-color,#ff9800);background:color-mix(in srgb,var(--warning-color,#ff9800) 10%,var(--card-background-color,#fff))}.z82-system.offline .z82-online{color:var(--error-color,#db4437)}
@@ -708,6 +711,17 @@ function installV0812() {
       .z82-dhw-schematic .z82-tank{border:0;background:transparent;box-shadow:none}
       .z82-dhw-schematic .z82-tank:before{content:"";display:block;position:absolute;inset:0;width:auto;height:auto;border-radius:0;background:transparent url("${DHW_SHELL_IMAGE}") center/100% 100% no-repeat;z-index:3;pointer-events:none}
       .z82-dhw-schematic .z82-water{left:24%;right:24%;bottom:16%;max-height:59%;z-index:1;border-radius:3px 3px 8px 8px}
+
+      /* v0.8.13 — tighter equipment crop, calmer DHW loop and balanced circuit cards */
+      .z82-circuit-type{display:flex;align-items:center;gap:8px;margin-top:16px;color:var(--secondary-text-color,#666)}
+      .z82-circuit-type>ha-icon{--mdc-icon-size:34px}.z82-circuit-type>div{min-width:0;flex:1}.z82-circuit-type span,.z82-circuit-type strong{display:block;font-size:9px}.z82-circuit-type strong{font-size:10px;margin-top:2px;color:var(--primary-text-color,#222)}
+      @media(max-width:520px){
+        .z82-boiler-visual{height:91px}.z82-boiler-art{width:54px;height:82px}.z82-flame{margin-top:20px;--mdc-icon-size:18px}.z82-mini-tank{right:5px;bottom:8px;width:17px;height:42px}.z82-boiler-art i{left:8px;bottom:10px;width:24px}.z82-boiler-art b{left:9px;bottom:10px;width:22px}
+        .z82-dhw-schematic{height:158px;min-height:158px}.z82-dhw-schematic .z82-tank{left:0;top:25px;width:44px;height:116px}.z82-dhw-schematic .z82-port.hot{top:10px}.z82-dhw-schematic .z82-port.loop{top:76px}.z82-dhw-schematic .z82-port.cold{left:18px!important}
+        .z82-hot-pipe{left:45px;top:38px}.z82-loop-branch{left:52%;top:38px;height:42px}.z82-loop-vertical{left:52%;top:80px;height:32px}.z82-loop-return{left:45px;right:48%;top:110px}.z82-cold-pipe{left:21px;top:152px}.z82-flow-arrow.loop{left:46px;top:107px}.z82-flow-arrow.cold{left:23px;top:149px}
+        .z82-loop-pump{left:52%;top:94px;width:17px;height:17px;border-width:1.5px}.z82-loop-pump ha-icon{--mdc-icon-size:11px}.z82-hot-water{top:26px}.z82-circulation-loop{top:70px}.z82-cold-water{bottom:-1px}
+        .z82-circuit-type{gap:6px;margin-top:8px}.z82-circuit-type>ha-icon{--mdc-icon-size:29px}.z82-circuit-type span{font-size:7.6px}.z82-circuit-type strong{font-size:9.2px;margin-top:1px}
+      }
       `;
       root.appendChild(style);
     }
@@ -733,8 +747,8 @@ function installV0812() {
     return result;
   };
 
-  ElementClass.prototype.__zontV0812 = true;
+  ElementClass.prototype.__zontV0813 = true;
   return true;
 }
 
-if (!installV0812()) customElements.whenDefined(ELEMENT_NAME).then(() => installV0812());
+if (!installV0813()) customElements.whenDefined(ELEMENT_NAME).then(() => installV0813());

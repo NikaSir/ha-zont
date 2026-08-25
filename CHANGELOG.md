@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.13
+
+- Removed transparent padding from the packaged boiler and DHW artwork so the equipment is larger without expanding the overview grid.
+- Tightened the compact DHW schematic, reduced the circulation-pump marker and kept it physically mounted on the return loop.
+- Balanced the two heating-circuit cards with an explicit direct-circuit topology row opposite the live mixer state.
+- Increased the frontend cache-busting build to `b014`.
+
 ## 0.8.12
 
 - Added transparent local WebP artwork for the boiler casing and DHW tank shell under the integration's packaged `frontend/assets` directory.
