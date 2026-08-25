@@ -1,25 +1,500 @@
-// ZONT UI v0.8.16 — HACS-managed application layer.
-// The generated panel owns the base element. This module waits for that element
-// instead of importing its implementation through a second, fragile URL.
+// Semantic ZONT panel for Contract Generated UI.
+// Read-mostly: physical actuators are monitored; only ZONT heating-mode buttons are actionable.
+(() => {
+  const ELEMENT_NAME = "nikas-generated-zont";
+  if (customElements.get(ELEMENT_NAME)) return;
+
+  const CONTROLLER_FACTS = [
+    ["Модель", "H2000 PRO", "mdi:router-wireless"],
+    ["Плата", "710", "mdi:chip"],
+    ["Прошивка", "670", "mdi:memory"],
+    ["Память", "68%", "mdi:chart-donut"],
+    ["Входы / выходы / реле", "18 занято", "mdi:connection"],
+  ];
+
+  const esc = (value) => String(value ?? "")
+    .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+  const low = (...values) => values.filter((v) => v != null).map((v) => String(v).toLocaleLowerCase()).join(" ");
+  const has = (text, words) => words.some((word) => text.includes(String(word).toLocaleLowerCase()));
+  const domainOf = (entityId) => String(entityId || "").split(".", 1)[0];
+  const stateLow = (item) => String(item?.state?.state ?? "").toLocaleLowerCase();
+  const activeStates = new Set(["on", "open", "opening", "active", "running", "heat", "heating", "true", "1"]);
+  const inactiveStates = new Set(["off", "closed", "idle", "false", "0", "standby"]);
+
+  function navigate(path) {
+    if (!path) return;
+    window.history.pushState(null, "", path);
+    window.dispatchEvent(new Event("location-changed"));
+  }
+
+  class NikasGeneratedZont extends HTMLElement {
+    constructor() {
+      super();
+      this.attachShadow({ mode: "open" });
+      this._hass = null;
+      this._panel = null;
+      this._active = null;
+      this._registry = null;
+      this._devices = new Map();
+      this._loading = null;
+      this._error = null;
+      this._queued = false;
+      this._busyMode = null;
+      this._onHash = () => { this._active = this._tabFromLocation(); this._queue(); };
+    }
+
+    set hass(value) { this._hass = value; this._load(); this._queue(); }
+    get hass() { return this._hass; }
+    set panel(value) { this._panel = value; this._active = this._tabFromLocation(); this._load(true); this._queue(); }
+    get panel() { return this._panel; }
+
+    connectedCallback() {
+      window.addEventListener("hashchange", this._onHash);
+      this._active = this._tabFromLocation();
+      this._load();
+      this._queue();
+    }
+    disconnectedCallback() { window.removeEventListener("hashchange", this._onHash); }
+
+    _config() { return this._panel?.config || this._panel || {}; }
+    _tabs() { return Array.isArray(this._config().tabs) ? this._config().tabs : []; }
+    _activeTab() { return this._tabs().find((tab) => tab.id === this._active) || this._tabs()[0]; }
+    _tabFromLocation() {
+      const hash = window.location.hash.replace(/^#/, "");
+      return this._tabs().some((tab) => tab.id === hash) ? hash : this._tabs()[0]?.id;
+    }
+    _selectTab(id) {
+      if (!id || id === this._active) return;
+      this._active = id;
+      window.history.replaceState(null, "", `${window.location.pathname}#${encodeURIComponent(id)}`);
+      this._queue();
+    }
+    _queue() {
+      if (this._queued) return;
+      this._queued = true;
+      requestAnimationFrame(() => { this._queued = false; this._render(); });
+    }
+
+    _load(force = false) {
+      if (!this._hass?.callWS || (this._loading && !force) || (this._registry && !force)) return;
+      this._error = null;
+      this._loading = Promise.all([
+        this._hass.callWS({ type: "config/entity_registry/list" }),
+        this._hass.callWS({ type: "config/device_registry/list" }),
+      ]).then(([entries, devices]) => {
+        this._registry = Array.isArray(entries) ? entries : [];
+        this._devices = new Map((Array.isArray(devices) ? devices : []).filter((d) => d?.id).map((d) => [d.id, d]));
+      }).catch((error) => {
+        this._registry = [];
+        this._devices = new Map();
+        this._error = error instanceof Error ? error.message : String(error);
+      }).finally(() => { this._loading = null; this._queue(); });
+    }
+
+    _entries() {
+      if (!Array.isArray(this._registry)) return [];
+      const platforms = new Set(this._config().source?.platforms || ["zont", "zont_ha"]);
+      return this._registry
+        .filter((entry) => platforms.has(entry.platform) && !entry.disabled_by)
+        .filter((entry) => this._hass?.states?.[entry.entity_id])
+        .map((entry) => ({ entry, state: this._hass.states[entry.entity_id] }));
+    }
+
+    _device(item) { return this._devices.get(item?.entry?.device_id) || {}; }
+    _rawName(item) { return item.state?.attributes?.friendly_name || item.entry.name || item.entry.original_name || item.entry.entity_id; }
+    _text(item) {
+      const device = this._device(item);
+      return low(item.entry.entity_id, this._rawName(item), item.entry.original_name, item.entry.name,
+        item.state?.attributes?.device_class, device.name_by_user, device.name, device.model);
+    }
+    _number(item) {
+      const value = Number(String(item?.state?.state ?? "").replace(",", "."));
+      return Number.isFinite(value) ? value : null;
+    }
+    _unit(item) { return item?.state?.attributes?.unit_of_measurement || ""; }
+    _formatted(item) {
+      if (!item) return "—";
+      if (typeof this._hass?.formatEntityState === "function") {
+        try { return this._hass.formatEntityState(item.state); } catch (_error) { /* fallback */ }
+      }
+      return `${item.state?.state ?? "—"}${this._unit(item) ? ` ${this._unit(item)}` : ""}`;
+    }
+    _isProblem(item) { return item && ["unknown", "unavailable"].includes(stateLow(item)); }
+    _isActive(item) { return item && activeStates.has(stateLow(item)); }
+    _isInactive(item) { return item && inactiveStates.has(stateLow(item)); }
+
+    _semanticName(item) {
+      let name = String(this._rawName(item)).trim();
+      name = name
+        .replace(/^NikaS[_\s-]*H[-_ ]?2000\+?Pro[_\s:·—–-]*/i, "")
+        .replace(/^NikaS[_\s-]*H[-_ ]?2000\+?[_\s:·—–-]*/i, "")
+        .replace(/^ZONT[_\s:·—–-]*/i, "")
+        .replace(/^H[-_ ]?2000\+?Pro[_\s:·—–-]*/i, "")
+        .replace(/^eBUS[_\s:·—–-]*/i, "")
+        .replace(/^TH[_\s:·—–-]*/i, "")
+        .replace(/^ГВ[_\s:·—–-]*/i, "")
+        .replace(/^Основной\s*№?\s*2[_\s:·—–-]*/i, "")
+        .replace(/^Основной[_\s:·—–-]*/i, "")
+        .replace(/[_]+/g, " ")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+      return name || "Параметр";
+    }
+
+    _find(items, include, exclude = []) {
+      return items.find((item) => has(this._text(item), include) && (!exclude.length || !has(this._text(item), exclude)));
+    }
+    _unique(items) {
+      const seen = new Set();
+      return items.filter((item) => item && !seen.has(item.entry.entity_id) && seen.add(item.entry.entity_id));
+    }
+
+    _role(item) {
+      const t = this._text(item);
+      if (has(t, ["ошиб", "error", "fault", "авар"])) return "error";
+      if (has(t, ["модуляц", "modulation"])) return "modulation";
+      if (has(t, ["давлен", "pressure"])) {
+        if (has(t, ["питьев", "хвс"])) return "pressure_dhw";
+        if (has(t, ["полив"])) return "pressure_irrigation";
+        if (has(t, ["теплонос", "систем"])) return "pressure_system";
+        return "pressure_boiler";
+      }
+      if (has(t, ["гидрострел", "hydraulic"])) return "hydraulic";
+      if (has(t, ["обратн", "return", "<<<", "←"])) return "return";
+      if (has(t, ["подач", "supply", ">>>", "→"])) return "supply";
+      if (has(t, ["гвс", "горяч", "dhw"])) return "dhw";
+      if (has(t, ["циркуляц", "circulation"])) return "circulation";
+      if (has(t, ["rssi", "signal"])) return "rssi";
+      if (has(t, ["батар", "battery"])) return "battery";
+      if (has(t, ["влаж", "humidity"])) return "humidity";
+      if (has(t, ["online", "подключ", "controller online"])) return "online";
+      if (has(t, ["питан", "power"])) return "power";
+      if (has(t, ["напряж", "voltage"])) return "voltage";
+      if (has(t, ["состояни", "status", "state"])) return "state";
+      if (has(t, ["целев", "target", "расчёт", "расчет", "уставк"])) return "target";
+      if (has(t, ["температур", "temperature", "t°", "градус"])) return "temperature";
+      return "other";
+    }
+
+    _shortLabel(item) {
+      const role = this._role(item);
+      const map = {
+        error: "Ошибка", modulation: "Модуляция", pressure_boiler: "Давление котла",
+        pressure_system: "Давление системы", pressure_dhw: "Питьевая вода",
+        pressure_irrigation: "Вода на полив", hydraulic: "Гидрострелка", return: "Обратка",
+        supply: "Подача", dhw: "ГВС", circulation: "Циркуляция", rssi: "RSSI",
+        battery: "Батарея", humidity: "Влажность", online: "Контроллер",
+        power: "Питание", voltage: "Напряжение", state: "Состояние",
+        target: "Расчётная", temperature: "Температура",
+      };
+      return map[role] || this._semanticName(item).replace(/\s*(?:>>>|<<<|->|<-)+\s*$/g, "").slice(0, 28);
+    }
+
+    _icon(item, context = "") {
+      const t = `${this._text(item)} ${context}`;
+      if (has(t, ["насос", "pump"])) return "mdi:pump";
+      if (has(t, ["смесител", "mixer", "кран", "valve"])) return "mdi:valve";
+      if (has(t, ["радиатор"])) return "mdi:radiator";
+      if (has(t, ["тёпл", "тепл", "floor"])) return "mdi:heating-coil";
+      if (has(t, ["гвс", "горяч", "dhw"])) return "mdi:water-boiler";
+      if (has(t, ["циркуляц"])) return "mdi:pump";
+      if (has(t, ["котел", "котёл", "boiler"])) return "mdi:water-boiler";
+      if (has(t, ["давлен", "pressure"])) return "mdi:gauge";
+      if (has(t, ["влаж", "humidity"])) return "mdi:water-percent";
+      if (has(t, ["батар", "battery"])) return "mdi:battery";
+      if (has(t, ["rssi", "signal"])) return "mdi:wifi";
+      if (has(t, ["ошиб", "error", "fault"])) return "mdi:wrench-outline";
+      return item?.state?.attributes?.icon || item?.entry?.icon || "mdi:thermometer";
+    }
+
+    _value(item, fallback = "—") { return item ? this._formatted(item) : fallback; }
+
+    _meterScale(item) {
+      const role = this._role(item);
+      const t = this._text(item);
+      if (role.startsWith("pressure_")) return [0, 4];
+      if (role === "humidity" || role === "modulation" || role === "battery") return [0, 100];
+      if (has(t, ["улиц", "вне дома", "weather", "погод"])) return [-40, 50];
+      if (has(t, ["комнат", "гостиная", "детская"])) return [15, 40];
+      return [5, 75];
+    }
+
+    _meterCard(item, label = null, icon = null) {
+      if (!item) return "";
+      const value = this._number(item);
+      if (value == null) return this._compactCard(item, label);
+      const [min, max] = this._meterScale(item);
+      const pct = Math.max(0, Math.min(1, (value - min) / (max - min)));
+      return `<div class="meter-card ${this._isProblem(item) ? "problem" : ""}">
+        <div class="meter"><span class="meter-max">${esc(max)}</span><i></i><b style="bottom:${(pct * 100).toFixed(1)}%"></b><span class="meter-min">${esc(min)}</span></div>
+        <div class="meter-body"><div class="meter-value">${esc(this._formatted(item))}</div><ha-icon icon="${esc(icon || this._icon(item))}"></ha-icon><div class="meter-label">${esc(label || this._shortLabel(item))}</div></div>
+      </div>`;
+    }
+
+    _compactCard(item, label = null, value = null, icon = null) {
+      if (!item && !label) return "";
+      return `<div class="compact-card ${item && this._isProblem(item) ? "problem" : ""}"><ha-icon icon="${esc(icon || (item ? this._icon(item) : "mdi:information-outline"))}"></ha-icon><div><strong>${esc(label || this._shortLabel(item))}</strong><span>${esc(value ?? this._value(item))}</span></div></div>`;
+    }
+
+    _factCard(label, value, icon) {
+      return `<div class="compact-card fact-card"><ha-icon icon="${esc(icon)}"></ha-icon><div><strong>${esc(label)}</strong><span>${esc(value)}</span></div></div>`;
+    }
+
+    _boilerSet(items, reserve = false) {
+      const key = reserve ? ["резерв", "reserve"] : ["основн", "main", "ebus"];
+      const reject = reserve ? [] : ["резерв", "reserve"];
+      const scoped = items.filter((item) => has(this._text(item), key) && (!reject.length || !has(this._text(item), reject)));
+      const source = scoped.length ? scoped : items;
+      return {
+        state: this._find(source, ["состояни", "status", "state"], ["контур"]),
+        current: this._find(source, ["текущ", "сейчас", "current", "t°", "температур"], ["гвс", "обрат", "подач", "вне дома", "улиц"]),
+        target: this._find(source, ["целев", "target", "расчёт", "расчет", "уставк"]),
+        modulation: this._find(source, ["модуляц", "modulation"]),
+        pressure: this._find(source, ["давлен", "pressure"], ["полив", "питьев", "хвс"]),
+        error: this._find(source, ["ошиб", "error", "fault"]),
+        supply: this._find(source, ["подач", "supply", ">>>"]),
+        ret: this._find(source, ["обрат", "return", "<<<"]),
+      };
+    }
+
+    _boilerCard(title, set, reserve = false) {
+      const rows = [
+        ["Состояние", this._value(set.state, reserve ? "Резерв" : "—")],
+        ["Сейчас", this._value(set.current)], ["Расчётная", this._value(set.target)],
+        ["Модуляция", this._value(set.modulation)], ["Давление", this._value(set.pressure)],
+        ["Ошибка", this._value(set.error, "Ошибок нет")],
+      ].filter(([, value]) => value !== "—");
+      return `<div class="system-card"><div class="system-title"><ha-icon icon="${reserve ? "mdi:water-boiler-off" : "mdi:water-boiler"}"></ha-icon><strong>${esc(title)}</strong></div><div class="system-rows">${rows.map(([k,v]) => `<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div>${set.supply || set.ret ? `<div class="flow-line"><span>→ ${esc(this._value(set.supply))}</span><span>← ${esc(this._value(set.ret))}</span></div>` : ""}</div>`;
+    }
+
+    _circuitCard(items, title, words, icon) {
+      const scoped = items.filter((item) => has(this._text(item), words));
+      if (!scoped.length) return "";
+      const current = this._find(scoped, ["текущ", "current", "температур", "t°"], ["целев", "target", ">>>", "<<<"]) || scoped.find((i) => this._number(i) != null);
+      const target = this._find(scoped, ["целев", "target", "расчёт", "расчет", "уставк"]);
+      const supply = this._find(scoped, ["подач", "supply", ">>>"]);
+      const ret = this._find(scoped, ["обрат", "return", "<<<"]);
+      const state = this._find(scoped, ["включ", "active", "состояни", "status"]);
+      return `<div class="system-card"><div class="system-title"><ha-icon icon="${esc(icon)}"></ha-icon><strong>${esc(title)}</strong></div><div class="current-line"><span>Сейчас</span><b>${esc(this._value(current))}</b></div>${target ? `<div class="target-line"><span>Расчётная</span><b>${esc(this._value(target))}</b></div>` : ""}${supply || ret ? `<div class="flow-line"><span>→ ${esc(this._value(supply))}</span><span>← ${esc(this._value(ret))}</span></div>` : ""}${state ? `<div class="card-foot">${esc(this._formatted(state))}</div>` : ""}</div>`;
+    }
+
+    _roomName(item) {
+      const t = this._text(item);
+      const known = ["Гостиная", "Детская 1", "Детская 2", "Спальня", "Кухня", "Холл", "Котельная"];
+      for (const name of known) if (t.includes(name.toLocaleLowerCase())) return name;
+      if (has(t, ["улиц", "вне дома", "outdoor"])) return "Улица";
+      if (has(t, ["погод", "weather", "internet"])) return "Погода";
+      return null;
+    }
+
+    _roomGroups(items) {
+      const groups = new Map();
+      for (const item of items) {
+        const name = this._roomName(item);
+        if (!name) continue;
+        if (!groups.has(name)) groups.set(name, []);
+        groups.get(name).push(item);
+      }
+      return groups;
+    }
+
+    _roomCard(name, items) {
+      const temp = this._find(items, ["температур", "temperature", "t°"]) || items.find((i) => this._unit(i).includes("°"));
+      const hum = this._find(items, ["влаж", "humidity"]);
+      const bat = this._find(items, ["батар", "battery"]);
+      const rssi = this._find(items, ["rssi", "signal"]);
+      const main = temp || hum || items[0];
+      const [min,max] = this._meterScale(main);
+      const n = this._number(main);
+      const pct = n == null ? 0 : Math.max(0, Math.min(1, (n-min)/(max-min)));
+      return `<div class="room-card"><div class="room-meter"><span>${esc(max)}</span><i></i><b style="bottom:${(pct*100).toFixed(1)}%"></b><small>${esc(min)}</small></div><div class="room-body"><div class="room-value">${esc(this._value(main))}</div><ha-icon icon="${name === "Улица" ? "mdi:weather-partly-cloudy" : "mdi:home-thermometer-outline"}"></ha-icon><strong>${esc(name)}</strong><div class="room-meta">${hum ? `<span>💧 ${esc(this._formatted(hum))}</span>` : ""}${bat ? `<span>🔋 ${esc(this._formatted(bat))}</span>` : ""}${rssi ? `<span>📶 ${esc(this._formatted(rssi))}</span>` : ""}</div></div></div>`;
+    }
+
+    _section(title, content) { return content ? `<section><h2>${esc(title)}</h2>${content}</section>` : ""; }
+    _grid(content) { return content ? `<div class="card-grid">${content}</div>` : ""; }
+
+    _isStateLike(item) {
+      const domain = domainOf(item.entry.entity_id);
+      if (["switch", "binary_sensor", "input_boolean"].includes(domain)) return true;
+      if (activeStates.has(stateLow(item)) || inactiveStates.has(stateLow(item))) return true;
+      return has(this._text(item), ["включено", "выключено", "работает", "работа"]);
+    }
+    _findState(items, include, exclude = []) {
+      return items.find((item) => this._isStateLike(item) && has(this._text(item), include) && (!exclude.length || !has(this._text(item), exclude)));
+    }
+    _stateText(item) {
+      if (!item) return "Нет данных";
+      if (this._isProblem(item)) return "Нет данных";
+      const state = stateLow(item);
+      if (activeStates.has(state)) return "Включено";
+      if (inactiveStates.has(state)) return "Выключено";
+      if (state === "opening") return "Открывается";
+      if (state === "closing") return "Закрывается";
+      return this._formatted(item);
+    }
+    _statusTile(label, item, icon, tone = "") {
+      const active = this._isActive(item);
+      return `<div class="status-tile ${active ? "active" : ""} ${esc(tone)} ${this._isProblem(item) ? "problem" : ""}"><div class="status-title"><span>${esc(label)}</span><ha-icon icon="${esc(icon)}"></ha-icon></div><div class="status-value">${esc(this._stateText(item))}</div></div>`;
+    }
+
+    _mixerState(opening, closing) {
+      if (this._isActive(opening) && !this._isActive(closing)) return "Открывается";
+      if (this._isActive(closing) && !this._isActive(opening)) return "Закрывается";
+      if (this._isProblem(opening) || this._isProblem(closing)) return "Нет данных";
+      if (opening || closing) return "Стоит";
+      return "Сущности не найдены";
+    }
+
+    _modeButtons(items) {
+      const words = ["режим", "mode", "полная автоматика", "резервное питание", "отпуск", "комфорт", "все отключено", "дома", "ноч", "эконом"];
+      return this._unique(items.filter((item) => domainOf(item.entry.entity_id) === "button" && has(this._text(item), words)));
+    }
+    _modeLabel(item) {
+      const t = this._text(item);
+      if (has(t, ["полная автоматика"])) return "Полная автоматика";
+      if (has(t, ["резервное питание"])) return "Резервное питание";
+      if (has(t, ["отпуск все дома", "отпуск все", "отпуск_все"])) return "Отпуск · все дома";
+      if (has(t, ["отпуск не дома", "отпуск не", "отпуск_не"])) return "Отпуск · не дома";
+      if (has(t, ["комфорт"])) return "Комфорт";
+      if (has(t, ["все отключено", "всё отключено"])) return "Всё отключено";
+      return this._semanticName(item).replace(/^режим\s*/i, "").slice(0, 32);
+    }
+    _currentMode(items) {
+      const climate = items.find((item) => domainOf(item.entry.entity_id) === "climate" && item.state?.attributes?.preset_mode);
+      if (climate?.state?.attributes?.preset_mode) return String(climate.state.attributes.preset_mode);
+      const mode = this._find(items, ["режим отоп", "heating mode", "thermostat mode"]);
+      return mode ? this._formatted(mode) : "Определяется ZONT";
+    }
+    _modeActive(item, current) {
+      const a = String(this._modeLabel(item)).toLocaleLowerCase();
+      const b = String(current || "").toLocaleLowerCase();
+      return b !== "определяется zont" && b !== "—" && (a.includes(b) || b.includes(a));
+    }
+
+    _states(items) {
+      const opening = this._findState(items, ["открытие", "opening"], ["двер", "окно"]);
+      const closing = this._findState(items, ["закрытие", "closing"], ["двер", "окно"]);
+      const radiators = this._findState(items, ["радиатор"], ["температур", "t°", ">>>", "<<<", "датчик"]);
+      const floor = this._findState(items, ["тёпл", "тепл", "floor"], ["температур", "t°", ">>>", "<<<", "датчик"]);
+      const circulation = this._findState(items, ["циркуляц"], ["температур", "t°", "гвс"]);
+      const reserve = this._findState(items, ["резерв", "reserve"], ["температур", "t°", "котел", "котёл", "ошиб"]);
+      const pumpTiles = [
+        this._statusTile("Радиаторы", radiators, "mdi:radiator", "heat"),
+        this._statusTile("Тёплый пол", floor, "mdi:heating-coil", "heat"),
+        this._statusTile("Циркуляция", circulation, "mdi:pump", "circulation"),
+        this._statusTile("Резерв", reserve, "mdi:water-boiler", "reserve"),
+      ].join("");
+      const mixer = `<div class="mixer-card"><div class="system-title"><ha-icon icon="mdi:valve"></ha-icon><strong>Смесительный привод</strong></div><div class="mixer-state">${esc(this._mixerState(opening, closing))}</div><div class="mixer-flags"><span class="${this._isActive(opening) ? "on" : ""}">Открытие · ${esc(this._stateText(opening))}</span><span class="${this._isActive(closing) ? "on" : ""}">Закрытие · ${esc(this._stateText(closing))}</span></div></div>`;
+      const modes = this._modeButtons(items);
+      const current = this._currentMode(items);
+      const modeHtml = modes.length ? `<div class="mode-card"><div class="mode-current"><span>Текущий режим</span><b>${esc(current)}</b></div><div class="mode-buttons">${modes.map((item) => `<button class="${this._modeActive(item, current) ? "selected" : ""}" data-mode-entity="${esc(item.entry.entity_id)}" data-mode-label="${esc(this._modeLabel(item))}" ${this._busyMode === item.entry.entity_id ? "disabled" : ""}><ha-icon icon="mdi:radiator"></ha-icon><span>${esc(this._modeLabel(item))}</span></button>`).join("")}</div></div>` : `<div class="empty">Кнопки режимов ZONT в Home Assistant не найдены.</div>`;
+      return `${this._section("Насосы и исполнительные устройства", this._grid(pumpTiles))}${this._section("Смесительный контур", mixer)}${this._section("Режим отопления", modeHtml)}`;
+    }
+
+    _boilers(items) {
+      const main = this._boilerSet(items, false);
+      const reserve = this._boilerSet(items, true);
+      const meters = this._unique([main.current, main.target, main.modulation, main.pressure, main.supply, main.ret, reserve.current, reserve.target]).map((item) => this._meterCard(item)).join("");
+      return `${this._section("Котловые контуры", this._grid(this._boilerCard("Основной", main) + this._boilerCard("Резервный", reserve)))}${this._section("Параметры", this._grid(meters))}`;
+    }
+
+    _heating(items) {
+      const cards = [
+        this._circuitCard(items, "Радиаторы", ["радиатор"], "mdi:radiator"),
+        this._circuitCard(items, "Тёплый пол", ["тёпл", "тепл", "floor"], "mdi:heating-coil"),
+        this._circuitCard(items, "ГВС", ["гвс", "горяч", "dhw"], "mdi:water-boiler"),
+        this._circuitCard(items, "Циркуляция", ["циркуляц", "circulation"], "mdi:pump"),
+        this._circuitCard(items, "Резервный контур", ["резерв", "reserve"], "mdi:water-boiler-off"),
+      ].join("");
+      const metricWords = ["радиатор", "тёпл", "тепл", "гвс", "циркуляц", "резерв", "гидрострел"];
+      const metrics = this._unique(items.filter((item) => has(this._text(item), metricWords) && this._number(item) != null)).slice(0, 12).map((item) => this._meterCard(item)).join("");
+      return `${this._section("Отопительные контуры", this._grid(cards))}${this._section("Температуры", this._grid(metrics))}`;
+    }
+
+    _sensors(items) {
+      const rooms = [...this._roomGroups(items).entries()].map(([name,entries]) => this._roomCard(name, entries)).join("");
+      const pressures = this._unique(items.filter((item) => this._role(item).startsWith("pressure_") && !has(this._text(item), ["котел", "котёл", "ebus"]))).slice(0, 6).map((item) => this._meterCard(item)).join("");
+      return `${this._section("Помещения и улица", this._grid(rooms))}${this._section("Давление", this._grid(pressures))}`;
+    }
+
+    _diagnostics(items) {
+      const facts = CONTROLLER_FACTS.map(([label,value,icon]) => this._factCard(label, value, icon)).join("");
+      const controller = this._unique(items.filter((item) => ["online","power","voltage"].includes(this._role(item)))).slice(0, 8).map((item) => this._compactCard(item)).join("");
+      const errors = this._unique(items.filter((item) => this._role(item) === "error"));
+      const actualProblems = this._unique(items.filter((item) => this._isProblem(item) && !["rssi","battery"].includes(this._role(item)))).slice(0, 8);
+      const eBus = this._unique(items.filter((item) => has(this._text(item), ["ebus"]) && ["modulation","pressure_boiler","temperature","dhw","return","supply"].includes(this._role(item)))).slice(0, 8).map((item) => this._compactCard(item)).join("");
+      const errorHtml = errors.length ? errors.slice(0, 6).map((item) => this._compactCard(item)).join("") : `<div class="ok-card"><ha-icon icon="mdi:check-circle-outline"></ha-icon><span>Ошибок нет</span></div>`;
+      const problemsHtml = actualProblems.length ? actualProblems.map((item) => this._compactCard(item)).join("") : "";
+      return `${this._section("Контроллер H2000+ Pro", this._grid(facts + controller))}${this._section("Ошибки", this._grid(errorHtml))}${problemsHtml ? this._section("Проблемы доступности", this._grid(problemsHtml)) : ""}${this._section("eBUS", this._grid(eBus))}`;
+    }
+
+    _content(active, items) {
+      if (this._error) return `<div class="empty problem">Ошибка чтения реестра: ${esc(this._error)}</div>`;
+      if (!Array.isArray(this._registry)) return `<div class="empty">Читаю данные ZONT…</div>`;
+      if (!items.length) return `<div class="empty">Сущности ZONT не найдены.</div>`;
+      if (active.id === "states") return this._states(items);
+      if (active.id === "boilers") return this._boilers(items);
+      if (active.id === "heating") return this._heating(items);
+      if (active.id === "sensors") return this._sensors(items);
+      if (active.id === "diagnostics") return this._diagnostics(items);
+      return this._states(items);
+    }
+
+    async _pressMode(entityId, label) {
+      const item = this._entries().find((entry) => entry.entry.entity_id === entityId);
+      if (!item || domainOf(entityId) !== "button" || !["zont", "zont_ha"].includes(item.entry.platform)) return;
+      if (!window.confirm(`Переключить режим отопления на «${label}»?`)) return;
+      this._busyMode = entityId;
+      this._queue();
+      try { await this._hass.callService("button", "press", { entity_id: entityId }); }
+      finally { this._busyMode = null; this._queue(); }
+    }
+
+    _render() {
+      const config = this._config();
+      const tabs = this._tabs();
+      const active = this._activeTab();
+      if (!active || !tabs.length) return;
+      const items = this._entries();
+      const nav = tabs.map((tab) => `<button class="tab ${tab.id === active.id ? "active" : ""}" data-tab="${esc(tab.id)}" ${tab.id === active.id ? "disabled" : ""}><ha-icon icon="${esc(tab.icon || "mdi:view-dashboard-outline")}"></ha-icon><span>${esc(tab.label || tab.id)}</span></button>`).join("");
+      this.shadowRoot.innerHTML = `
+        <style>
+          :host{display:block;min-height:100vh;background:var(--primary-background-color,#f2f3f5);color:var(--primary-text-color,#202124);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}*{box-sizing:border-box}
+          .app{min-height:100vh;padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))}.header{position:sticky;top:0;z-index:10;display:grid;grid-template-columns:50px 1fr 50px;align-items:center;min-height:70px;padding:max(6px,env(safe-area-inset-top,0px)) 10px 6px;background:var(--card-background-color,#fff);border-bottom:1px solid var(--divider-color,#ddd)}.rail{width:46px;height:46px;border:0;background:transparent;color:inherit;display:grid;place-items:center}.rail ha-icon{--mdc-icon-size:28px}.heading{text-align:center;min-width:0}.heading strong,.heading span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.heading strong{font-size:21px}.heading span{margin-top:3px;font-size:12px;color:var(--secondary-text-color,#777)}
+          main{width:min(100%,920px);margin:auto;padding:14px 16px 28px}section{margin-bottom:24px}section h2{margin:0 0 11px 3px;font-size:18px;font-weight:500}.card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.system-card,.meter-card,.room-card,.compact-card,.ok-card,.mixer-card,.mode-card,.status-tile,.empty{background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#ddd);border-radius:16px}
+          .system-card{padding:14px}.system-title{display:flex;align-items:center;gap:9px;font-size:18px}.system-title ha-icon{color:var(--primary-color,#0097a7);--mdc-icon-size:28px}.system-title strong{font-weight:600}.system-rows{margin-top:12px;display:grid;gap:7px}.system-rows>div,.flow-line,.current-line,.target-line{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.system-rows span,.target-line span{color:var(--secondary-text-color,#777);font-size:12px}.system-rows b,.current-line b,.target-line b{font-size:15px;font-weight:650}.current-line{margin-top:12px}.current-line span{color:#ef8b00;font-size:13px}.current-line b{font-size:20px}.target-line{margin-top:5px}.flow-line{margin-top:9px;padding-top:8px;border-top:1px solid var(--divider-color,#eee);font-size:12px;color:var(--secondary-text-color,#666)}.card-foot{margin-top:8px;font-size:12px;color:var(--secondary-text-color,#777)}
+          .meter-card{min-height:170px;padding:12px;display:grid;grid-template-columns:42px 1fr;gap:7px}.meter{position:relative;height:140px}.meter i{position:absolute;left:20px;top:8px;bottom:8px;width:5px;border-radius:6px;background:color-mix(in srgb,var(--primary-color,#00aeb7) 22%,transparent)}.meter b{position:absolute;left:16px;width:13px;height:4px;border-radius:4px;background:var(--primary-color,#00aeb7);transform:translateY(50%)}.meter-max,.meter-min{position:absolute;left:0;font-size:10px;color:var(--secondary-text-color,#777)}.meter-max{top:0}.meter-min{bottom:0}.meter-body{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between}.meter-value{align-self:flex-start;font-size:25px;white-space:nowrap}.meter-body ha-icon{--mdc-icon-size:46px;color:var(--primary-color,#0097a7)}.meter-label{width:100%;font-size:14px;line-height:1.2;overflow:hidden;text-overflow:ellipsis}
+          .room-card{min-height:185px;padding:12px;display:grid;grid-template-columns:42px 1fr;gap:8px}.room-meter{position:relative;height:160px}.room-meter i{position:absolute;left:20px;top:7px;bottom:7px;width:5px;border-radius:6px;background:color-mix(in srgb,var(--primary-color,#00aeb7) 22%,transparent)}.room-meter b{position:absolute;left:16px;width:13px;height:4px;border-radius:4px;background:var(--primary-color,#00aeb7);transform:translateY(50%)}.room-meter span,.room-meter small{position:absolute;left:0;font-size:10px;color:var(--secondary-text-color,#777)}.room-meter span{top:0}.room-meter small{bottom:0}.room-body{min-width:0;display:flex;flex-direction:column;align-items:center}.room-value{align-self:flex-start;font-size:25px}.room-body>ha-icon{margin:9px 0 7px;--mdc-icon-size:48px;color:var(--primary-color,#0097a7)}.room-body>strong{font-size:15px}.room-meta{margin-top:auto;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 8px;font-size:10px;color:var(--secondary-text-color,#777)}
+          .compact-card{min-height:72px;padding:11px 13px;display:grid;grid-template-columns:38px minmax(0,1fr);gap:9px;align-items:center}.compact-card ha-icon{--mdc-icon-size:25px;color:var(--primary-color,#0097a7)}.compact-card strong,.compact-card span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.compact-card strong{font-size:14px}.compact-card span{margin-top:3px;font-size:12px;color:var(--secondary-text-color,#777)}.fact-card{min-height:68px}
+          .status-tile{min-height:118px;padding:13px;border-width:2px}.status-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:17px}.status-title ha-icon{--mdc-icon-size:34px;color:var(--secondary-text-color,#777)}.status-value{margin-top:24px;font-size:16px;font-weight:650;color:var(--secondary-text-color,#777)}.status-tile.active{border-color:var(--success-color,#43a047)}.status-tile.active .status-value,.status-tile.active ha-icon{color:var(--success-color,#43a047)}.status-tile.circulation.active{border-color:#f3b51b}.status-tile.reserve.active{border-color:#00a9b7}
+          .mixer-card{padding:14px}.mixer-state{margin:18px 0 12px;font-size:25px;font-weight:600}.mixer-flags{display:grid;grid-template-columns:1fr 1fr;gap:8px}.mixer-flags span{padding:9px;border-radius:12px;background:var(--secondary-background-color,#f5f5f5);font-size:12px;color:var(--secondary-text-color,#777)}.mixer-flags span.on{color:var(--primary-color,#0097a7);font-weight:700}
+          .mode-card{padding:14px}.mode-current{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:12px}.mode-current span{font-size:12px;color:var(--secondary-text-color,#777)}.mode-current b{font-size:17px}.mode-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.mode-buttons button{min-height:66px;border:1.5px solid var(--divider-color,#ddd);border-radius:14px;background:var(--card-background-color,#fff);color:inherit;display:flex;align-items:center;justify-content:flex-start;gap:8px;padding:10px 12px;text-align:left}.mode-buttons button ha-icon{color:var(--primary-color,#0097a7)}.mode-buttons button span{font-size:13px;font-weight:600}.mode-buttons button.selected{background:var(--primary-color,#0097a7);border-color:var(--primary-color,#0097a7);color:#fff}.mode-buttons button.selected ha-icon{color:#fff}.mode-buttons button:disabled{opacity:.55}
+          .ok-card{min-height:72px;padding:14px;display:flex;align-items:center;gap:9px;color:var(--success-color,#43a047)}.ok-card ha-icon{--mdc-icon-size:25px}.problem{border-color:var(--warning-color,#ff9800)!important}.empty{padding:18px}
+          .bottom{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));background:var(--card-background-color,#fff);border-top:1px solid var(--divider-color,#ddd)}nav{width:min(100%,700px);margin:auto;display:grid;grid-template-columns:repeat(${tabs.length},minmax(0,1fr));gap:3px}.tab{border:0;background:transparent;color:var(--secondary-text-color,#777);min-width:0;min-height:60px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:5px 2px}.tab.active{color:var(--primary-color,#0097a7);background:color-mix(in srgb,var(--primary-color,#0097a7) 10%,transparent)}.tab ha-icon{--mdc-icon-size:24px}.tab span{width:100%;font-size:10.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+          @media(max-width:420px){main{padding-left:10px;padding-right:10px}.system-card{padding:12px}.system-title{font-size:16px}.meter-card{min-height:160px}.meter-value,.room-value{font-size:23px}.room-card{min-height:175px}.room-meta{font-size:9.5px}.status-tile{min-height:110px}.mode-buttons button{min-height:62px;padding:8px}}
+        </style>
+        <div class="app"><header class="header"><button class="rail" id="back" aria-label="Назад"><ha-icon icon="mdi:arrow-left"></ha-icon></button><div class="heading"><strong>ZONT</strong><span>${esc(config.subtitle || "Отопление и ГВС")}</span></div><button class="rail" id="refresh" aria-label="Обновить"><ha-icon icon="mdi:refresh"></ha-icon></button></header><main>${this._content(active, items)}</main><div class="bottom"><nav>${nav}</nav></div></div>`;
+      this.shadowRoot.getElementById("back").onclick = () => navigate(config.parent?.path || "/dashboard-house/heating");
+      this.shadowRoot.getElementById("refresh").onclick = () => { this._registry = null; this._load(true); };
+      for (const button of this.shadowRoot.querySelectorAll("button[data-tab]")) button.onclick = () => this._selectTab(button.dataset.tab);
+      for (const button of this.shadowRoot.querySelectorAll("button[data-mode-entity]")) button.onclick = () => this._pressMode(button.dataset.modeEntity, button.dataset.modeLabel);
+    }
+  }
+
+  customElements.define(ELEMENT_NAME, NikasGeneratedZont);
+})();
+
+// ZONT UI v0.8.17 — standalone restoration of the approved v0.8.12 application layer.
+// The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "nikas-generated-zont";
-const UI_VERSION = "0.8.16";
-const ASSET_VERSION = "0.8.16";
+const UI_VERSION = "0.8.17";
+const ASSET_VERSION = "0.8.17";
 const ASSET_ROOT = "/zont_local_panel/assets";
-const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0813.webp?v=${ASSET_VERSION}`;
-const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0813.webp?v=${ASSET_VERSION}`;
+const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
+const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
 const STALE_AFTER_MS = 15 * 60 * 1000;
-const CANVAS_STORAGE_KEY = "nikas.zont.canvasZoom.v2";
-const LEGACY_ZOOM_STORAGE_KEY = "nikas.panel.zont.zoom.v1";
-const CANVAS_MIN_SCALE = 0.75;
-const CANVAS_MAX_SCALE = 2;
-const CANVAS_SNAP_MIN = 0.97;
-const CANVAS_SNAP_MAX = 1.03;
-const CANVAS_PAN_THRESHOLD_PX = 5;
-const CANVAS_GESTURE_GUARD_MS = 700;
-const CANVAS_DOUBLE_TAP_DELAY_MS = 360;
-const CANVAS_TAP_DURATION_MS = 280;
-const CANVAS_TAP_MOVE_PX = 14;
 const ENTITY_BINDINGS = Object.freeze({
   online: ["binary_sensor.nikas_h2000_pro_online"],
   controllerPower: ["sensor.nikas_h2000_pro_pitanie"],
@@ -70,37 +545,6 @@ const includesAny = (text, words) => {
   const source = String(text || "").toLocaleLowerCase();
   return words.some((word) => source.includes(String(word).toLocaleLowerCase()));
 };
-const clampCanvasScale = (value) => {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return 1;
-  return Math.min(CANVAS_MAX_SCALE, Math.max(CANVAS_MIN_SCALE, numeric));
-};
-const touchDistance = (first, second) => Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY);
-const touchMidpoint = (first, second, viewport = null) => {
-  const point = { x: (first.clientX + second.clientX) / 2, y: (first.clientY + second.clientY) / 2 };
-  if (!viewport) return point;
-  const rect = viewport.getBoundingClientRect();
-  return { x: point.x - rect.left, y: point.y - rect.top };
-};
-const pointDistance = (first, second) => Math.hypot(second.x - first.x, second.y - first.y);
-const deepElementFromPoint = (root, x, y) => {
-  let element = root?.elementFromPoint?.(x, y) || document.elementFromPoint(x, y);
-  const visited = new Set();
-  while (element?.shadowRoot?.elementFromPoint && !visited.has(element)) {
-    visited.add(element);
-    const inner = element.shadowRoot.elementFromPoint(x, y);
-    if (!inner || inner === element) break;
-    element = inner;
-  }
-  return element;
-};
-const cancelEntityHold = (target) => {
-  if (!target?.dispatchEvent) return;
-  const event = typeof PointerEvent === "function"
-    ? new PointerEvent("pointercancel", { bubbles: true, composed: true })
-    : new Event("pointercancel", { bubbles: true, composed: true });
-  target.dispatchEvent(event);
-};
 
 const rawState = (item) => String(item?.state?.state ?? "").trim().toLocaleLowerCase();
 const updateTimestamp = (item) => {
@@ -117,37 +561,9 @@ const ageLabel = (ageMs) => {
   return `Обновлено ${hours} ч назад`;
 };
 
-const livePanels = (root = document) => {
-  const found = [];
-  const visit = (node) => {
-    if (!node?.querySelectorAll) return;
-    found.push(...node.querySelectorAll(ELEMENT_NAME));
-    node.querySelectorAll("*").forEach((element) => {
-      if (element.shadowRoot) visit(element.shadowRoot);
-    });
-  };
-  visit(root);
-  return found;
-};
-
-const refreshLivePanels = () => {
-  if (typeof document === "undefined") return;
-  requestAnimationFrame(() => {
-  livePanels().forEach((panel) => {
-    panel._active = panel._tabFromLocation?.() || panel._active;
-    if (typeof panel._queue === "function") panel._queue();
-    else if (typeof panel._render === "function") panel._render();
-  });
-  });
-};
-
-function installV0816() {
+function installV0812() {
   const ElementClass = customElements.get(ELEMENT_NAME);
-  if (!ElementClass) return false;
-  if (ElementClass.prototype.__zontV0816) {
-    refreshLivePanels();
-    return true;
-  }
+  if (!ElementClass || ElementClass.prototype.__zontV0812) return false;
 
   const originalRender = ElementClass.prototype._render;
   if (typeof originalRender !== "function") return false;
@@ -492,9 +908,7 @@ function installV0816() {
           <div><span>${esc(circuitLabel)}</span><strong>${esc(state(circuitState))}</strong></div>
           ${statusDot(circuitState)}
         </div>
-        ${mixed
-          ? `<div class="z82-mixer"><ha-icon icon="mdi:valve"></ha-icon><div><span>Смесительный кран</span><strong>${esc(mixerText)}</strong></div>${mixerDot()}</div>`
-          : `<div class="z82-circuit-type"><ha-icon icon="mdi:pipe-valve"></ha-icon><div><span>Тип контура</span><strong>Прямой</strong></div></div>`}
+        ${mixed ? `<div class="z82-mixer"><ha-icon icon="mdi:valve"></ha-icon><div><span>Смесительный кран</span><strong>${esc(mixerText)}</strong></div>${mixerDot()}</div>` : ""}
         <div class="z82-circuit-values">
           <div><span>Подача</span><i class="hot"></i><strong>${esc(value(set.supply || set.current))}</strong></div>
           <div><span>Обратка</span><i class="cold"></i><strong>${esc(value(set.ret))}</strong></div>
@@ -594,244 +1008,6 @@ function installV0816() {
     return this._systemOverviewV089(items);
   };
 
-  ElementClass.prototype._loadCanvasStateV0815 = function loadCanvasStateV0815() {
-    if (this._zontCanvasStateV0815) return this._zontCanvasStateV0815;
-    let state = { scale: 1, x: 0, y: 0 };
-    try {
-      const stored = JSON.parse(localStorage.getItem(CANVAS_STORAGE_KEY) || "null");
-      if (stored && typeof stored === "object") {
-        state = {
-          scale: clampCanvasScale(stored.scale),
-          x: Number.isFinite(stored.x) ? stored.x : 0,
-          y: Number.isFinite(stored.y) ? stored.y : 0,
-        };
-      } else {
-        state.scale = clampCanvasScale(localStorage.getItem(LEGACY_ZOOM_STORAGE_KEY) || 1);
-      }
-    } catch (_error) { /* storage is optional */ }
-    this._zontCanvasStateV0815 = state;
-    return state;
-  };
-
-  ElementClass.prototype._persistCanvasStateV0815 = function persistCanvasStateV0815() {
-    try { localStorage.setItem(CANVAS_STORAGE_KEY, JSON.stringify(this._loadCanvasStateV0815())); } catch (_error) { /* storage is optional */ }
-  };
-
-  ElementClass.prototype._reconcileCanvasV0815 = function reconcileCanvasV0815(root) {
-    const viewport = root.querySelector("main");
-    if (!viewport) return null;
-    root.querySelectorAll(".z14-zoom-controls").forEach((element) => element.remove());
-    viewport.classList.add("z15-canvas-viewport");
-    let stage = viewport.querySelector(":scope > #zont-canvas-stage");
-    let surface = stage?.querySelector(":scope > #zont-canvas-surface");
-    const structuralChildren = Array.from(viewport.children).filter((element) => !element.classList.contains("z15-canvas-toast"));
-    if (!stage || !surface || structuralChildren.length !== 1) {
-      const nodes = Array.from(viewport.childNodes).filter((node) => !node.classList?.contains("z15-canvas-toast"));
-      const toast = viewport.querySelector(":scope > .z15-canvas-toast");
-      stage = document.createElement("div");
-      stage.id = "zont-canvas-stage";
-      surface = document.createElement("div");
-      surface.id = "zont-canvas-surface";
-      nodes.forEach((node) => surface.appendChild(node));
-      stage.appendChild(surface);
-      viewport.replaceChildren(stage);
-      if (toast) viewport.appendChild(toast);
-    }
-    this._zontCanvasViewportV0815 = viewport;
-    this._zontCanvasStageV0815 = stage;
-    this._zontCanvasSurfaceV0815 = surface;
-    return viewport;
-  };
-
-  ElementClass.prototype._measureCanvasV0815 = function measureCanvasV0815() {
-    const viewport = this._zontCanvasViewportV0815;
-    const surface = this._zontCanvasSurfaceV0815;
-    const root = this.shadowRoot;
-    if (!viewport || !surface || viewport.clientWidth <= 0) return false;
-    const bottom = root?.querySelector(".bottom");
-    const viewportHeight = window.visualViewport?.height || window.innerHeight;
-    const availableHeight = Math.floor(viewportHeight - viewport.getBoundingClientRect().top - (bottom?.getBoundingClientRect().height || 0));
-    if (availableHeight > 220) viewport.style.height = `${availableHeight}px`;
-    const state = this._loadCanvasStateV0815();
-    this._zontCanvasBaseWidthV0815 = Math.max(1, viewport.clientWidth);
-    surface.style.width = `${this._zontCanvasBaseWidthV0815}px`;
-    const renderedHeight = surface.getBoundingClientRect().height / Math.max(state.scale, 0.01);
-    this._zontCanvasBaseHeightV0815 = Math.max(1, viewport.clientHeight, surface.scrollHeight, Number.isFinite(renderedHeight) ? renderedHeight : 0);
-    return true;
-  };
-
-  ElementClass.prototype._applyCanvasV0815 = function applyCanvasV0815(remeasure = false, persist = false) {
-    const viewport = this._zontCanvasViewportV0815;
-    const stage = this._zontCanvasStageV0815;
-    const surface = this._zontCanvasSurfaceV0815;
-    if (!viewport || !stage || !surface) return;
-    if (remeasure || !this._zontCanvasBaseWidthV0815) if (!this._measureCanvasV0815()) return;
-    const state = this._loadCanvasStateV0815();
-    state.scale = clampCanvasScale(state.scale);
-    const scaledWidth = this._zontCanvasBaseWidthV0815 * state.scale;
-    const scaledHeight = this._zontCanvasBaseHeightV0815 * state.scale;
-    state.x = scaledWidth <= viewport.clientWidth
-      ? (viewport.clientWidth - scaledWidth) / 2
-      : Math.min(0, Math.max(viewport.clientWidth - scaledWidth, state.x));
-    state.y = scaledHeight <= viewport.clientHeight
-      ? 0
-      : Math.min(0, Math.max(viewport.clientHeight - scaledHeight, state.y));
-    stage.style.width = `${Math.max(1, viewport.clientWidth)}px`;
-    stage.style.height = `${Math.max(1, viewport.clientHeight)}px`;
-    surface.style.transform = `translate3d(${state.x}px,${state.y}px,0) scale(${state.scale})`;
-    if (persist) this._persistCanvasStateV0815();
-  };
-
-  ElementClass.prototype._showCanvasResetV0815 = function showCanvasResetV0815() {
-    const viewport = this._zontCanvasViewportV0815;
-    if (!viewport) return;
-    let toast = viewport.querySelector(":scope > .z15-canvas-toast");
-    if (!toast) {
-      toast = document.createElement("div");
-      toast.className = "z15-canvas-toast";
-      toast.setAttribute("role", "status");
-      toast.setAttribute("aria-live", "polite");
-      toast.textContent = "Масштаб 100%";
-      viewport.appendChild(toast);
-    }
-    clearTimeout(this._zontCanvasToastTimerV0815);
-    requestAnimationFrame(() => toast.classList.add("visible"));
-    this._zontCanvasToastTimerV0815 = setTimeout(() => toast.classList.remove("visible"), 1250);
-  };
-
-  ElementClass.prototype._resetCanvasV0815 = function resetCanvasV0815(notify = true) {
-    Object.assign(this._loadCanvasStateV0815(), { scale: 1, x: 0, y: 0 });
-    this._applyCanvasV0815(false, true);
-    if (notify) this._showCanvasResetV0815();
-  };
-
-  ElementClass.prototype._installCanvasV0815 = function installCanvasV0815(root) {
-    const viewport = this._reconcileCanvasV0815(root);
-    if (!viewport) return;
-    const state = this._loadCanvasStateV0815();
-    let pan = null;
-    let pinch = null;
-    let tapGesture = null;
-    let multiTouchActive = false;
-    let gestureGuardUntil = 0;
-
-    viewport.addEventListener("touchstart", (event) => {
-      if (event.touches.length >= 2) {
-        const [first, second] = event.touches;
-        const point = touchMidpoint(first, second, viewport);
-        multiTouchActive = true;
-        pan = null;
-        pinch = {
-          distance: Math.max(1, touchDistance(first, second)),
-          scale: state.scale,
-          contentX: (point.x - state.x) / state.scale,
-          contentY: (point.y - state.y) / state.scale,
-        };
-        tapGesture = { startedAt: performance.now(), midpoint: touchMidpoint(first, second), distance: touchDistance(first, second), moved: false };
-        gestureGuardUntil = Number.POSITIVE_INFINITY;
-        Array.from(event.touches).forEach((touch) => cancelEntityHold(deepElementFromPoint(root, touch.clientX, touch.clientY)));
-        event.preventDefault();
-        return;
-      }
-      if (event.touches.length === 1 && !multiTouchActive) {
-        const touch = event.touches[0];
-        pan = { clientX: touch.clientX, clientY: touch.clientY, x: state.x, y: state.y, target: deepElementFromPoint(root, touch.clientX, touch.clientY) || event.target, moved: false };
-      }
-    }, { passive: false });
-
-    viewport.addEventListener("touchmove", (event) => {
-      if (event.touches.length >= 2 && pinch) {
-        const [first, second] = event.touches;
-        const point = touchMidpoint(first, second, viewport);
-        const currentDistance = touchDistance(first, second);
-        state.scale = clampCanvasScale(pinch.scale * currentDistance / pinch.distance);
-        state.x = point.x - pinch.contentX * state.scale;
-        state.y = point.y - pinch.contentY * state.scale;
-        this._applyCanvasV0815();
-        if (tapGesture && (pointDistance(tapGesture.midpoint, touchMidpoint(first, second)) > CANVAS_TAP_MOVE_PX || Math.abs(currentDistance - tapGesture.distance) > CANVAS_TAP_MOVE_PX)) tapGesture.moved = true;
-        event.preventDefault();
-        return;
-      }
-      if (!pan || event.touches.length !== 1) return;
-      const touch = event.touches[0];
-      const dx = touch.clientX - pan.clientX;
-      const dy = touch.clientY - pan.clientY;
-      if (!pan.moved && Math.hypot(dx, dy) < CANVAS_PAN_THRESHOLD_PX) return;
-      if (!pan.moved) {
-        pan.moved = true;
-        gestureGuardUntil = Number.POSITIVE_INFINITY;
-        cancelEntityHold(pan.target);
-      }
-      state.x = pan.x + dx;
-      state.y = pan.y + dy;
-      this._applyCanvasV0815();
-      event.preventDefault();
-    }, { passive: false });
-
-    viewport.addEventListener("touchend", (event) => {
-      if (multiTouchActive && event.touches.length === 1) {
-        pinch = null;
-        const touch = event.touches[0];
-        pan = { clientX: touch.clientX, clientY: touch.clientY, x: state.x, y: state.y, target: event.target, moved: false };
-        return;
-      }
-      if (event.touches.length !== 0) return;
-      const completedTap = tapGesture;
-      const wasMultiTouch = multiTouchActive;
-      const panMoved = Boolean(pan?.moved);
-      multiTouchActive = false;
-      pinch = null;
-      tapGesture = null;
-      pan = null;
-      if (state.scale >= CANVAS_SNAP_MIN && state.scale <= CANVAS_SNAP_MAX && state.scale !== 1) this._resetCanvasV0815(true);
-      else this._applyCanvasV0815(false, true);
-      const now = performance.now();
-      if (wasMultiTouch) {
-        gestureGuardUntil = now + CANVAS_GESTURE_GUARD_MS;
-        const isTap = completedTap && !completedTap.moved && now - completedTap.startedAt <= CANVAS_TAP_DURATION_MS;
-        if (isTap) {
-          const previous = this._zontLastTwoFingerTapV0815;
-          if (previous && now - previous.at <= CANVAS_DOUBLE_TAP_DELAY_MS && pointDistance(previous.midpoint, completedTap.midpoint) <= 48) {
-            this._zontLastTwoFingerTapV0815 = null;
-            this._resetCanvasV0815(true);
-          } else this._zontLastTwoFingerTapV0815 = { at: now, midpoint: completedTap.midpoint };
-        } else this._zontLastTwoFingerTapV0815 = null;
-      } else if (panMoved) gestureGuardUntil = now + CANVAS_GESTURE_GUARD_MS;
-    }, { passive: true });
-
-    viewport.addEventListener("touchcancel", () => {
-      multiTouchActive = false;
-      pinch = null;
-      tapGesture = null;
-      pan = null;
-      this._applyCanvasV0815(false, true);
-      gestureGuardUntil = performance.now() + CANVAS_GESTURE_GUARD_MS;
-    }, { passive: true });
-    viewport.addEventListener("click", (event) => {
-      if (gestureGuardUntil === Number.POSITIVE_INFINITY || performance.now() < gestureGuardUntil) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      }
-    }, { capture: true });
-
-    this._zontCanvasResizeObserverV0815?.disconnect();
-    this._zontCanvasResizeCleanupV0815?.();
-    if (typeof ResizeObserver === "function") {
-      this._zontCanvasResizeObserverV0815 = new ResizeObserver(() => this._applyCanvasV0815(true));
-      this._zontCanvasResizeObserverV0815.observe(this._zontCanvasSurfaceV0815);
-    }
-    const resize = () => this._applyCanvasV0815(true);
-    window.addEventListener("resize", resize, { passive: true });
-    window.visualViewport?.addEventListener("resize", resize, { passive: true });
-    this._zontCanvasResizeCleanupV0815 = () => {
-      window.removeEventListener("resize", resize);
-      window.visualViewport?.removeEventListener("resize", resize);
-    };
-    this._measureCanvasV0815();
-    this._applyCanvasV0815();
-    requestAnimationFrame(() => this._applyCanvasV0815(true));
-  };
-
   ElementClass.prototype._render = function patchedRenderV089(...args) {
     const result = originalRender.apply(this, args);
     const root = this.shadowRoot;
@@ -860,12 +1036,9 @@ function installV0816() {
 
     root.getElementById("zont-v0811-style")?.remove();
 
-    root.getElementById("zont-v0812-style")?.remove();
-    root.getElementById("zont-v0813-style")?.remove();
-    root.getElementById("zont-v0814-style")?.remove();
-    if (!root.getElementById("zont-v0815-style")) {
+    if (!root.getElementById("zont-v0812-style")) {
       const style = document.createElement("style");
-      style.id = "zont-v0815-style";
+      style.id = "zont-v0812-style";
       style.textContent = `
       .header{grid-template-columns:64px 1fr 64px!important;min-height:92px!important;padding:max(10px,env(safe-area-inset-top,0px)) 20px 10px!important;border-bottom:1px solid var(--divider-color,#e5e5e5)!important;box-shadow:none!important}.rail{width:52px!important;height:52px!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 6px 20px rgba(0,0,0,.06)!important}.rail ha-icon{--mdc-icon-size:31px!important}#back{justify-self:start}#refresh{justify-self:end;color:var(--primary-color,#087de0)!important}.heading strong{font-size:24px!important;font-weight:760!important}.heading span{margin-top:5px!important;font-size:14px!important;color:var(--secondary-text-color,#666)!important}
       main{width:min(100%,980px)!important}.z82-system,.z82-section{background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#ddd);border-radius:22px;padding:16px;margin-bottom:16px}.z82-system.attention{border-color:var(--warning-color,#ff9800)}.z82-system.offline{border-color:var(--error-color,#db4437)}.z82-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.z82-eyebrow{font-size:10.5px;font-weight:760;letter-spacing:.14em;color:var(--secondary-text-color,#666)}.z82-head h1{font-size:29px;line-height:1.04;margin:7px 0 4px}.z82-head p{margin:0;color:var(--secondary-text-color,#666);font-size:14px}.z82-online{min-width:112px;display:grid;grid-template-columns:9px auto;gap:2px 7px;align-items:center;padding:10px 12px;border-radius:999px;background:color-mix(in srgb,var(--success-color,#43a047) 10%,var(--card-background-color,#fff));color:var(--success-color,#43a047)}.z82-online i{width:8px;height:8px;border-radius:50%;background:currentColor}.z82-online strong{font-size:12px}.z82-online small{grid-column:1/3;text-align:center;font-size:8.5px;color:var(--secondary-text-color,#777)}.z82-system.attention .z82-online{color:var(--warning-color,#ff9800);background:color-mix(in srgb,var(--warning-color,#ff9800) 10%,var(--card-background-color,#fff))}.z82-system.offline .z82-online{color:var(--error-color,#db4437)}
@@ -1021,22 +1194,6 @@ function installV0816() {
       .z82-dhw-schematic .z82-tank{border:0;background:transparent;box-shadow:none}
       .z82-dhw-schematic .z82-tank:before{content:"";display:block;position:absolute;inset:0;width:auto;height:auto;border-radius:0;background:transparent url("${DHW_SHELL_IMAGE}") center/100% 100% no-repeat;z-index:3;pointer-events:none}
       .z82-dhw-schematic .z82-water{left:24%;right:24%;bottom:16%;max-height:59%;z-index:1;border-radius:3px 3px 8px 8px}
-
-      /* v0.8.13 — tighter equipment crop, calmer DHW loop and balanced circuit cards */
-      .z82-circuit-type{display:flex;align-items:center;gap:8px;margin-top:16px;color:var(--secondary-text-color,#666)}
-      .z82-circuit-type>ha-icon{--mdc-icon-size:34px}.z82-circuit-type>div{min-width:0;flex:1}.z82-circuit-type span,.z82-circuit-type strong{display:block;font-size:9px}.z82-circuit-type strong{font-size:10px;margin-top:2px;color:var(--primary-text-color,#222)}
-      @media(max-width:520px){
-        .z82-boiler-visual{height:91px}.z82-boiler-art{width:54px;height:82px}.z82-flame{margin-top:20px;--mdc-icon-size:18px}.z82-mini-tank{right:5px;bottom:8px;width:17px;height:42px}.z82-boiler-art i{left:8px;bottom:10px;width:24px}.z82-boiler-art b{left:9px;bottom:10px;width:22px}
-        .z82-dhw-schematic{height:158px;min-height:158px}.z82-dhw-schematic .z82-tank{left:0;top:25px;width:44px;height:116px}.z82-dhw-schematic .z82-port.hot{top:10px}.z82-dhw-schematic .z82-port.loop{top:76px}.z82-dhw-schematic .z82-port.cold{left:18px!important}
-        .z82-hot-pipe{left:45px;top:38px}.z82-loop-branch{left:52%;top:38px;height:42px}.z82-loop-vertical{left:52%;top:80px;height:32px}.z82-loop-return{left:45px;right:48%;top:110px}.z82-cold-pipe{left:21px;top:152px}.z82-flow-arrow.loop{left:46px;top:107px}.z82-flow-arrow.cold{left:23px;top:149px}
-        .z82-loop-pump{left:52%;top:94px;width:17px;height:17px;border-width:1.5px}.z82-loop-pump ha-icon{--mdc-icon-size:11px}.z82-hot-water{top:26px}.z82-circulation-loop{top:70px}.z82-cold-water{bottom:-1px}
-        .z82-circuit-type{gap:6px;margin-top:8px}.z82-circuit-type>ha-icon{--mdc-icon-size:29px}.z82-circuit-type span{font-size:7.6px}.z82-circuit-type strong{font-size:9.2px;margin-top:1px}
-      }
-
-      /* v0.8.15 — one transform-owned canvas; browser scroll/zoom is never gesture state */
-      .app{height:100dvh;min-height:0!important;overflow:hidden;padding-bottom:0!important}.z15-canvas-viewport{position:relative;padding:0!important;overflow:hidden!important;overscroll-behavior:none!important;overflow-anchor:none!important;touch-action:none!important;-webkit-overflow-scrolling:auto!important}.z15-canvas-viewport>#zont-canvas-stage{position:relative;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;overflow:hidden!important}.z15-canvas-viewport #zont-canvas-surface{position:absolute;top:0;left:0;box-sizing:border-box;padding:14px 16px 28px;transform-origin:0 0!important;will-change:transform;overflow-anchor:none!important}
-      .z15-canvas-toast{position:absolute;z-index:30;left:50%;top:14px;transform:translate(-50%,-8px);opacity:0;pointer-events:none;white-space:nowrap;padding:8px 12px;border-radius:999px;color:var(--primary-text-color,#202124);background:color-mix(in srgb,var(--card-background-color,#fff) 94%,transparent);border:1px solid color-mix(in srgb,var(--primary-text-color,#202124) 12%,transparent);box-shadow:0 6px 20px rgba(0,0,0,.16);backdrop-filter:blur(14px);font:700 12px/1 system-ui;transition:opacity .16s ease,transform .16s ease}.z15-canvas-toast.visible{opacity:1;transform:translate(-50%,0)}
-      @media(max-width:520px){.z15-canvas-viewport #zont-canvas-surface{padding:9px 8px 24px}}@media(prefers-reduced-motion:reduce){.z15-canvas-toast{transition:none}}
       `;
       root.appendChild(style);
     }
@@ -1059,13 +1216,11 @@ function installV0816() {
     }
     const statesLabel = root.querySelector('button[data-tab="states"] span');
     if (statesLabel) statesLabel.textContent = "Состояние";
-    this._installCanvasV0815(root);
     return result;
   };
 
-  ElementClass.prototype.__zontV0816 = true;
-  refreshLivePanels();
+  ElementClass.prototype.__zontV0812 = true;
   return true;
 }
 
-if (!installV0816()) customElements.whenDefined(ELEMENT_NAME).then(() => installV0816());
+if (!installV0812()) customElements.whenDefined(ELEMENT_NAME).then(() => installV0812());
