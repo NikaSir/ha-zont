@@ -1,9 +1,13 @@
-// ZONT UI v0.8.11 — HACS-managed application layer.
+// ZONT UI v0.8.12 — HACS-managed application layer.
 // Base renderer and registry discovery are provided by Contract Generated UI.
 import "/contract_generated_ui/frontend/nikas-generated-zont.js";
 
 const ELEMENT_NAME = "nikas-generated-zont";
-const UI_VERSION = "0.8.11";
+const UI_VERSION = "0.8.12";
+const ASSET_VERSION = "0.8.12";
+const ASSET_ROOT = "/zont_local_panel/assets";
+const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
+const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
 const STALE_AFTER_MS = 15 * 60 * 1000;
 const ENTITY_BINDINGS = Object.freeze({
   online: ["binary_sensor.nikas_h2000_pro_online"],
@@ -71,9 +75,9 @@ const ageLabel = (ageMs) => {
   return `Обновлено ${hours} ч назад`;
 };
 
-function installV0811() {
+function installV0812() {
   const ElementClass = customElements.get(ELEMENT_NAME);
-  if (!ElementClass || ElementClass.prototype.__zontV0811) return false;
+  if (!ElementClass || ElementClass.prototype.__zontV0812) return false;
 
   const originalRender = ElementClass.prototype._render;
   if (typeof originalRender !== "function") return false;
@@ -383,13 +387,14 @@ function installV0811() {
 
     const dhwNumber = this._number(dhwTemperature);
     const fill = dhwNumber == null ? 0 : Math.max(8, Math.min(92, (dhwNumber / 70) * 100));
+    const shellWaterFill = fill * 0.59;
     const dhwStatusText = dhwState ? state(dhwState)
       : dhwNumber == null ? "Нет данных" : dhwNumber >= 45 ? "Готово" : "Нагрев";
     const dhwCard = `<article class="z82-equipment z82-dhw-card">
       <header><h3>ГВС <span>(бойлер Котла 1)</span></h3></header>
       <div class="z82-dhw-schematic">
         <div class="z82-tank">
-          <i class="z82-water" style="height:${fill.toFixed(1)}%"></i>
+          <i class="z82-water" style="height:${shellWaterFill.toFixed(1)}%"></i>
           <span class="z82-port hot"></span><span class="z82-port loop"></span><span class="z82-port cold"></span>
         </div>
         <div class="z82-dhw-temperature"><ha-icon icon="mdi:thermometer"></ha-icon><strong>${esc(value(dhwTemperature))}</strong><small>${esc(dhwStatusText)}</small>${statusDot(dhwState || dhwTemperature)}</div>
@@ -543,9 +548,11 @@ function installV0811() {
 
     root.getElementById("zont-v0810-style")?.remove();
 
-    if (!root.getElementById("zont-v0811-style")) {
+    root.getElementById("zont-v0811-style")?.remove();
+
+    if (!root.getElementById("zont-v0812-style")) {
       const style = document.createElement("style");
-      style.id = "zont-v0811-style";
+      style.id = "zont-v0812-style";
       style.textContent = `
       .header{grid-template-columns:64px 1fr 64px!important;min-height:92px!important;padding:max(10px,env(safe-area-inset-top,0px)) 20px 10px!important;border-bottom:1px solid var(--divider-color,#e5e5e5)!important;box-shadow:none!important}.rail{width:52px!important;height:52px!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 6px 20px rgba(0,0,0,.06)!important}.rail ha-icon{--mdc-icon-size:31px!important}#back{justify-self:start}#refresh{justify-self:end;color:var(--primary-color,#087de0)!important}.heading strong{font-size:24px!important;font-weight:760!important}.heading span{margin-top:5px!important;font-size:14px!important;color:var(--secondary-text-color,#666)!important}
       main{width:min(100%,980px)!important}.z82-system,.z82-section{background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#ddd);border-radius:22px;padding:16px;margin-bottom:16px}.z82-system.attention{border-color:var(--warning-color,#ff9800)}.z82-system.offline{border-color:var(--error-color,#db4437)}.z82-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.z82-eyebrow{font-size:10.5px;font-weight:760;letter-spacing:.14em;color:var(--secondary-text-color,#666)}.z82-head h1{font-size:29px;line-height:1.04;margin:7px 0 4px}.z82-head p{margin:0;color:var(--secondary-text-color,#666);font-size:14px}.z82-online{min-width:112px;display:grid;grid-template-columns:9px auto;gap:2px 7px;align-items:center;padding:10px 12px;border-radius:999px;background:color-mix(in srgb,var(--success-color,#43a047) 10%,var(--card-background-color,#fff));color:var(--success-color,#43a047)}.z82-online i{width:8px;height:8px;border-radius:50%;background:currentColor}.z82-online strong{font-size:12px}.z82-online small{grid-column:1/3;text-align:center;font-size:8.5px;color:var(--secondary-text-color,#777)}.z82-system.attention .z82-online{color:var(--warning-color,#ff9800);background:color-mix(in srgb,var(--warning-color,#ff9800) 10%,var(--card-background-color,#fff))}.z82-system.offline .z82-online{color:var(--error-color,#db4437)}
@@ -694,6 +701,13 @@ function installV0811() {
         .z82-loop-pump{left:46%;top:92px;width:20px;height:20px;border-width:1.5px;box-shadow:0 0 0 1.5px var(--card-background-color,#fff)}.z82-loop-pump ha-icon{--mdc-icon-size:13px}
         .z82-circulation-loop{grid-template-columns:minmax(0,1fr);padding-left:20px}.z82-hot-water:before,.z82-cold-water:before{left:16px}.z82-circulation-loop:before{left:18px}
       }
+
+      /* v0.8.12 — HACS-packaged equipment artwork with live overlays */
+      .z82-boiler-art{border:0;background:transparent url("${BOILER_CASING_IMAGE}") center/100% 100% no-repeat;box-shadow:0 6px 13px rgba(0,0,0,.08)}
+      .z82-boiler-art:before{display:none}
+      .z82-dhw-schematic .z82-tank{border:0;background:transparent;box-shadow:none}
+      .z82-dhw-schematic .z82-tank:before{content:"";display:block;position:absolute;inset:0;width:auto;height:auto;border-radius:0;background:transparent url("${DHW_SHELL_IMAGE}") center/100% 100% no-repeat;z-index:3;pointer-events:none}
+      .z82-dhw-schematic .z82-water{left:24%;right:24%;bottom:16%;max-height:59%;z-index:1;border-radius:3px 3px 8px 8px}
       `;
       root.appendChild(style);
     }
@@ -719,8 +733,8 @@ function installV0811() {
     return result;
   };
 
-  ElementClass.prototype.__zontV0811 = true;
+  ElementClass.prototype.__zontV0812 = true;
   return true;
 }
 
-if (!installV0811()) customElements.whenDefined(ELEMENT_NAME).then(() => installV0811());
+if (!installV0812()) customElements.whenDefined(ELEMENT_NAME).then(() => installV0812());
