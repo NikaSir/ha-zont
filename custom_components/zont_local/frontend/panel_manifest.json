@@ -1,7 +1,16 @@
 {
   "schema_version": 1,
-  "ui_version": "0.8.17",
+  "ui_version": "0.9.0",
   "public_root": "/zont_local_panel/",
+  "zoom": {
+    "min_percent": 75,
+    "max_percent": 200,
+    "native_scroll_at_100": true,
+    "pan_above_percent": 100,
+    "snap_percent_range": [97, 103],
+    "reset": "two_finger_double_tap",
+    "feedback": "Масштаб 100%"
+  },
   "assets": [
     {
       "path": "assets/zont-boiler-casing-v0812.webp",

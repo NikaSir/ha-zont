@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0
+
+- Implemented the NikaS v1.5 panel shell: native vertical scrolling and fixed origin at 100%, axis-aware pan only above 100%, focal 75–200% pinch, resize clamping, snap and two-finger reset.
+- Matched the UPS Header plaques and fixed Bottom Tab Bar geometry, typography, colors and iPhone safe areas.
+- Preserved the approved ZONT hydraulic/domain layout and packaged brand icon; surfaced the approved icon in README.
+
 ## 0.8.18
 
 - Moved `/dashboard-zont` registration into `zont_local`; ZONT no longer depends on another integration to create its Home Assistant panel.

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="custom_components/zont_local/brand/icon.png" width="112" height="112" alt="ZONT Local & UI icon">
+</p>
+
 # ha-zont
 
 ZONT Local & UI for Home Assistant.
@@ -76,7 +80,7 @@ Updates are committed directly to `main` and validated there. The project does n
 
 ## Current UI
 
-Current integration: **0.8.18**. Frontend: **ZONT UI v0.8.17** (approved v0.8.12 layout, standalone bundle).
+Current integration: **0.9.0**. Frontend: **ZONT UI v0.9.0** (approved v0.8.12 domain layout, standalone bundle with the NikaS v1.5 shell).
 
 The State view now follows the real hydraulic topology: main and reserve
 boilers, the DHW tank with cold-water pressure and recirculation, hydraulic

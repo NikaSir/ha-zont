@@ -7,7 +7,7 @@ assert.match(fullSource, /Standalone semantic ZONT panel/, "standalone bundle mu
 assert.match(fullSource, /const ELEMENT_NAME = "zont-local-panel"/, "ZONT must use its integration-owned custom element");
 assert.doesNotMatch(fullSource, /nikas-generated-zont/, "ZONT must not reuse the retired shared custom element");
 assert.doesNotMatch(fullSource, /^import\s+/m, "standalone bundle must not use runtime imports");
-const appMarker = "// ZONT UI v0.8.17";
+const appMarker = "// ZONT UI v0.9.0";
 const appOffset = fullSource.indexOf(appMarker);
 assert.ok(appOffset >= 0, "standalone bundle must contain the approved ZONT application layer");
 let source = fullSource.slice(appOffset);
@@ -60,7 +60,7 @@ assert.match(source, /class="z82-loop-pump/, "DHW circulation pump must be a phy
 assert.match(source, /z82-pump-art[\s\S]{0,160}<ha-icon icon="mdi:pump"/, "heating circuit status rows must use a pump symbol");
 
 const panelManifest = JSON.parse(fs.readFileSync("custom_components/zont_local/frontend/panel_manifest.json", "utf8"));
-assert.equal(panelManifest.ui_version, "0.8.17");
+assert.equal(panelManifest.ui_version, "0.9.0");
 for (const asset of panelManifest.assets) {
   const path = `custom_components/zont_local/frontend/${asset.path}`;
   assert.ok(fs.existsSync(path), `declared panel asset must exist: ${path}`);
@@ -74,5 +74,22 @@ assert.match(integrationSource, /module_url=FRONTEND_MODULE_URL/, "panel registr
 assert.doesNotMatch(integrationSource, /add_extra_js_url/, "ZONT must not be injected globally into Home Assistant");
 assert.match(constantsSource, /PANEL_URL_PATH = "dashboard-zont"/, "the existing public route must remain stable");
 assert.match(constantsSource, /PANEL_WEB_COMPONENT_NAME = "zont-local-panel"/, "the panel element must be ZONT-owned");
+
+assert.match(fullSource, /className = "work-viewport"/, "one work viewport must be installed");
+assert.match(fullSource, /className = "work-canvas"/, "one work canvas must be installed");
+assert.match(fullSource, /if \(scale <= 1\) return \{ minX: 0, maxX: 0, minY: 0, maxY: 0 \}/);
+assert.match(fullSource, /gesture\.startState\.scale > 1/, "one-finger pan must require enlargement");
+assert.match(fullSource, /overflow-x:hidden;overflow-y:auto/);
+assert.match(fullSource, /work-viewport\.canvas-zoomed\{overflow:hidden/);
+assert.match(fullSource, /ZONT_ZOOM_MIN = 0\.75/);
+assert.match(fullSource, /ZONT_ZOOM_MAX = 2/);
+assert.match(fullSource, /ZONT_ZOOM_SNAP_MIN = 0\.97/);
+assert.match(fullSource, /ZONT_ZOOM_SNAP_MAX = 1\.03/);
+assert.match(fullSource, /Масштаб 100%/);
+assert.match(fullSource, /grid-template-columns:52px minmax\(0,1fr\) 52px/);
+assert.match(fullSource, /border-radius:16px!important/);
+assert.match(fullSource, /--mdc-icon-size:25px!important/);
+assert.match(fullSource, /\.tab ha-icon\{--mdc-icon-size:28px!important/);
+assert.match(fullSource, /\.tab span\{font-size:12px!important;font-weight:700!important/);
 
 console.log("ZONT frontend semantic scenarios passed");
