@@ -23,3 +23,15 @@ Audit target: UI 0.9.0. Runtime conformance is covered by static/semantic tests;
 1. Confirm long Diagnostics native scrolling at 100% in the iPhone Companion App.
 2. Confirm focal pinch and axis locking at 125%, 150% and 200%.
 3. Confirm stationary long press, `more-info`, two-finger reset and safe areas on device.
+
+
+<!-- v1.6-adoption -->
+## v1.6 adoption delta — 2026-08-26
+
+This section is normative. Earlier PASS evidence was collected against the previous shell.
+
+- **Indicator policy:** the common two-level indicator is **NOT ENABLED** and may be introduced only by a separate explicit requirement.
+- **Stable DOM:** heating telemetry changes patch existing boiler, hydraulic, DHW and diagnostic nodes without rebuilding the shell, scene, viewport or tab bar.
+- **Fixed chrome:** Header and Bottom Tab Bar retain screen coordinates on short/long tabs and during iOS boundary pull.
+- **Typography:** enforce the LIDER 9–25px scale and 12px meaningful-text floor; increase layout space rather than shrinking meaningful labels.
+- **Brand:** repository and packaged integration identity remain mandatory.
