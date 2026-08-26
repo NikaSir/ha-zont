@@ -1,15 +1,61 @@
 {
   "schema_version": 1,
-  "ui_version": "0.9.0",
+  "ui_version": "0.9.1",
   "public_root": "/zont_local_panel/",
+  "home_assistant_menu_event": "hass-toggle-menu",
+  "header": {
+    "rails_px": 52,
+    "narrow_rails_px": 48,
+    "control_px": 44,
+    "control_radius_px": 16,
+    "icon_px": 25,
+    "title_px": 23,
+    "subtitle_px": 14,
+    "narrow_title_px": 21,
+    "narrow_subtitle_px": 13
+  },
+  "bottom_navigation": {
+    "fixed": true,
+    "safe_area": true,
+    "icon_renderer": "ha-icon",
+    "icon_px": 28,
+    "label_px": 12,
+    "label_weight": 700
+  },
+  "shell": {
+    "stable_dom": true,
+    "telemetry_updates": "point_patch",
+    "stable_nodes": ["header", "zoom_viewport", "bottom_navigation"],
+    "scroll_position_preserved_on_poll": true,
+    "tab_transition_rebuilds_root": false
+  },
   "zoom": {
+    "target": "workspace_only",
+    "viewport_count": 1,
     "min_percent": 75,
     "max_percent": 200,
     "native_scroll_at_100": true,
     "pan_above_percent": 100,
+    "axis_lock_when_fitted": true,
+    "clamp_to_content_bounds": true,
     "snap_percent_range": [97, 103],
     "reset": "two_finger_double_tap",
     "feedback": "Масштаб 100%"
+  },
+  "typography": {
+    "meaningful_min_px": 12,
+    "meaningful_max_px": 25,
+    "schematic_annotation_min_px": 9
+  },
+  "connection_freshness_indicator": {
+    "enabled": true,
+    "existing_domain_feature": true,
+    "introduction": "request_only",
+    "connection_values": ["Локально", "Нет связи", "Нет данных"],
+    "freshness_values": ["Данные актуальны", "Данные устарели", "Нет данных"]
+  },
+  "branding": {
+    "integration_icon": "../brand/icon.png"
   },
   "assets": [
     {

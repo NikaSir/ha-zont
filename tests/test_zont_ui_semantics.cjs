@@ -7,7 +7,7 @@ assert.match(fullSource, /Standalone semantic ZONT panel/, "standalone bundle mu
 assert.match(fullSource, /const ELEMENT_NAME = "zont-local-panel"/, "ZONT must use its integration-owned custom element");
 assert.doesNotMatch(fullSource, /nikas-generated-zont/, "ZONT must not reuse the retired shared custom element");
 assert.doesNotMatch(fullSource, /^import\s+/m, "standalone bundle must not use runtime imports");
-const appMarker = "// ZONT UI v0.9.0";
+const appMarker = "// ZONT UI v0.9.1";
 const appOffset = fullSource.indexOf(appMarker);
 assert.ok(appOffset >= 0, "standalone bundle must contain the approved ZONT application layer");
 let source = fullSource.slice(appOffset);
@@ -60,7 +60,7 @@ assert.match(source, /class="z82-loop-pump/, "DHW circulation pump must be a phy
 assert.match(source, /z82-pump-art[\s\S]{0,160}<ha-icon icon="mdi:pump"/, "heating circuit status rows must use a pump symbol");
 
 const panelManifest = JSON.parse(fs.readFileSync("custom_components/zont_local/frontend/panel_manifest.json", "utf8"));
-assert.equal(panelManifest.ui_version, "0.9.0");
+assert.equal(panelManifest.ui_version, "0.9.1");
 for (const asset of panelManifest.assets) {
   const path = `custom_components/zont_local/frontend/${asset.path}`;
   assert.ok(fs.existsSync(path), `declared panel asset must exist: ${path}`);
@@ -91,5 +91,16 @@ assert.match(fullSource, /border-radius:16px!important/);
 assert.match(fullSource, /--mdc-icon-size:25px!important/);
 assert.match(fullSource, /\.tab ha-icon\{--mdc-icon-size:28px!important/);
 assert.match(fullSource, /\.tab span\{font-size:12px!important;font-weight:700!important/);
+assert.match(fullSource, /zontMorphChildren\(mountedMain, template\.content\)/, "telemetry and tabs must patch the mounted work content");
+assert.match(fullSource, /if \(!mountedMain\)/, "the full renderer must run only for initial mount");
+assert.match(fullSource, /\.heading strong\{font-size:23px!important;font-weight:800!important/);
+assert.match(fullSource, /\.heading span\{font-size:14px!important;font-weight:560!important/);
+assert.match(fullSource, /font-size:21px!important\}\.heading span\{font-size:13px!important/);
+assert.match(fullSource, /: connectionUnknown \? "Нет данных" : "Локально"/);
+assert.match(fullSource, /stale \? "Данные устарели" : "Данные актуальны"/);
+assert.equal(panelManifest.shell.stable_dom, true);
+assert.equal(panelManifest.typography.meaningful_min_px, 12);
+assert.equal(panelManifest.typography.meaningful_max_px, 25);
+assert.equal(panelManifest.connection_freshness_indicator.enabled, true);
 
 console.log("ZONT frontend semantic scenarios passed");

@@ -485,11 +485,11 @@
   customElements.define(ELEMENT_NAME, NikasGeneratedZont);
 })();
 
-// ZONT UI v0.9.0 — standalone continuation of the approved v0.8.12 application layer.
+// ZONT UI v0.9.1 — standalone continuation of the approved v0.8.12 application layer.
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.9.0";
+const UI_VERSION = "0.9.1";
 const ASSET_VERSION = "0.8.17";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
@@ -838,10 +838,10 @@ function installV0812() {
                 : errorDataProblems.length ? "Состояние ошибок контроллера недоступно"
                   : essentialProblems.length ? "Часть показаний временно недоступна" : "Отопление и ГВС в норме";
     const onlineText = offline ? "Нет связи"
-      : connectionUnknown ? "Нет данных" : "Онлайн";
+      : connectionUnknown ? "Нет данных" : "Локально";
     const onlineTone = offline ? "offline" : connectionUnknown ? "unknown" : "online";
-    const freshness = offline ? "Источник недоступен"
-      : freshnessUnknown ? "Свежесть неизвестна" : ageLabel(dataAge);
+    const freshness = offline || freshnessUnknown ? "Нет данных"
+      : stale ? "Данные устарели" : "Данные актуальны";
     const mode = this._currentMode(items);
 
     const statusClass = (item) => active(item) ? "on"
@@ -1518,3 +1518,178 @@ function installV090() {
 }
 
 if (!installV090()) customElements.whenDefined(ELEMENT_NAME).then(() => installV090());
+
+// UI v0.9.1 — stable mounted shell, readable typography and a unified local-data indicator.
+function zontSameNodeKind(current, next) {
+  return current?.nodeType === next?.nodeType
+    && (current.nodeType !== Node.ELEMENT_NODE || current.localName === next.localName);
+}
+
+function zontSyncAttributes(current, next) {
+  for (const attribute of [...current.attributes]) {
+    if (!next.hasAttribute(attribute.name)) current.removeAttribute(attribute.name);
+  }
+  for (const attribute of [...next.attributes]) {
+    if (current.getAttribute(attribute.name) !== attribute.value) {
+      current.setAttribute(attribute.name, attribute.value);
+    }
+  }
+}
+
+function zontMorphNode(current, next) {
+  if (!zontSameNodeKind(current, next)) {
+    current.replaceWith(next.cloneNode(true));
+    return;
+  }
+  if (current.nodeType === Node.TEXT_NODE || current.nodeType === Node.COMMENT_NODE) {
+    if (current.nodeValue !== next.nodeValue) current.nodeValue = next.nodeValue;
+    return;
+  }
+  zontSyncAttributes(current, next);
+  zontMorphChildren(current, next);
+}
+
+function zontMorphChildren(current, next) {
+  let index = 0;
+  while (index < current.childNodes.length || index < next.childNodes.length) {
+    const oldChild = current.childNodes[index];
+    const newChild = next.childNodes[index];
+    if (!newChild) {
+      oldChild?.remove();
+      continue;
+    }
+    if (!oldChild) {
+      current.append(newChild.cloneNode(true));
+      index += 1;
+      continue;
+    }
+    zontMorphNode(oldChild, newChild);
+    index += 1;
+  }
+}
+
+function zontBindStableWorkActions(panel, markExisting = false) {
+  const main = panel.shadowRoot?.querySelector(".work-canvas > main");
+  if (!main) return;
+  panel.__zontStableWorkBindings ||= new WeakSet();
+  const bind = (selector, action) => {
+    main.querySelectorAll(selector).forEach((element) => {
+      if (panel.__zontStableWorkBindings.has(element)) return;
+      panel.__zontStableWorkBindings.add(element);
+      if (!markExisting) element.addEventListener("click", () => action(element));
+    });
+  };
+  bind("[data-mode-entity]", (element) => panel._pressMode(element.dataset.modeEntity, element.dataset.modeLabel));
+  bind("[data-open-diagnostics]", () => panel._selectTab("diagnostics"));
+}
+
+function zontInstallV091Styles(panel) {
+  const root = panel.shadowRoot;
+  if (!root || root.getElementById("zont-v091-style")) return;
+  const style = document.createElement("style");
+  style.id = "zont-v091-style";
+  style.textContent = `
+    .heading strong{font-size:23px!important;font-weight:800!important}
+    .heading span{font-size:14px!important;font-weight:560!important}
+
+    .meter-max,.meter-min,.room-meter span,.room-meter small,.z82-boiler-art b{font-size:9px!important}
+    .room-meta,.z82-eyebrow,.z82-head p,.z82-notice,
+    .z82-equipment header>span,.z82-equipment h3 span,.z82-row,
+    .z82-dhw-temperature small,.z82-hot-water span,.z82-circulation-loop span,
+    .z82-cold-water span,.z82-circulation-loop small,.z82-hydro-values span,
+    .z82-circuit-device span,.z82-mixer span,.z82-circuit-values span,
+    .z82-legend span,.z82-metric span,.z82-metric small,.z82-node>strong,
+    .z82-node span,.z82-node small,.z82-mode strong,.z82-mode span{font-size:12px!important}
+    .z82-head h1{font-size:25px!important}
+    .z82-equipment h3,.z82-circuit-card h3{font-size:14px!important}
+    .z82-row strong,.z82-dhw-temperature strong,.z82-hot-water strong,
+    .z82-circulation-loop strong,.z82-cold-water strong,.z82-circuit-device strong,
+    .z82-mixer strong,.z82-circuit-values strong,.z82-metric strong{font-size:13px!important}
+    .z82-hydro strong{font-size:12px!important}
+
+    .z82-online{min-width:132px!important;grid-template-columns:10px auto!important;
+      border:1px solid color-mix(in srgb,currentColor 30%,transparent)!important;
+      border-radius:16px!important;padding:8px 11px!important}
+    .z82-online i{width:9px!important;height:9px!important;box-shadow:0 0 0 4px color-mix(in srgb,currentColor 12%,transparent)}
+    .z82-online strong{font-size:16px!important;font-weight:700!important}
+    .z82-online small{font-size:13px!important;font-weight:560!important;color:currentColor!important;opacity:.78}
+    .z82-system .z82-online.online{color:var(--success-color,#43a047)!important;background:color-mix(in srgb,var(--success-color,#43a047) 11%,var(--card-background-color,#fff))!important}
+    .z82-system.attention:not(.offline) .z82-online.unknown{color:var(--warning-color,#ff9800)!important;background:color-mix(in srgb,var(--warning-color,#ff9800) 10%,var(--card-background-color,#fff))!important}
+    .z82-system.offline .z82-online.offline{color:var(--error-color,#db4437)!important;background:color-mix(in srgb,var(--error-color,#db4437) 10%,var(--card-background-color,#fff))!important}
+
+    @media(max-width:520px){
+      .heading strong{font-size:21px!important}.heading span{font-size:13px!important}
+      .z82-equipment-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+      .z82-dhw-card{grid-column:1/-1!important}
+      .z82-equipment{padding:9px!important}.z82-equipment header{min-height:36px!important}
+      .z82-rows{gap:6px!important}.z82-row{line-height:1.2!important}
+      .z82-dhw-schematic{height:218px!important;min-height:218px!important}
+      .z82-dhw-temperature{left:84px!important;top:87px!important;right:auto!important;grid-template-columns:16px auto 14px!important;gap:2px 4px!important}
+      .z82-hot-water,.z82-circulation-loop,.z82-cold-water{width:126px!important}
+      .z82-hot-water{top:9px!important}.z82-circulation-loop{top:77px!important}.z82-cold-water{bottom:0!important}
+      .z82-circuits-grid{grid-template-columns:1fr!important}
+      .z82-metrics,.z82-nodes,.z82-modes{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+      .z82-online{min-width:128px!important}
+    }
+  `;
+  root.append(style);
+}
+
+function installV091() {
+  const ElementClass = customElements.get(ELEMENT_NAME);
+  if (!ElementClass || ElementClass.prototype.__zontV091) return false;
+  const previousRender = ElementClass.prototype._render;
+
+  ElementClass.prototype._render = function renderV091(...args) {
+    const root = this.shadowRoot;
+    const mountedMain = root?.querySelector(".work-canvas > main");
+    if (!mountedMain) {
+      const result = previousRender.apply(this, args);
+      zontBindStableWorkActions(this, true);
+      zontInstallV091Styles(this);
+      const subtitle = this.shadowRoot?.querySelector(".heading span");
+      if (subtitle) {
+        const base = String(this._config().subtitle || "Отопление и ГВС").replace(/\s*·\s*UI\s*v?[0-9.]+\s*$/i, "");
+        subtitle.textContent = `${base} · UI v${UI_VERSION}`;
+      }
+      return result;
+    }
+
+    const active = this._activeTab();
+    if (!active) return undefined;
+    const template = document.createElement("template");
+    template.innerHTML = this._content(active, this._entries());
+    zontMorphChildren(mountedMain, template.content);
+
+    root.querySelectorAll("button[data-tab]").forEach((button) => {
+      const selected = button.dataset.tab === active.id;
+      button.classList.toggle("active", selected);
+      button.disabled = selected;
+      if (selected) button.setAttribute("aria-current", "page");
+      else button.removeAttribute("aria-current");
+    });
+    const subtitle = root.querySelector(".heading span");
+    if (subtitle) {
+      const base = String(this._config().subtitle || "Отопление и ГВС").replace(/\s*·\s*UI\s*v?[0-9.]+\s*$/i, "");
+      subtitle.textContent = `${base} · UI v${UI_VERSION}`;
+    }
+    zontBindStableWorkActions(this);
+    zontInstallV091Styles(this);
+
+    const viewport = root.querySelector(".work-viewport");
+    const canvas = root.querySelector(".work-canvas");
+    if (viewport && canvas) {
+      if (this.__zontResetScrollOnRender) {
+        viewport.scrollTo({ top: 0, left: 0, behavior: "auto" });
+        this.__zontResetScrollOnRender = false;
+      }
+      zontApplyZoomState(this, viewport, canvas, zontLoadZoomState(this), false);
+    }
+    return undefined;
+  };
+
+  ElementClass.prototype.__zontV091 = true;
+  return true;
+}
+
+if (!installV091()) customElements.whenDefined(ELEMENT_NAME).then(() => installV091());

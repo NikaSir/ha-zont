@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.1
+
+- Updated the specialized-panel shell to NikaS UI Standard v1.6 without changing the integration-owned route or hydraulic semantics.
+- Kept Header, one zoom viewport and Bottom Tab Bar mounted while telemetry and tabs patch only the work content.
+- Preserved native scroll position during polling; explicit tab changes alone return the work area to the top.
+- Raised meaningful panel typography to 12–25 px and kept 9 px only for redundant scale/schematic annotations.
+- Updated Header typography to 23/14 px normally and 21/13 px on narrow phones.
+- Retained the already-existing ZONT connectivity/freshness presentation, renamed the local connection to `Локально`, and unified freshness as `Данные актуальны`, `Данные устарели` or `Нет данных`.
+- No GitHub Release is part of this update.
+
 ## 0.9.0
 
 - Implemented the NikaS v1.5 panel shell: native vertical scrolling and fixed origin at 100%, axis-aware pan only above 100%, focal 75–200% pinch, resize clamping, snap and two-finger reset.
