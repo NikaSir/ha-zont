@@ -485,11 +485,11 @@
   customElements.define(ELEMENT_NAME, NikasGeneratedZont);
 })();
 
-// ZONT UI v0.8.17 — standalone restoration of the approved v0.8.12 application layer.
+// ZONT UI v0.9.0 — standalone continuation of the approved v0.8.12 application layer.
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.8.17";
+const UI_VERSION = "0.9.0";
 const ASSET_VERSION = "0.8.17";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
@@ -1224,3 +1224,297 @@ function installV0812() {
 }
 
 if (!installV0812()) customElements.whenDefined(ELEMENT_NAME).then(() => installV0812());
+
+// UI v0.9.0 — native 100% scrolling and axis-aware enlarged canvas.
+const ZONT_ZOOM_MIN = 0.75;
+const ZONT_ZOOM_MAX = 2;
+const ZONT_ZOOM_SNAP_MIN = 0.97;
+const ZONT_ZOOM_SNAP_MAX = 1.03;
+const ZONT_ZOOM_PAN_THRESHOLD = 7;
+const ZONT_ZOOM_TAP_MS = 280;
+const ZONT_ZOOM_DOUBLE_TAP_MS = 360;
+const ZONT_ZOOM_CLICK_GUARD_MS = 420;
+const ZONT_ZOOM_STORAGE_KEY = "zont-local-panel-transform-v3";
+
+const zontClamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const zontFinite = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+const zontDistance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const zontMidpoint = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+
+function zontLoadZoomState(panel) {
+  if (panel.__zontZoomState) return panel.__zontZoomState;
+  let stored = null;
+  try { stored = JSON.parse(localStorage.getItem(ZONT_ZOOM_STORAGE_KEY) || "null"); } catch (_error) {}
+  const scale = zontClamp(zontFinite(stored?.scale, 1), ZONT_ZOOM_MIN, ZONT_ZOOM_MAX);
+  panel.__zontZoomState = {
+    scale,
+    x: scale > 1 ? zontFinite(stored?.x) : 0,
+    y: scale > 1 ? zontFinite(stored?.y) : 0,
+  };
+  return panel.__zontZoomState;
+}
+
+function zontSaveZoomState(panel) {
+  try { localStorage.setItem(ZONT_ZOOM_STORAGE_KEY, JSON.stringify(panel.__zontZoomState)); } catch (_error) {}
+}
+
+function zontZoomBounds(viewport, canvas, scale) {
+  if (scale <= 1) return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+  const overflowX = Math.max(0, canvas.offsetWidth * scale - viewport.clientWidth);
+  const overflowY = Math.max(0, canvas.offsetHeight * scale - viewport.clientHeight);
+  return {
+    minX: overflowX > 0 ? -overflowX : 0,
+    maxX: 0,
+    minY: overflowY > 0 ? -overflowY : 0,
+    maxY: 0,
+  };
+}
+
+function zontApplyZoomState(panel, viewport, canvas, candidate = panel.__zontZoomState, persist = true) {
+  const scale = zontClamp(zontFinite(candidate?.scale, 1), ZONT_ZOOM_MIN, ZONT_ZOOM_MAX);
+  const bounds = zontZoomBounds(viewport, canvas, scale);
+  const state = scale <= 1 ? { scale, x: 0, y: 0 } : {
+    scale,
+    x: zontClamp(zontFinite(candidate?.x), bounds.minX, bounds.maxX),
+    y: zontClamp(zontFinite(candidate?.y), bounds.minY, bounds.maxY),
+  };
+  panel.__zontZoomState = state;
+  viewport.classList.toggle("canvas-zoomed", scale > 1);
+  if (scale > 1) viewport.scrollTop = 0;
+  canvas.style.transform = `translate3d(${state.x}px,${state.y}px,0) scale(${state.scale})`;
+  if (persist) zontSaveZoomState(panel);
+}
+
+function zontShowReset(panel, viewport) {
+  const toast = viewport.querySelector(":scope > .zoom-toast");
+  if (!toast) return;
+  toast.textContent = "Масштаб 100%";
+  toast.classList.add("visible");
+  window.clearTimeout(panel.__zontZoomToastTimer);
+  panel.__zontZoomToastTimer = window.setTimeout(() => toast.classList.remove("visible"), 1200);
+}
+
+function zontResetZoom(panel, viewport, canvas, announce = true) {
+  viewport.scrollTop = 0;
+  zontApplyZoomState(panel, viewport, canvas, { scale: 1, x: 0, y: 0 });
+  if (announce) zontShowReset(panel, viewport);
+}
+
+function zontCancelPending(panel, target, pointerId) {
+  panel.__zontSuppressClicksUntil = performance.now() + ZONT_ZOOM_CLICK_GUARD_MS;
+  try {
+    target?.dispatchEvent(new CustomEvent("pointercancel", {
+      bubbles: true,
+      composed: true,
+      detail: { zontGestureCancel: true, pointerId },
+    }));
+  } catch (_error) {}
+}
+
+function zontInstallGestures(panel, viewport, canvas) {
+  const pointers = new Map();
+  panel.__zontZoomPointers = pointers;
+  const localPoint = (event) => {
+    const rect = viewport.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  };
+
+  viewport.addEventListener("click", (event) => {
+    if (performance.now() < (panel.__zontSuppressClicksUntil || 0)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, true);
+
+  viewport.addEventListener("pointerdown", (event) => {
+    if (event.pointerType !== "touch") return;
+    const point = localPoint(event);
+    pointers.set(event.pointerId, { ...point, target: event.target });
+    const state = zontLoadZoomState(panel);
+    if (pointers.size === 1) {
+      panel.__zontZoomGesture = state.scale > 1 ? {
+        type: "pan",
+        startedAt: performance.now(),
+        startState: { ...state },
+        startPoint: point,
+        moved: false,
+      } : null;
+      return;
+    }
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      pointers.forEach((pointer, pointerId) => zontCancelPending(panel, pointer.target, pointerId));
+      panel.__zontZoomGesture = {
+        type: "pinch",
+        startedAt: performance.now(),
+        startState: { ...state },
+        startScrollTop: viewport.scrollTop,
+        startDistance: Math.max(zontDistance(a, b), 1),
+        startMidpoint: zontMidpoint(a, b),
+        moved: false,
+      };
+    }
+  });
+
+  viewport.addEventListener("pointermove", (event) => {
+    const pointer = pointers.get(event.pointerId);
+    if (!pointer || event.pointerType !== "touch") return;
+    const point = localPoint(event);
+    pointer.x = point.x;
+    pointer.y = point.y;
+    const gesture = panel.__zontZoomGesture;
+    if (!gesture) return;
+
+    if (gesture.type === "pan" && pointers.size === 1 && gesture.startState.scale > 1) {
+      const deltaX = point.x - gesture.startPoint.x;
+      const deltaY = point.y - gesture.startPoint.y;
+      if (!gesture.moved && Math.hypot(deltaX, deltaY) >= ZONT_ZOOM_PAN_THRESHOLD) {
+        gesture.moved = true;
+        zontCancelPending(panel, pointer.target, event.pointerId);
+      }
+      if (!gesture.moved) return;
+      event.preventDefault();
+      zontApplyZoomState(panel, viewport, canvas, {
+        scale: gesture.startState.scale,
+        x: gesture.startState.x + deltaX,
+        y: gesture.startState.y + deltaY,
+      });
+      return;
+    }
+
+    if (gesture.type === "pinch" && pointers.size >= 2) {
+      const [a, b] = [...pointers.values()];
+      const currentMidpoint = zontMidpoint(a, b);
+      const nextScale = zontClamp(
+        gesture.startState.scale * (zontDistance(a, b) / gesture.startDistance),
+        ZONT_ZOOM_MIN,
+        ZONT_ZOOM_MAX,
+      );
+      const focalX = (gesture.startMidpoint.x - gesture.startState.x) / gesture.startState.scale;
+      const focalY = (gesture.startMidpoint.y + gesture.startScrollTop - gesture.startState.y) / gesture.startState.scale;
+      gesture.moved = gesture.moved
+        || Math.abs(nextScale - gesture.startState.scale) > 0.01
+        || zontDistance(currentMidpoint, gesture.startMidpoint) >= ZONT_ZOOM_PAN_THRESHOLD;
+      event.preventDefault();
+      zontApplyZoomState(panel, viewport, canvas, {
+        scale: nextScale,
+        x: currentMidpoint.x - focalX * nextScale,
+        y: currentMidpoint.y - focalY * nextScale,
+      });
+    }
+  });
+
+  const finishPointer = (event, cancelled = false) => {
+    if (event.detail?.zontGestureCancel) return;
+    const gesture = panel.__zontZoomGesture;
+    const tracked = pointers.has(event.pointerId);
+    pointers.delete(event.pointerId);
+    if (!tracked || !gesture) return;
+    const state = zontLoadZoomState(panel);
+    if (gesture.type === "pinch" && gesture.moved && pointers.size === 0
+        && state.scale >= ZONT_ZOOM_SNAP_MIN && state.scale <= ZONT_ZOOM_SNAP_MAX) {
+      zontResetZoom(panel, viewport, canvas);
+    }
+    if (pointers.size > 0) return;
+    const elapsed = performance.now() - gesture.startedAt;
+    if (!cancelled && gesture.type === "pinch" && !gesture.moved && elapsed <= ZONT_ZOOM_TAP_MS) {
+      const now = performance.now();
+      if (now - (panel.__zontLastTwoFingerTap || 0) <= ZONT_ZOOM_DOUBLE_TAP_MS) {
+        panel.__zontLastTwoFingerTap = 0;
+        zontResetZoom(panel, viewport, canvas);
+        panel.__zontSuppressClicksUntil = now + ZONT_ZOOM_CLICK_GUARD_MS;
+      } else {
+        panel.__zontLastTwoFingerTap = now;
+      }
+    }
+    if (gesture.moved) panel.__zontSuppressClicksUntil = performance.now() + ZONT_ZOOM_CLICK_GUARD_MS;
+    panel.__zontZoomGesture = null;
+  };
+
+  viewport.addEventListener("pointerup", (event) => finishPointer(event));
+  viewport.addEventListener("pointercancel", (event) => finishPointer(event, true));
+}
+
+function installV090() {
+  const ElementClass = customElements.get(ELEMENT_NAME);
+  if (!ElementClass || ElementClass.prototype.__zontV090) return false;
+  const previousRender = ElementClass.prototype._render;
+  const previousSelectTab = ElementClass.prototype._selectTab;
+  const previousDisconnected = ElementClass.prototype.disconnectedCallback;
+
+  ElementClass.prototype._selectTab = function selectTabV090(id) {
+    if (!id || id === this._active) return;
+    const state = zontLoadZoomState(this);
+    this.__zontZoomState = { scale: state.scale, x: 0, y: 0 };
+    zontSaveZoomState(this);
+    this.__zontResetScrollOnRender = true;
+    return previousSelectTab.call(this, id);
+  };
+
+  ElementClass.prototype.disconnectedCallback = function disconnectedV090(...args) {
+    this.__zontZoomResizeObserver?.disconnect();
+    window.clearTimeout(this.__zontZoomToastTimer);
+    return previousDisconnected?.apply(this, args);
+  };
+
+  ElementClass.prototype._render = function renderV090(...args) {
+    const result = previousRender.apply(this, args);
+    const root = this.shadowRoot;
+    const app = root?.querySelector(".app");
+    const main = app?.querySelector(":scope > main");
+    if (!root || !app || !main) return result;
+
+    if (!root.getElementById("zont-v090-style")) {
+      const style = document.createElement("style");
+      style.id = "zont-v090-style";
+      style.textContent = `
+        :host{display:block;height:100dvh;overflow:hidden}
+        .app{height:100%;min-height:0;padding-bottom:0!important;display:flex;flex-direction:column;overflow:hidden}
+        .header{position:relative!important;top:auto!important;flex:none;grid-template-columns:52px minmax(0,1fr) 52px!important;min-height:62px!important;padding:max(5px,env(safe-area-inset-top,0px)) max(8px,env(safe-area-inset-right,0px)) 5px max(8px,env(safe-area-inset-left,0px))!important;background:var(--card-background-color,#fff)!important}
+        .rail{width:44px!important;height:44px!important;border:1px solid var(--divider-color,#ddd)!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 3px 12px rgba(0,0,0,.07)!important;padding:0!important}
+        #back{justify-self:start;color:var(--primary-text-color,#202124)!important}#refresh{justify-self:end;color:var(--primary-color,#087de0)!important}
+        .rail ha-icon{--mdc-icon-size:25px!important}.heading strong{font-size:21px!important;font-weight:800!important}.heading span{margin-top:2px!important;font-size:12px!important;font-weight:560!important;color:var(--secondary-text-color,#666)!important}
+        .work-viewport{position:relative;flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior-x:none;overscroll-behavior-y:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+        .work-viewport.canvas-zoomed{overflow:hidden;overscroll-behavior:none;touch-action:none;-webkit-overflow-scrolling:auto}
+        .work-canvas{display:block;width:100%;transform-origin:0 0;will-change:transform;contain:layout style}
+        .work-canvas>main{width:min(100%,980px)!important;margin:0 auto!important}
+        .zoom-toast{position:absolute;z-index:30;left:50%;bottom:calc(72px + env(safe-area-inset-bottom,0px));min-height:38px;display:grid;place-items:center;padding:8px 14px;border:1px solid var(--divider-color,#ddd);border-radius:14px;background:color-mix(in srgb,var(--card-background-color,#fff) 94%,transparent);color:var(--primary-text-color,#202124);box-shadow:0 4px 16px rgba(0,0,0,.14);font-size:12px;font-weight:750;opacity:0;pointer-events:none;transform:translate(-50%,8px);transition:opacity .16s ease,transform .16s ease}.zoom-toast.visible{opacity:1;transform:translate(-50%,0)}
+        .bottom{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;padding:4px 7px calc(4px + env(safe-area-inset-bottom,0px))!important;background:var(--card-background-color,#fff)!important;border-top:1px solid var(--divider-color,#ddd)!important;box-shadow:0 -3px 14px rgba(0,0,0,.08)!important}
+        .tab{min-height:52px!important;border-radius:14px!important;gap:3px!important;padding:3px 2px!important}.tab ha-icon{--mdc-icon-size:28px!important}.tab span{font-size:12px!important;font-weight:700!important}.tab.active{color:var(--primary-color,#087de0)!important;background:color-mix(in srgb,var(--primary-color,#087de0) 11%,transparent)!important;box-shadow:none!important}
+        @media(max-width:520px){.header{grid-template-columns:48px minmax(0,1fr) 48px!important;min-height:60px!important}.rail{width:44px!important;height:44px!important}.heading strong{font-size:21px!important}.heading span{font-size:12px!important}.tab{min-height:52px!important}.tab ha-icon{--mdc-icon-size:28px!important}.tab span{font-size:12px!important}}
+      `;
+      root.append(style);
+    }
+
+    const viewport = document.createElement("div");
+    viewport.className = "work-viewport";
+    const canvas = document.createElement("div");
+    canvas.className = "work-canvas";
+    main.replaceWith(viewport);
+    viewport.append(canvas);
+    canvas.append(main);
+    const toast = document.createElement("div");
+    toast.className = "zoom-toast";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    viewport.append(toast);
+
+    const state = zontLoadZoomState(this);
+    if (this.__zontResetScrollOnRender) {
+      viewport.scrollTop = 0;
+      this.__zontResetScrollOnRender = false;
+    }
+    zontApplyZoomState(this, viewport, canvas, state, false);
+    zontInstallGestures(this, viewport, canvas);
+    this.__zontZoomResizeObserver?.disconnect();
+    this.__zontZoomResizeObserver = new ResizeObserver(() => zontApplyZoomState(this, viewport, canvas));
+    this.__zontZoomResizeObserver.observe(viewport);
+    this.__zontZoomResizeObserver.observe(canvas);
+    return result;
+  };
+
+  ElementClass.prototype.__zontV090 = true;
+  return true;
+}
+
+if (!installV090()) customElements.whenDefined(ELEMENT_NAME).then(() => installV090());
