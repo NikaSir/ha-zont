@@ -1,6 +1,6 @@
 # ZONT specialized-panel compliance
 
-Audit target: UI 0.9.1 and NikaS UI Standard v1.6. Runtime conformance is covered by static/semantic tests; final iPhone field acceptance remains required.
+Audit target: UI 0.9.1 and NikaS UI Standard v1.7. Runtime conformance is covered by static/semantic tests; final iPhone field acceptance remains required.
 
 | Requirement | Status | Evidence / required follow-up |
 |---|---|---|

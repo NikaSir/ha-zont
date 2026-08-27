@@ -80,7 +80,7 @@ Updates are committed directly to `main` and validated there. The project does n
 
 ## Current UI
 
-Current integration: **0.9.1**. Frontend: **ZONT UI v0.9.1** (approved hydraulic domain layout, stable standalone NikaS v1.6 shell).
+Current integration: **0.9.1**. Frontend: **ZONT UI v0.9.1** (approved hydraulic domain layout, stable standalone NikaS v1.7 shell).
 
 The State view now follows the real hydraulic topology: main and reserve
 boilers, the DHW tank with cold-water pressure and recirculation, hydraulic

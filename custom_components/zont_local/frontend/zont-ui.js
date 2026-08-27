@@ -21,11 +21,44 @@
   const stateLow = (item) => String(item?.state?.state ?? "").toLocaleLowerCase();
   const activeStates = new Set(["on", "open", "opening", "active", "running", "heat", "heating", "true", "1"]);
   const inactiveStates = new Set(["off", "closed", "idle", "false", "0", "standby"]);
+  const SOURCE_ROUTE_KEY = "nikas.specialized.source_route.v1";
+  const RETURN_ROUTE_KEY = "nikas.zont.return_route.v1";
+  const SAFE_DEFAULT_ROUTE = "/dashboard-house";
+  const SAFE_ROUTE_PREFIXES = ["/dashboard-house", "/dashboard-actions", "/dashboard-infrastructure"];
 
   function navigate(path) {
     if (!path) return;
     window.history.pushState(null, "", path);
     window.dispatchEvent(new Event("location-changed"));
+  }
+
+  function safeReturnRoute(value) {
+    if (!value) return null;
+    try {
+      const url = new URL(decodeURIComponent(String(value).trim()), window.location.origin);
+      if (url.origin !== window.location.origin) return null;
+      const allowed = SAFE_ROUTE_PREFIXES.some((prefix) => url.pathname === prefix || url.pathname.startsWith(`${prefix}/`));
+      return allowed ? `${url.pathname}${url.search}${url.hash}` : null;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function resolveReturnRoute(panel) {
+    const current = new URL(window.location.href);
+    const explicit = safeReturnRoute(current.searchParams.get("return_to") || current.searchParams.get("from"));
+    let handedOff = null;
+    let saved = null;
+    try {
+      handedOff = safeReturnRoute(sessionStorage.getItem(SOURCE_ROUTE_KEY));
+      sessionStorage.removeItem(SOURCE_ROUTE_KEY);
+      saved = safeReturnRoute(sessionStorage.getItem(RETURN_ROUTE_KEY));
+    } catch (_error) {}
+    const config = panel?._config?.() || {};
+    const configured = safeReturnRoute(config.parent_route || config.parent?.path);
+    const route = explicit || handedOff || saved || safeReturnRoute(document.referrer) || configured || SAFE_DEFAULT_ROUTE;
+    try { sessionStorage.setItem(RETURN_ROUTE_KEY, route); } catch (_error) {}
+    return route;
   }
 
   class NikasGeneratedZont extends HTMLElement {
@@ -41,6 +74,7 @@
       this._error = null;
       this._queued = false;
       this._busyMode = null;
+      this._returnRoute = null;
       this._onHash = () => { this._active = this._tabFromLocation(); this._queue(); };
     }
 
@@ -461,7 +495,7 @@
       this.shadowRoot.innerHTML = `
         <style>
           :host{display:block;min-height:100vh;background:var(--primary-background-color,#f2f3f5);color:var(--primary-text-color,#202124);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}*{box-sizing:border-box}
-          .app{min-height:100vh;padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))}.header{position:sticky;top:0;z-index:10;display:grid;grid-template-columns:50px 1fr 50px;align-items:center;min-height:70px;padding:max(6px,env(safe-area-inset-top,0px)) 10px 6px;background:var(--card-background-color,#fff);border-bottom:1px solid var(--divider-color,#ddd)}.rail{width:46px;height:46px;border:0;background:transparent;color:inherit;display:grid;place-items:center}.rail ha-icon{--mdc-icon-size:28px}.heading{text-align:center;min-width:0}.heading strong,.heading span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.heading strong{font-size:21px}.heading span{margin-top:3px;font-size:12px;color:var(--secondary-text-color,#777)}
+          .app{min-height:100vh;padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))}.header{position:sticky;top:0;z-index:10;display:grid;grid-template-columns:50px 1fr 50px;align-items:center;min-height:70px;padding:max(6px,env(safe-area-inset-top,0px)) 10px 6px;background:var(--card-background-color,#fff);border-bottom:1px solid var(--divider-color,#ddd)}.rail{width:46px;height:46px;border:0;background:transparent;color:inherit;display:grid;place-items:center}.rail ha-icon{--mdc-icon-size:28px}.heading{text-align:center;min-width:0;min-height:44px;padding:5px 12px;border:1px solid var(--divider-color,#ddd);border-radius:16px;background:var(--card-background-color,#fff);color:inherit;box-shadow:0 4px 14px rgba(23,45,76,.06)}.heading:active{transform:scale(.985)}.heading strong,.heading span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.heading strong{font-size:21px}.heading span{margin-top:3px;font-size:12px;color:var(--secondary-text-color,#777)}
           main{width:min(100%,920px);margin:auto;padding:14px 16px 28px}section{margin-bottom:24px}section h2{margin:0 0 11px 3px;font-size:18px;font-weight:500}.card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.system-card,.meter-card,.room-card,.compact-card,.ok-card,.mixer-card,.mode-card,.status-tile,.empty{background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#ddd);border-radius:16px}
           .system-card{padding:14px}.system-title{display:flex;align-items:center;gap:9px;font-size:18px}.system-title ha-icon{color:var(--primary-color,#0097a7);--mdc-icon-size:28px}.system-title strong{font-weight:600}.system-rows{margin-top:12px;display:grid;gap:7px}.system-rows>div,.flow-line,.current-line,.target-line{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.system-rows span,.target-line span{color:var(--secondary-text-color,#777);font-size:12px}.system-rows b,.current-line b,.target-line b{font-size:15px;font-weight:650}.current-line{margin-top:12px}.current-line span{color:#ef8b00;font-size:13px}.current-line b{font-size:20px}.target-line{margin-top:5px}.flow-line{margin-top:9px;padding-top:8px;border-top:1px solid var(--divider-color,#eee);font-size:12px;color:var(--secondary-text-color,#666)}.card-foot{margin-top:8px;font-size:12px;color:var(--secondary-text-color,#777)}
           .meter-card{min-height:170px;padding:12px;display:grid;grid-template-columns:42px 1fr;gap:7px}.meter{position:relative;height:140px}.meter i{position:absolute;left:20px;top:8px;bottom:8px;width:5px;border-radius:6px;background:color-mix(in srgb,var(--primary-color,#00aeb7) 22%,transparent)}.meter b{position:absolute;left:16px;width:13px;height:4px;border-radius:4px;background:var(--primary-color,#00aeb7);transform:translateY(50%)}.meter-max,.meter-min{position:absolute;left:0;font-size:10px;color:var(--secondary-text-color,#777)}.meter-max{top:0}.meter-min{bottom:0}.meter-body{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between}.meter-value{align-self:flex-start;font-size:25px;white-space:nowrap}.meter-body ha-icon{--mdc-icon-size:46px;color:var(--primary-color,#0097a7)}.meter-label{width:100%;font-size:14px;line-height:1.2;overflow:hidden;text-overflow:ellipsis}
@@ -474,8 +508,10 @@
           .bottom{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));background:var(--card-background-color,#fff);border-top:1px solid var(--divider-color,#ddd)}nav{width:min(100%,700px);margin:auto;display:grid;grid-template-columns:repeat(${tabs.length},minmax(0,1fr));gap:3px}.tab{border:0;background:transparent;color:var(--secondary-text-color,#777);min-width:0;min-height:60px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:5px 2px}.tab.active{color:var(--primary-color,#0097a7);background:color-mix(in srgb,var(--primary-color,#0097a7) 10%,transparent)}.tab ha-icon{--mdc-icon-size:24px}.tab span{width:100%;font-size:10.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
           @media(max-width:420px){main{padding-left:10px;padding-right:10px}.system-card{padding:12px}.system-title{font-size:16px}.meter-card{min-height:160px}.meter-value,.room-value{font-size:23px}.room-card{min-height:175px}.room-meta{font-size:9.5px}.status-tile{min-height:110px}.mode-buttons button{min-height:62px;padding:8px}}
         </style>
-        <div class="app"><header class="header"><button class="rail" id="back" aria-label="Назад"><ha-icon icon="mdi:arrow-left"></ha-icon></button><div class="heading"><strong>ZONT</strong><span>${esc(config.subtitle || "Отопление и ГВС")}</span></div><button class="rail" id="refresh" aria-label="Обновить"><ha-icon icon="mdi:refresh"></ha-icon></button></header><main>${this._content(active, items)}</main><div class="bottom"><nav>${nav}</nav></div></div>`;
-      this.shadowRoot.getElementById("back").onclick = () => navigate(config.parent?.path || "/dashboard-house/heating");
+        <div class="app"><header class="header"><button class="rail" id="menu" aria-label="Меню Home Assistant"><ha-icon icon="mdi:menu"></ha-icon></button><button class="heading" id="return-source" type="button" aria-label="Вернуться в базовую панель NikaS"><strong>ZONT</strong><span>UI v${UI_VERSION}</span></button><button class="rail" id="refresh" aria-label="Обновить"><ha-icon icon="mdi:refresh"></ha-icon></button></header><main>${this._content(active, items)}</main><div class="bottom"><nav>${nav}</nav></div></div>`;
+      if (!this._returnRoute) this._returnRoute = resolveReturnRoute(this);
+      this.shadowRoot.getElementById("menu").onclick = () => this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true }));
+      this.shadowRoot.getElementById("return-source").onclick = () => navigate(safeReturnRoute(this._returnRoute) || SAFE_DEFAULT_ROUTE);
       this.shadowRoot.getElementById("refresh").onclick = () => { this._registry = null; this._load(true); };
       for (const button of this.shadowRoot.querySelectorAll("button[data-tab]")) button.onclick = () => this._selectTab(button.dataset.tab);
       for (const button of this.shadowRoot.querySelectorAll("button[data-mode-entity]")) button.onclick = () => this._pressMode(button.dataset.modeEntity, button.dataset.modeLabel);
@@ -1472,7 +1508,7 @@ function installV090() {
         .app{height:100%;min-height:0;padding-bottom:0!important;display:flex;flex-direction:column;overflow:hidden}
         .header{position:relative!important;top:auto!important;flex:none;grid-template-columns:52px minmax(0,1fr) 52px!important;min-height:62px!important;padding:max(5px,env(safe-area-inset-top,0px)) max(8px,env(safe-area-inset-right,0px)) 5px max(8px,env(safe-area-inset-left,0px))!important;background:var(--card-background-color,#fff)!important}
         .rail{width:44px!important;height:44px!important;border:1px solid var(--divider-color,#ddd)!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 3px 12px rgba(0,0,0,.07)!important;padding:0!important}
-        #back{justify-self:start;color:var(--primary-text-color,#202124)!important}#refresh{justify-self:end;color:var(--primary-color,#087de0)!important}
+        #menu{justify-self:start;color:var(--primary-text-color,#202124)!important}#refresh{justify-self:end;color:var(--primary-color,#087de0)!important}
         .rail ha-icon{--mdc-icon-size:25px!important}.heading strong{font-size:21px!important;font-weight:800!important}.heading span{margin-top:2px!important;font-size:12px!important;font-weight:560!important;color:var(--secondary-text-color,#666)!important}
         .work-viewport{position:relative;flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior-x:none;overscroll-behavior-y:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
         .work-viewport.canvas-zoomed{overflow:hidden;overscroll-behavior:none;touch-action:none;-webkit-overflow-scrolling:auto}
@@ -1650,7 +1686,7 @@ function installV091() {
       const subtitle = this.shadowRoot?.querySelector(".heading span");
       if (subtitle) {
         const base = String(this._config().subtitle || "Отопление и ГВС").replace(/\s*·\s*UI\s*v?[0-9.]+\s*$/i, "");
-        subtitle.textContent = `${base} · UI v${UI_VERSION}`;
+        subtitle.textContent = `UI v${UI_VERSION}`;
       }
       return result;
     }
@@ -1671,7 +1707,7 @@ function installV091() {
     const subtitle = root.querySelector(".heading span");
     if (subtitle) {
       const base = String(this._config().subtitle || "Отопление и ГВС").replace(/\s*·\s*UI\s*v?[0-9.]+\s*$/i, "");
-      subtitle.textContent = `${base} · UI v${UI_VERSION}`;
+      subtitle.textContent = `UI v${UI_VERSION}`;
     }
     zontBindStableWorkActions(this);
     zontInstallV091Styles(this);

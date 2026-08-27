@@ -1,9 +1,13 @@
 {
   "schema_version": 1,
   "ui_version": "0.9.1",
+  "ui_standard": "1.7",
   "public_root": "/zont_local_panel/",
   "home_assistant_menu_event": "hass-toggle-menu",
   "header": {
+    "center_action": "return_to_source_base_panel",
+    "source_route_handoff_key": "nikas.specialized.source_route.v1",
+    "browser_history_back_allowed": false,
     "rails_px": 52,
     "narrow_rails_px": 48,
     "control_px": 44,

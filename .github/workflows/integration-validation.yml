@@ -25,6 +25,8 @@ jobs:
         run: node tests/test_zont_ui_semantics.cjs
       - name: Check standalone panel registration
         run: python tests/test_panel_registration.py
+      - name: Enforce NikaS UI standard v1.7
+        run: python scripts/check_nikas_ui_standard.py
       - name: Check main version synchronization
         run: |
           grep -F 'VERSION = "0.9.1"' custom_components/zont_local/const.py
