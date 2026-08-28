@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.1
+
+- Rebuilt ZONT as one integration-owned panel conforming to NikaS rules 1.17 while retaining the approved boilers, DHW, light hydraulic separator, heating circuits and local equipment art.
+- Added one height-locked shell with fixed Header and Bottom Tab Bar, a source-aware version-only title plaque and the native Home Assistant menu action.
+- Added one focal 75–200% work viewport with native 100% vertical scrolling, axis-aware enlarged panning, persisted state, 97–103% snap and two-finger double-tap reset.
+- Replaced routine full-panel redraws with a one-time shell mount, lazy view caching and in-place DOM morphing for telemetry updates.
+- Re-composed the phone layout to keep operational text within the 12–25 px envelope instead of shrinking live labels into unreadable one-screen typography.
+- Standardized the requested connection plaque as `Локально / Нет связи / Нет данных` plus independent freshness text.
+- Added source-aware return routing, hold-to-more-info on entity-backed surfaces, a packaged compliance record and automated rules 1.17 guards.
+- Increased the integration/UI version to `0.9.1` and the frontend cache key to `b021`.
+
 ## 0.9.0
 
 - Implemented the NikaS v1.5 panel shell: native vertical scrolling and fixed origin at 100%, axis-aware pan only above 100%, focal 75–200% pinch, resize clamping, snap and two-finger reset.

@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -26,9 +29,11 @@ jobs:
         run: python tests/test_panel_registration.py
       - name: Check main version synchronization
         run: |
-          grep -F 'VERSION = "0.8.18"' custom_components/zont_local/const.py
-          grep -F '"version": "0.8.18"' custom_components/zont_local/manifest.json
-          grep -F 'version: 0.8.18' dashboard/manifest/zont.yaml
+          grep -F 'VERSION = "0.9.1"' custom_components/zont_local/const.py
+          grep -F '"version": "0.9.1"' custom_components/zont_local/manifest.json
+          grep -F 'version: 0.9.1' dashboard/manifest/zont.yaml
+      - name: Enforce NikaS rules 1.17
+        run: python scripts/check_nikas_ui_standard.py
 
   hassfest:
     name: Hassfest
