@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.3
+
+- Renamed the user-facing panel and Home Assistant menu entry to the approved application name `Отопление`; the integration identity remains `ZONT Local & UI`.
+- Locked the panel host and application grid to the client viewport so the Header and Bottom Tab Bar cannot be dragged with Home Assistant's outer page.
+- Disabled native scroll anchoring inside the work viewport to prevent telemetry patches from nudging the active page.
+- Made Refresh non-destructive: the last accepted telemetry remains visible while the registry is reloaded or a refresh fails, and repeated refresh requests no longer start parallel loads.
+- Raised the frontend cache key to `b023` and extended regression checks for title, viewport locking and non-blanking refresh behavior.
+
 ## 0.9.2
 
 - Requires a complete source-route/timestamp pair and rejects missing, invalid, stale and future hand-offs before the centered Header plaque captures its return route.

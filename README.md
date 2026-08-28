@@ -80,7 +80,7 @@ Updates are published through checked pull requests into `main`. The project doe
 
 ## Current UI
 
-Current integration and frontend: **0.9.2** (`b022`). The approved v0.8.12 hydraulic composition remains the visual and semantic baseline, now hosted by the stable rules 1.17 shell.
+Current integration and frontend: **0.9.3** (`b023`). The panel and Home Assistant menu use the approved name **Отопление**. The v0.8.12 hydraulic composition remains the visual and semantic baseline, now hosted by the NikaS UI v1.9 shell with viewport-locked chrome and non-destructive refresh.
 
 The State view now follows the real hydraulic topology: main and reserve
 boilers, the DHW tank with cold-water pressure and recirculation, hydraulic

@@ -271,6 +271,31 @@ def main() -> None:
         "production entrypoint does not register the configured web_component",
     )
 
+    panel = config.get("panel", {})
+    require(panel.get("id") == "zont", "panel contract id must be zont")
+    require(panel.get("title") == "Отопление", "panel contract must use the approved title Отопление")
+    require(panel.get("path") == "/dashboard-zont", "panel contract must keep the public ZONT route")
+    require(panel.get("owner") == "zont_local", "panel contract owner must be zont_local")
+    require(
+        panel.get("safe_return_route") == "/dashboard-house-v11/home",
+        "panel contract must return direct opens to House now v11",
+    )
+    panel_manifest = json.loads(
+        read_relative("custom_components/zont_local/frontend/panel_manifest.json")
+    )
+    for key in ("ui_version", "title", "path", "owner", "safe_return_route"):
+        require(
+            panel_manifest.get(key) == (ui_version if key == "ui_version" else panel.get(key)),
+            f"frontend panel manifest does not match panel contract: {key}",
+        )
+    constants = read_relative("custom_components/zont_local/const.py")
+    require(f'VERSION = "{ui_version}"' in constants, "integration version must match UI version")
+    require(
+        'FRONTEND_MODULE_URL = f"{FRONTEND_STATIC_PATH}?v={VERSION}&build={FRONTEND_BUILD}"'
+        in constants,
+        "module_url cache busting must include the current UI version",
+    )
+
     data_truth = config.get("data_truth", {})
     require(
         data_truth.get("entity_source") == "integration_or_ha_registry",

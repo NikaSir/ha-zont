@@ -9,7 +9,7 @@ assert.doesNotMatch(fullSource, /nikas-generated-zont/, "ZONT must not reuse the
 assert.doesNotMatch(fullSource, /^import\s+/m, "standalone bundle must not use runtime imports");
 assert.doesNotMatch(fullSource, /["'](?:sensor|binary_sensor)\.nikas_h2000_pro_/, "frontend must not bind installation-specific entity IDs");
 assert.doesNotMatch(fullSource, /const CONTROLLER_FACTS/, "controller facts must come from the HA device registry");
-const appMarker = "// ZONT UI v0.9.2";
+const appMarker = "// ZONT UI v0.9.3";
 const appOffset = fullSource.indexOf(appMarker);
 assert.ok(appOffset >= 0, "standalone bundle must contain the approved ZONT application layer");
 let source = fullSource.slice(appOffset);
@@ -62,7 +62,11 @@ assert.match(source, /class="z82-loop-pump/, "DHW circulation pump must be a phy
 assert.match(source, /z82-pump-art[\s\S]{0,160}<ha-icon icon="mdi:pump"/, "heating circuit status rows must use a pump symbol");
 
 const panelManifest = JSON.parse(fs.readFileSync("custom_components/zont_local/frontend/panel_manifest.json", "utf8"));
-assert.equal(panelManifest.ui_version, "0.9.2");
+assert.equal(panelManifest.ui_version, "0.9.3");
+assert.equal(panelManifest.title, "Отопление");
+assert.equal(panelManifest.path, "/dashboard-zont");
+assert.equal(panelManifest.owner, "zont_local");
+assert.equal(panelManifest.safe_return_route, "/dashboard-house-v11/home");
 for (const asset of panelManifest.assets) {
   const path = `custom_components/zont_local/frontend/${asset.path}`;
   assert.ok(fs.existsSync(path), `declared panel asset must exist: ${path}`);
@@ -76,6 +80,7 @@ assert.match(integrationSource, /module_url=FRONTEND_MODULE_URL/, "panel registr
 assert.doesNotMatch(integrationSource, /add_extra_js_url/, "ZONT must not be injected globally into Home Assistant");
 assert.match(constantsSource, /PANEL_URL_PATH = "dashboard-zont"/, "the existing public route must remain stable");
 assert.match(constantsSource, /PANEL_WEB_COMPONENT_NAME = "zont-local-panel"/, "the panel element must be ZONT-owned");
+assert.match(constantsSource, /PANEL_TITLE = "Отопление"/, "the HA menu must use the approved panel name");
 
 assert.match(fullSource, /hass-toggle-menu/, "left Header rail must open the native HA menu");
 assert.match(fullSource, /className = "heading title-plaque"/, "Header title must be one source-aware plaque");
@@ -101,6 +106,12 @@ assert.match(fullSource, /Масштаб 100%/, "two-finger reset must provide c
 assert.doesNotMatch(fullSource, /zoom-(?:in|out)|data-zoom|scale-controls/, "permanent zoom controls are prohibited");
 assert.match(fullSource, /views:new Map/, "work views must be cached instead of rebuilding the shell");
 assert.match(fullSource, /morph\(view, fresh\)/, "telemetry must patch the active cached view");
+assert.match(fullSource, /:host\{position:fixed!important;inset:0!important/, "the application shell must be locked to the viewport");
+assert.match(fullSource, /overflow-anchor:none/, "telemetry must not move the native scroll anchor");
+assert.match(fullSource, /refresh\.onclick = \(\) => this\._load\(true\)/, "refresh must preserve the last accepted telemetry while polling");
+assert.doesNotMatch(fullSource, /refresh\.onclick = \(\) => \{ this\._registry = null/, "refresh must not blank the work view");
+assert.match(fullSource, /if \(!Array\.isArray\(this\._registry\)\) \{[\s\S]{0,180}this\._registry = \[\]/, "initial registry failure must stay explicit");
+assert.match(fullSource, /Показаны последние принятые данные/, "refresh failure must retain and label the previous registry snapshot");
 assert.match(fullSource, /\.tab ha-icon\{--mdc-icon-size:28px/, "Bottom Tab Bar must use canonical MDI size");
 assert.match(fullSource, /\.tab span\{font-size:12px/, "Bottom Tab labels must remain readable");
 assert.match(fullSource, /"Локально"/, "connection indicator must identify the local transport");
