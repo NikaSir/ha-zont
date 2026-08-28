@@ -10,6 +10,7 @@ Audit target: UI 0.9.1 and NikaS UI Standard v1.7. Runtime conformance is covere
 | Pan only above 100%, only on overflowing axes, real-edge clamp | PASS | Pan starts only for `scale > 1`; `zontZoomBounds()` locks each fitting axis to zero and clamps overflowing axes. |
 | Re-clamp after resize/rerender; tab reset to top | PASS | `ResizeObserver` reapplies bounds, every render restores/clamps before paint, and `_selectTab()` resets offsets/native scroll. |
 | Menu is the permanent left action and emits `hass-toggle-menu` | PASS | The production override changes `#back` to `mdi:menu` and emits a bubbling/composed event (`frontend/zont-ui.js`, `installV0812`). |
+| Center title source return | PASS | The stable Header uses one semantic `ZONT / UI v0.9.1` title button with focus/pressed states, validated first-valid source-route precedence, one-shot hand-off and explicit HA navigation without `history.back()`. |
 | Header UPS geometry and two matching plaques | PASS | Final UI 0.9.1 cascade sets 52/48 rails, 62/60 height, 44px bordered card plaques, radius 16, icons 25 and 23/14 title typography (21/13 narrow). |
 | Refresh on the matching right plaque | PASS | `#refresh` uses the same plaque as menu and `var(--primary-color)`. |
 | Fixed full-width safe-area Bottom Tab Bar using `ha-icon` | PASS | `.bottom` is fixed edge-to-edge, accounts for bottom safe area, and tabs use `ha-icon` (`frontend/zont-ui.js`). |

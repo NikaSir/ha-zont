@@ -46,7 +46,9 @@
 
   function resolveReturnRoute(panel) {
     const current = new URL(window.location.href);
-    const explicit = safeReturnRoute(current.searchParams.get("return_to") || current.searchParams.get("from"));
+    const explicit = ["return_to", "from"]
+      .map((key) => safeReturnRoute(current.searchParams.get(key)))
+      .find(Boolean) || null;
     let handedOff = null;
     let saved = null;
     try {
@@ -1627,6 +1629,8 @@ function zontInstallV091Styles(panel) {
   style.textContent = `
     .heading strong{font-size:23px!important;font-weight:800!important}
     .heading span{font-size:14px!important;font-weight:560!important}
+    .heading:active{transform:scale(.985);background:color-mix(in srgb,var(--primary-color,#087de0) 8%,var(--card-background-color,#fff))!important}
+    .heading:focus-visible{outline:2px solid var(--primary-color,#087de0);outline-offset:2px}
 
     .meter-max,.meter-min,.room-meter span,.room-meter small,.z82-boiler-art b{font-size:9px!important}
     .room-meta,.z82-eyebrow,.z82-head p,.z82-notice,
