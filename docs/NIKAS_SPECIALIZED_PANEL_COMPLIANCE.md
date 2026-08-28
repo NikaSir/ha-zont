@@ -1,25 +1,46 @@
-# ZONT specialized-panel compliance
+# ZONT compliance with NikaS rules 1.17
 
-Audit target: UI 0.9.0. Runtime conformance is covered by static/semantic tests; final iPhone field acceptance remains required.
+**Runtime:** `zont_local` 0.9.1 / ZONT UI 0.9.1 (`b021`)
 
-| Requirement | Status | Evidence / required follow-up |
-|---|---|---|
-| Integration-owned route and stable frontend entry | PASS | `custom_components/zont_local/__init__.py` registers `/dashboard-zont`; `const.py` selects `frontend/zont-ui.js`. |
-| One zoom viewport, 75–200% focal pinch, persistence, reset/snap | PASS | UI 0.9.0 installs exactly one `.work-viewport`/`.work-canvas`, persists state and implements focal pinch, snap, two-finger reset and toast in `frontend/zont-ui.js`. |
-| 100% native vertical scroll; `x=y=0`; no one-finger pan/horizontal scroll | PASS | `zontApplyZoomState()` forces origin through 100%; `.work-viewport` uses native `overflow-y:auto`, `overflow-x:hidden` and `touch-action:pan-y`. |
-| Pan only above 100%, only on overflowing axes, real-edge clamp | PASS | Pan starts only for `scale > 1`; `zontZoomBounds()` locks each fitting axis to zero and clamps overflowing axes. |
-| Re-clamp after resize/rerender; tab reset to top | PASS | `ResizeObserver` reapplies bounds, every render restores/clamps before paint, and `_selectTab()` resets offsets/native scroll. |
-| Menu is the permanent left action and emits `hass-toggle-menu` | PASS | The production override changes `#back` to `mdi:menu` and emits a bubbling/composed event (`frontend/zont-ui.js`, `installV0812`). |
-| Header UPS geometry and two matching plaques | PASS | Final UI 0.9.0 cascade sets 52/48 rails, 62/60 height, 44px bordered card plaques, radius 16, icons 25 and 21/12 title typography. |
-| Refresh on the matching right plaque | PASS | `#refresh` uses the same plaque as menu and `var(--primary-color)`. |
-| Fixed full-width safe-area Bottom Tab Bar using `ha-icon` | PASS | `.bottom` is fixed edge-to-edge, accounts for bottom safe area, and tabs use `ha-icon` (`frontend/zont-ui.js`). |
-| Bottom target/icon/label/active geometry | PASS | Final cascade enforces 52px targets, 28px `ha-icon`, 12px/700 labels and 11% active fill. |
-| Packaged integration icon | PASS | Approved local asset exists at `custom_components/zont_local/brand/icon.png` (256×256 PNG); domain/install path is `zont_local` and README documents `/config/custom_components/zont_local`. |
-| README/repository visual identity | PASS / MANUAL | README displays the approved packaged icon and names the integration consistently. GitHub avatar/social preview still needs a manual repository-settings check. |
-| Optional logo/light/dark variants | GAP (non-blocking) | Only `brand/icon.png` exists. Add variants only from an approved ZONT source if contrast testing proves they are needed; do not generate replacements. |
+**Authority:** `NIKAS_SPECIALIZED_PANEL_UI_STANDARD.md` v1.7
 
-## Remaining field checks
+**Primary viewport:** iPhone Pro Max portrait
 
-1. Confirm long Diagnostics native scrolling at 100% in the iPhone Companion App.
-2. Confirm focal pinch and axis locking at 125%, 150% and 200%.
-3. Confirm stationary long press, `more-info`, two-finger reset and safe areas on device.
+## Ownership and delivery
+
+- PASS — `ha-zont` alone registers `/dashboard-zont`, serves the frontend bundle and owns its local assets.
+- PASS — the panel uses the unique custom element `zont-local-panel`; there is no runtime import or dependency on Contract Generated UI.
+- PASS — updates use traceable commits and pull requests without GitHub Releases or automatic release tags.
+- PASS — deterministic frontend cache key `b021` and asset version `0.9.1` are packaged with the integration.
+
+## Fixed shell and navigation
+
+- PASS — Header, exactly one work viewport and the Bottom Tab Bar are stable siblings in a height-locked shell.
+- PASS — the left 44 px plaque dispatches `hass-toggle-menu`; the right matching plaque refreshes the registry.
+- PASS — the centered semantic title plaque shows `ZONT` and the version-only line `UI v0.9.1`.
+- PASS — source-aware return accepts only the three NikaS base-dashboard roots, consumes the shared one-shot session key and navigates explicitly with `pushState` plus `location-changed`.
+- PASS — the five equal Bottom Tab destinations use `ha-icon`, 28 px glyphs, 12 px labels and stay above the iOS Home Indicator.
+
+## Work viewport and zoom
+
+- PASS — 100% normalizes translation to origin, disables transform pan, blocks horizontal scroll and keeps native vertical scrolling.
+- PASS — pinch is focal, limited to 75–200%, and snaps 97–103% to 100%.
+- PASS — one-finger transform pan is enabled only above 100% and independently clamped on both axes.
+- PASS — two-finger double tap resets zoom, translation and native scroll and displays `Масштаб 100%`.
+- PASS — scale and position persist locally; tab changes return to the view start and re-clamp bounds.
+- PASS — no permanent zoom buttons and no nested zoom viewports exist.
+
+## Rendering, semantics and visual contract
+
+- PASS — the shell mounts once; visited tab views are cached; telemetry morphs the active view instead of replacing `shadowRoot`.
+- PASS — the approved boilers, DHW, light hydraulic separator, circuit topology and packaged equipment art are retained as live layered UI.
+- PASS — meaningful mobile text is recomposed to the 12–25 px envelope; the layout scrolls instead of shrinking operational labels.
+- PASS — the requested ZONT connection plaque uses `Локально / Нет связи / Нет данных` independently from `Данные актуальны / Данные устарели / Нет данных`.
+- PASS — missing, unavailable, stale and active-error states remain explicit; only verified ZONT mode buttons are actionable and require confirmation.
+- PASS — entity-backed surfaces use stationary hold-to-more-info and gesture movement cancels the hold.
+- PASS — packaged `brand/icon.png` exists and is checked by the UI guard.
+
+## Acceptance remaining on hardware
+
+- GAP — final iPhone Companion App visual and gesture acceptance requires installation on the user's Home Assistant instance.
+- GAP — ten consecutive real-device tab switches and live loss/recovery must be confirmed after HACS update and cold restart.

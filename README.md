@@ -76,11 +76,11 @@ The intended evolution is:
 
 ## Publication
 
-Updates are committed directly to `main` and validated there. The project does not use release branches, Git tags or GitHub Releases; HACS installs the current integration version from this repository.
+Updates are published through checked pull requests into `main`. The project does not use release branches, Git tags or GitHub Releases; HACS installs the current integration version from this repository.
 
 ## Current UI
 
-Current integration: **0.9.0**. Frontend: **ZONT UI v0.9.0** (approved v0.8.12 domain layout, standalone bundle with the NikaS v1.5 shell).
+Current integration and frontend: **0.9.1** (`b021`). The approved v0.8.12 hydraulic composition remains the visual and semantic baseline, now hosted by the stable rules 1.17 shell.
 
 The State view now follows the real hydraulic topology: main and reserve
 boilers, the DHW tank with cold-water pressure and recirculation, hydraulic
@@ -89,8 +89,15 @@ metrics and heating modes. Verified H2000 entity IDs are preferred for the
 current controller, with semantic discovery retained as a migration fallback.
 Only active non-zero controller errors raise the warning badge; communication
 and data freshness are reported independently. Missing, stale and unavailable
-sources stay explicit. The upper-left
-button opens the native Home Assistant menu via `hass-toggle-menu`.
+sources stay explicit. The upper-left button opens the native Home Assistant
+menu via `hass-toggle-menu`; the centered title plaque returns to the NikaS
+base panel that opened ZONT.
+
+Only the work area scales. At 100% it uses normal vertical scrolling with no
+horizontal movement. Pinch-to-zoom works from 75–200%, enlarged content pans
+only where it overflows, and a two-finger double tap restores 100%. Header and
+Bottom Tab Bar remain fixed. The shell mounts once and live telemetry patches
+cached views without recreating the panel.
 
 Equipment casing artwork is stored locally under
 `custom_components/zont_local/frontend/assets/` and served by Home Assistant

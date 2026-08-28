@@ -226,7 +226,7 @@
       if (value == null) return this._compactCard(item, label);
       const [min, max] = this._meterScale(item);
       const pct = Math.max(0, Math.min(1, (value - min) / (max - min)));
-      return `<div class="meter-card ${this._isProblem(item) ? "problem" : ""}">
+      return `<div class="meter-card ${this._isProblem(item) ? "problem" : ""}" data-entity="${esc(item.entry.entity_id)}">
         <div class="meter"><span class="meter-max">${esc(max)}</span><i></i><b style="bottom:${(pct * 100).toFixed(1)}%"></b><span class="meter-min">${esc(min)}</span></div>
         <div class="meter-body"><div class="meter-value">${esc(this._formatted(item))}</div><ha-icon icon="${esc(icon || this._icon(item))}"></ha-icon><div class="meter-label">${esc(label || this._shortLabel(item))}</div></div>
       </div>`;
@@ -234,7 +234,7 @@
 
     _compactCard(item, label = null, value = null, icon = null) {
       if (!item && !label) return "";
-      return `<div class="compact-card ${item && this._isProblem(item) ? "problem" : ""}"><ha-icon icon="${esc(icon || (item ? this._icon(item) : "mdi:information-outline"))}"></ha-icon><div><strong>${esc(label || this._shortLabel(item))}</strong><span>${esc(value ?? this._value(item))}</span></div></div>`;
+      return `<div class="compact-card ${item && this._isProblem(item) ? "problem" : ""}"${item ? ` data-entity="${esc(item.entry.entity_id)}"` : ""}><ha-icon icon="${esc(icon || (item ? this._icon(item) : "mdi:information-outline"))}"></ha-icon><div><strong>${esc(label || this._shortLabel(item))}</strong><span>${esc(value ?? this._value(item))}</span></div></div>`;
     }
 
     _factCard(label, value, icon) {
@@ -308,7 +308,7 @@
       const [min,max] = this._meterScale(main);
       const n = this._number(main);
       const pct = n == null ? 0 : Math.max(0, Math.min(1, (n-min)/(max-min)));
-      return `<div class="room-card"><div class="room-meter"><span>${esc(max)}</span><i></i><b style="bottom:${(pct*100).toFixed(1)}%"></b><small>${esc(min)}</small></div><div class="room-body"><div class="room-value">${esc(this._value(main))}</div><ha-icon icon="${name === "Улица" ? "mdi:weather-partly-cloudy" : "mdi:home-thermometer-outline"}"></ha-icon><strong>${esc(name)}</strong><div class="room-meta">${hum ? `<span>💧 ${esc(this._formatted(hum))}</span>` : ""}${bat ? `<span>🔋 ${esc(this._formatted(bat))}</span>` : ""}${rssi ? `<span>📶 ${esc(this._formatted(rssi))}</span>` : ""}</div></div></div>`;
+      return `<div class="room-card" data-entity="${esc(main.entry.entity_id)}"><div class="room-meter"><span>${esc(max)}</span><i></i><b style="bottom:${(pct*100).toFixed(1)}%"></b><small>${esc(min)}</small></div><div class="room-body"><div class="room-value">${esc(this._value(main))}</div><ha-icon icon="${name === "Улица" ? "mdi:weather-partly-cloudy" : "mdi:home-thermometer-outline"}"></ha-icon><strong>${esc(name)}</strong><div class="room-meta">${hum ? `<span>💧 ${esc(this._formatted(hum))}</span>` : ""}${bat ? `<span>🔋 ${esc(this._formatted(bat))}</span>` : ""}${rssi ? `<span>📶 ${esc(this._formatted(rssi))}</span>` : ""}</div></div></div>`;
     }
 
     _section(title, content) { return content ? `<section><h2>${esc(title)}</h2>${content}</section>` : ""; }
@@ -485,12 +485,12 @@
   customElements.define(ELEMENT_NAME, NikasGeneratedZont);
 })();
 
-// ZONT UI v0.9.0 — standalone continuation of the approved v0.8.12 application layer.
+// ZONT UI v0.9.1 — standalone rules 1.17 rebuild of the approved application layer.
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.9.0";
-const ASSET_VERSION = "0.8.17";
+const UI_VERSION = "0.9.1";
+const ASSET_VERSION = "0.9.1";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -713,6 +713,7 @@ function installV0812() {
     };
     const valid = (item) => !!item && !this._isProblem(item);
     const active = (item) => !!item && this._isActive(item);
+    const entityAttr = (item) => item?.entry?.entity_id ? ` data-entity="${esc(item.entry.entity_id)}"` : "";
     const scope = (words) => items.filter((item) => includesAny(this._text(item), words));
     const numericIn = (pool, include = [], exclude = []) => pool.find((item) =>
       this._number(item) != null
@@ -838,10 +839,10 @@ function installV0812() {
                 : errorDataProblems.length ? "Состояние ошибок контроллера недоступно"
                   : essentialProblems.length ? "Часть показаний временно недоступна" : "Отопление и ГВС в норме";
     const onlineText = offline ? "Нет связи"
-      : connectionUnknown ? "Нет данных" : "Онлайн";
+      : connectionUnknown ? "Нет данных" : "Локально";
     const onlineTone = offline ? "offline" : connectionUnknown ? "unknown" : "online";
-    const freshness = offline ? "Источник недоступен"
-      : freshnessUnknown ? "Свежесть неизвестна" : ageLabel(dataAge);
+    const freshness = offline || freshnessUnknown ? "Нет данных"
+      : stale ? "Данные устарели" : "Данные актуальны";
     const mode = this._currentMode(items);
 
     const statusClass = (item) => active(item) ? "on"
@@ -855,7 +856,7 @@ function installV0812() {
       const statusItem = set.state;
       const visualItem = set.current || set.supply;
       const boilerActive = active(statusItem);
-      return `<article class="z82-equipment z82-boiler-card ${reserve ? "reserve" : ""}">
+      return `<article class="z82-equipment z82-boiler-card ${reserve ? "reserve" : ""}"${entityAttr(statusItem || visualItem)}>
         <header><h3>Котёл ${number}</h3><span>${esc(subtitleText)}</span></header>
         <div class="z82-boiler-visual">
           <ha-icon class="z82-flame ${boilerActive ? "on" : ""}" icon="mdi:fire"></ha-icon>
@@ -876,7 +877,7 @@ function installV0812() {
     const shellWaterFill = fill * 0.59;
     const dhwStatusText = dhwState ? state(dhwState)
       : dhwNumber == null ? "Нет данных" : dhwNumber >= 45 ? "Готово" : "Нагрев";
-    const dhwCard = `<article class="z82-equipment z82-dhw-card">
+    const dhwCard = `<article class="z82-equipment z82-dhw-card"${entityAttr(dhwTemperature)}>
       <header><h3>ГВС <span>(бойлер Котла 1)</span></h3></header>
       <div class="z82-dhw-schematic">
         <div class="z82-tank">
@@ -901,7 +902,7 @@ function installV0812() {
       const pump = set.pump;
       const circuitState = pump || set.enabled;
       const circuitLabel = pump ? "Насос контура" : "Состояние контура";
-      return `<article class="z82-circuit-card">
+      return `<article class="z82-circuit-card"${entityAttr(circuitState || set.supply || set.current)}>
         <header><div><h3>${esc(titleText)}</h3></div><ha-icon class="z82-circuit-icon" icon="${icon}"></ha-icon></header>
         <div class="z82-circuit-device">
           <div class="z82-pump-art ${statusClass(circuitState)}"><ha-icon icon="mdi:pump"></ha-icon></div>
@@ -919,12 +920,12 @@ function installV0812() {
     const metricCard = (label, item, icon, fallback = "—", forcedValue = null, noteOverride = null) => {
       const display = forcedValue ?? value(item, fallback);
       const note = noteOverride ?? (!item && forcedValue == null ? "Нет данных" : item && this._isProblem(item) ? "Источник недоступен" : "Норма");
-      return `<div class="z82-metric ${item && this._isProblem(item) ? "problem" : ""}">
+      return `<div class="z82-metric ${item && this._isProblem(item) ? "problem" : ""}"${entityAttr(item)}>
         <ha-icon icon="${icon}"></ha-icon><span>${esc(label)}</span><strong>${esc(display)}</strong><small>${esc(note)}</small>
       </div>`;
     };
 
-    const nodeCard = (label, item, icon, note = "") => `<div class="z82-node ${nodeStatusClass(item)}">
+    const nodeCard = (label, item, icon, note = "") => `<div class="z82-node ${nodeStatusClass(item)}"${entityAttr(item)}>
       <strong>${esc(label)}</strong><ha-icon icon="${icon}"></ha-icon><span>${esc(state(item))}</span>${note ? `<small>${esc(note)}</small>` : ""}
     </div>`;
 
@@ -1225,294 +1226,404 @@ function installV0812() {
 
 if (!installV0812()) customElements.whenDefined(ELEMENT_NAME).then(() => installV0812());
 
-// UI v0.9.0 — native 100% scrolling and axis-aware enlarged canvas.
-const ZONT_ZOOM_MIN = 0.75;
-const ZONT_ZOOM_MAX = 2;
-const ZONT_ZOOM_SNAP_MIN = 0.97;
-const ZONT_ZOOM_SNAP_MAX = 1.03;
-const ZONT_ZOOM_PAN_THRESHOLD = 7;
-const ZONT_ZOOM_TAP_MS = 280;
-const ZONT_ZOOM_DOUBLE_TAP_MS = 360;
-const ZONT_ZOOM_CLICK_GUARD_MS = 420;
-const ZONT_ZOOM_STORAGE_KEY = "zont-local-panel-transform-v3";
-
-const zontClamp = (value, min, max) => Math.min(max, Math.max(min, value));
-const zontFinite = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
-const zontDistance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-const zontMidpoint = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
-
-function zontLoadZoomState(panel) {
-  if (panel.__zontZoomState) return panel.__zontZoomState;
-  let stored = null;
-  try { stored = JSON.parse(localStorage.getItem(ZONT_ZOOM_STORAGE_KEY) || "null"); } catch (_error) {}
-  const scale = zontClamp(zontFinite(stored?.scale, 1), ZONT_ZOOM_MIN, ZONT_ZOOM_MAX);
-  panel.__zontZoomState = {
-    scale,
-    x: scale > 1 ? zontFinite(stored?.x) : 0,
-    y: scale > 1 ? zontFinite(stored?.y) : 0,
-  };
-  return panel.__zontZoomState;
-}
-
-function zontSaveZoomState(panel) {
-  try { localStorage.setItem(ZONT_ZOOM_STORAGE_KEY, JSON.stringify(panel.__zontZoomState)); } catch (_error) {}
-}
-
-function zontZoomBounds(viewport, canvas, scale) {
-  if (scale <= 1) return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
-  const overflowX = Math.max(0, canvas.offsetWidth * scale - viewport.clientWidth);
-  const overflowY = Math.max(0, canvas.offsetHeight * scale - viewport.clientHeight);
-  return {
-    minX: overflowX > 0 ? -overflowX : 0,
-    maxX: 0,
-    minY: overflowY > 0 ? -overflowY : 0,
-    maxY: 0,
-  };
-}
-
-function zontApplyZoomState(panel, viewport, canvas, candidate = panel.__zontZoomState, persist = true) {
-  const scale = zontClamp(zontFinite(candidate?.scale, 1), ZONT_ZOOM_MIN, ZONT_ZOOM_MAX);
-  const bounds = zontZoomBounds(viewport, canvas, scale);
-  const state = scale <= 1 ? { scale, x: 0, y: 0 } : {
-    scale,
-    x: zontClamp(zontFinite(candidate?.x), bounds.minX, bounds.maxX),
-    y: zontClamp(zontFinite(candidate?.y), bounds.minY, bounds.maxY),
-  };
-  panel.__zontZoomState = state;
-  viewport.classList.toggle("canvas-zoomed", scale > 1);
-  if (scale > 1) viewport.scrollTop = 0;
-  canvas.style.transform = `translate3d(${state.x}px,${state.y}px,0) scale(${state.scale})`;
-  if (persist) zontSaveZoomState(panel);
-}
-
-function zontShowReset(panel, viewport) {
-  const toast = viewport.querySelector(":scope > .zoom-toast");
-  if (!toast) return;
-  toast.textContent = "Масштаб 100%";
-  toast.classList.add("visible");
-  window.clearTimeout(panel.__zontZoomToastTimer);
-  panel.__zontZoomToastTimer = window.setTimeout(() => toast.classList.remove("visible"), 1200);
-}
-
-function zontResetZoom(panel, viewport, canvas, announce = true) {
-  viewport.scrollTop = 0;
-  zontApplyZoomState(panel, viewport, canvas, { scale: 1, x: 0, y: 0 });
-  if (announce) zontShowReset(panel, viewport);
-}
-
-function zontCancelPending(panel, target, pointerId) {
-  panel.__zontSuppressClicksUntil = performance.now() + ZONT_ZOOM_CLICK_GUARD_MS;
-  try {
-    target?.dispatchEvent(new CustomEvent("pointercancel", {
-      bubbles: true,
-      composed: true,
-      detail: { zontGestureCancel: true, pointerId },
-    }));
-  } catch (_error) {}
-}
-
-function zontInstallGestures(panel, viewport, canvas) {
-  const pointers = new Map();
-  panel.__zontZoomPointers = pointers;
-  const localPoint = (event) => {
-    const rect = viewport.getBoundingClientRect();
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
-  };
-
-  viewport.addEventListener("click", (event) => {
-    if (performance.now() < (panel.__zontSuppressClicksUntil || 0)) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    }
-  }, true);
-
-  viewport.addEventListener("pointerdown", (event) => {
-    if (event.pointerType !== "touch") return;
-    const point = localPoint(event);
-    pointers.set(event.pointerId, { ...point, target: event.target });
-    const state = zontLoadZoomState(panel);
-    if (pointers.size === 1) {
-      panel.__zontZoomGesture = state.scale > 1 ? {
-        type: "pan",
-        startedAt: performance.now(),
-        startState: { ...state },
-        startPoint: point,
-        moved: false,
-      } : null;
-      return;
-    }
-    if (pointers.size === 2) {
-      const [a, b] = [...pointers.values()];
-      pointers.forEach((pointer, pointerId) => zontCancelPending(panel, pointer.target, pointerId));
-      panel.__zontZoomGesture = {
-        type: "pinch",
-        startedAt: performance.now(),
-        startState: { ...state },
-        startScrollTop: viewport.scrollTop,
-        startDistance: Math.max(zontDistance(a, b), 1),
-        startMidpoint: zontMidpoint(a, b),
-        moved: false,
-      };
-    }
-  });
-
-  viewport.addEventListener("pointermove", (event) => {
-    const pointer = pointers.get(event.pointerId);
-    if (!pointer || event.pointerType !== "touch") return;
-    const point = localPoint(event);
-    pointer.x = point.x;
-    pointer.y = point.y;
-    const gesture = panel.__zontZoomGesture;
-    if (!gesture) return;
-
-    if (gesture.type === "pan" && pointers.size === 1 && gesture.startState.scale > 1) {
-      const deltaX = point.x - gesture.startPoint.x;
-      const deltaY = point.y - gesture.startPoint.y;
-      if (!gesture.moved && Math.hypot(deltaX, deltaY) >= ZONT_ZOOM_PAN_THRESHOLD) {
-        gesture.moved = true;
-        zontCancelPending(panel, pointer.target, event.pointerId);
-      }
-      if (!gesture.moved) return;
-      event.preventDefault();
-      zontApplyZoomState(panel, viewport, canvas, {
-        scale: gesture.startState.scale,
-        x: gesture.startState.x + deltaX,
-        y: gesture.startState.y + deltaY,
-      });
-      return;
-    }
-
-    if (gesture.type === "pinch" && pointers.size >= 2) {
-      const [a, b] = [...pointers.values()];
-      const currentMidpoint = zontMidpoint(a, b);
-      const nextScale = zontClamp(
-        gesture.startState.scale * (zontDistance(a, b) / gesture.startDistance),
-        ZONT_ZOOM_MIN,
-        ZONT_ZOOM_MAX,
-      );
-      const focalX = (gesture.startMidpoint.x - gesture.startState.x) / gesture.startState.scale;
-      const focalY = (gesture.startMidpoint.y + gesture.startScrollTop - gesture.startState.y) / gesture.startState.scale;
-      gesture.moved = gesture.moved
-        || Math.abs(nextScale - gesture.startState.scale) > 0.01
-        || zontDistance(currentMidpoint, gesture.startMidpoint) >= ZONT_ZOOM_PAN_THRESHOLD;
-      event.preventDefault();
-      zontApplyZoomState(panel, viewport, canvas, {
-        scale: nextScale,
-        x: currentMidpoint.x - focalX * nextScale,
-        y: currentMidpoint.y - focalY * nextScale,
-      });
-    }
-  });
-
-  const finishPointer = (event, cancelled = false) => {
-    if (event.detail?.zontGestureCancel) return;
-    const gesture = panel.__zontZoomGesture;
-    const tracked = pointers.has(event.pointerId);
-    pointers.delete(event.pointerId);
-    if (!tracked || !gesture) return;
-    const state = zontLoadZoomState(panel);
-    if (gesture.type === "pinch" && gesture.moved && pointers.size === 0
-        && state.scale >= ZONT_ZOOM_SNAP_MIN && state.scale <= ZONT_ZOOM_SNAP_MAX) {
-      zontResetZoom(panel, viewport, canvas);
-    }
-    if (pointers.size > 0) return;
-    const elapsed = performance.now() - gesture.startedAt;
-    if (!cancelled && gesture.type === "pinch" && !gesture.moved && elapsed <= ZONT_ZOOM_TAP_MS) {
-      const now = performance.now();
-      if (now - (panel.__zontLastTwoFingerTap || 0) <= ZONT_ZOOM_DOUBLE_TAP_MS) {
-        panel.__zontLastTwoFingerTap = 0;
-        zontResetZoom(panel, viewport, canvas);
-        panel.__zontSuppressClicksUntil = now + ZONT_ZOOM_CLICK_GUARD_MS;
-      } else {
-        panel.__zontLastTwoFingerTap = now;
-      }
-    }
-    if (gesture.moved) panel.__zontSuppressClicksUntil = performance.now() + ZONT_ZOOM_CLICK_GUARD_MS;
-    panel.__zontZoomGesture = null;
-  };
-
-  viewport.addEventListener("pointerup", (event) => finishPointer(event));
-  viewport.addEventListener("pointercancel", (event) => finishPointer(event, true));
-}
-
+// Rules 1.17 shell. The approved domain composition above remains the single
+// source of work-view HTML; this layer owns stable chrome, view caching,
+// source-aware return navigation and the one zoom viewport.
 function installV090() {
   const ElementClass = customElements.get(ELEMENT_NAME);
   if (!ElementClass || ElementClass.prototype.__zontV090) return false;
-  const previousRender = ElementClass.prototype._render;
-  const previousSelectTab = ElementClass.prototype._selectTab;
-  const previousDisconnected = ElementClass.prototype.disconnectedCallback;
 
-  ElementClass.prototype._selectTab = function selectTabV090(id) {
-    if (!id || id === this._active) return;
-    const state = zontLoadZoomState(this);
-    this.__zontZoomState = { scale: state.scale, x: 0, y: 0 };
-    zontSaveZoomState(this);
-    this.__zontResetScrollOnRender = true;
-    return previousSelectTab.call(this, id);
+  const legacyRender = ElementClass.prototype._render;
+  const legacyDisconnected = ElementClass.prototype.disconnectedCallback;
+  const SCALE_MIN = .75;
+  const SCALE_MAX = 2;
+  const SNAP_MIN = .97;
+  const SNAP_MAX = 1.03;
+  const CLICK_GUARD_MS = 420;
+  const SOURCE_KEY = "nikas.specialized.source_route.v1";
+  const SAVED_SOURCE_KEY = "nikas.specialized.zont.source_route.v1";
+  const ZOOM_KEY = "nikas.specialized.zont.zoom.v1";
+  const allowedRoots = ["/dashboard-house", "/dashboard-actions", "/dashboard-infrastructure"];
+
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+  const distance = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+  const pageMidpoint = (a, b) => ({ x:(a.clientX + b.clientX) / 2, y:(a.clientY + b.clientY) / 2 });
+  const viewportMidpoint = (a, b, viewport) => {
+    const rect = viewport.getBoundingClientRect();
+    const point = pageMidpoint(a, b);
+    return { x:point.x - rect.left, y:point.y - rect.top };
+  };
+  const validRoute = (raw) => {
+    if (!raw) return null;
+    try {
+      const url = new URL(String(raw), window.location.origin);
+      if (url.origin !== window.location.origin) return null;
+      return allowedRoots.some((root) => url.pathname === root || url.pathname.startsWith(`${root}/`))
+        ? `${url.pathname}${url.search}${url.hash}` : null;
+    } catch (_error) { return null; }
+  };
+  const captureReturnRoute = (config) => {
+    const params = new URLSearchParams(window.location.search);
+    const explicit = validRoute(params.get("return_to")) || validRoute(params.get("from"));
+    let handoff = null;
+    try {
+      handoff = validRoute(sessionStorage.getItem(SOURCE_KEY));
+      if (handoff) sessionStorage.removeItem(SOURCE_KEY);
+    } catch (_error) { /* storage is optional */ }
+    let saved = null;
+    try { saved = validRoute(localStorage.getItem(SAVED_SOURCE_KEY)); } catch (_error) { /* optional */ }
+    const referrer = validRoute(document.referrer);
+    const configured = validRoute(config?.parent?.path || config?.parent_route);
+    const route = explicit || handoff || saved || referrer || configured || "/dashboard-house";
+    try { localStorage.setItem(SAVED_SOURCE_KEY, route); } catch (_error) { /* optional */ }
+    return route;
   };
 
-  ElementClass.prototype.disconnectedCallback = function disconnectedV090(...args) {
-    this.__zontZoomResizeObserver?.disconnect();
-    window.clearTimeout(this.__zontZoomToastTimer);
-    return previousDisconnected?.apply(this, args);
+  const syncAttributes = (current, fresh) => {
+    for (const attribute of [...current.attributes]) {
+      if (attribute.name === "data-more-info-bound") continue;
+      if (!fresh.hasAttribute(attribute.name)) current.removeAttribute(attribute.name);
+    }
+    for (const attribute of [...fresh.attributes]) {
+      if (current.getAttribute(attribute.name) !== attribute.value) current.setAttribute(attribute.name, attribute.value);
+    }
+  };
+  const morph = (current, fresh) => {
+    if (!current || !fresh || current.nodeType !== fresh.nodeType || current.nodeName !== fresh.nodeName) {
+      current?.replaceWith(fresh.cloneNode(true));
+      return;
+    }
+    if (current.nodeType === Node.TEXT_NODE) {
+      if (current.nodeValue !== fresh.nodeValue) current.nodeValue = fresh.nodeValue;
+      return;
+    }
+    syncAttributes(current, fresh);
+    const freshChildren = [...fresh.childNodes];
+    for (let index = 0; index < freshChildren.length; index += 1) {
+      const oldChild = current.childNodes[index];
+      const newChild = freshChildren[index];
+      if (!oldChild) { current.append(newChild.cloneNode(true)); continue; }
+      morph(oldChild, newChild);
+    }
+    while (current.childNodes.length > freshChildren.length) current.lastChild?.remove();
   };
 
-  ElementClass.prototype._render = function renderV090(...args) {
-    const result = previousRender.apply(this, args);
+  ElementClass.prototype._mountRules117 = function mountRules117() {
+    legacyRender.call(this);
     const root = this.shadowRoot;
     const app = root?.querySelector(".app");
+    const header = app?.querySelector(":scope > .header");
     const main = app?.querySelector(":scope > main");
-    if (!root || !app || !main) return result;
+    const bottom = app?.querySelector(":scope > .bottom");
+    if (!root || !app || !header || !main || !bottom) return null;
 
-    if (!root.getElementById("zont-v090-style")) {
-      const style = document.createElement("style");
-      style.id = "zont-v090-style";
-      style.textContent = `
-        :host{display:block;height:100dvh;overflow:hidden}
-        .app{height:100%;min-height:0;padding-bottom:0!important;display:flex;flex-direction:column;overflow:hidden}
-        .header{position:relative!important;top:auto!important;flex:none;grid-template-columns:52px minmax(0,1fr) 52px!important;min-height:62px!important;padding:max(5px,env(safe-area-inset-top,0px)) max(8px,env(safe-area-inset-right,0px)) 5px max(8px,env(safe-area-inset-left,0px))!important;background:var(--card-background-color,#fff)!important}
-        .rail{width:44px!important;height:44px!important;border:1px solid var(--divider-color,#ddd)!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 3px 12px rgba(0,0,0,.07)!important;padding:0!important}
-        #back{justify-self:start;color:var(--primary-text-color,#202124)!important}#refresh{justify-self:end;color:var(--primary-color,#087de0)!important}
-        .rail ha-icon{--mdc-icon-size:25px!important}.heading strong{font-size:21px!important;font-weight:800!important}.heading span{margin-top:2px!important;font-size:12px!important;font-weight:560!important;color:var(--secondary-text-color,#666)!important}
-        .work-viewport{position:relative;flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior-x:none;overscroll-behavior-y:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
-        .work-viewport.canvas-zoomed{overflow:hidden;overscroll-behavior:none;touch-action:none;-webkit-overflow-scrolling:auto}
-        .work-canvas{display:block;width:100%;transform-origin:0 0;will-change:transform;contain:layout style}
-        .work-canvas>main{width:min(100%,980px)!important;margin:0 auto!important}
-        .zoom-toast{position:absolute;z-index:30;left:50%;bottom:calc(72px + env(safe-area-inset-bottom,0px));min-height:38px;display:grid;place-items:center;padding:8px 14px;border:1px solid var(--divider-color,#ddd);border-radius:14px;background:color-mix(in srgb,var(--card-background-color,#fff) 94%,transparent);color:var(--primary-text-color,#202124);box-shadow:0 4px 16px rgba(0,0,0,.14);font-size:12px;font-weight:750;opacity:0;pointer-events:none;transform:translate(-50%,8px);transition:opacity .16s ease,transform .16s ease}.zoom-toast.visible{opacity:1;transform:translate(-50%,0)}
-        .bottom{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;padding:4px 7px calc(4px + env(safe-area-inset-bottom,0px))!important;background:var(--card-background-color,#fff)!important;border-top:1px solid var(--divider-color,#ddd)!important;box-shadow:0 -3px 14px rgba(0,0,0,.08)!important}
-        .tab{min-height:52px!important;border-radius:14px!important;gap:3px!important;padding:3px 2px!important}.tab ha-icon{--mdc-icon-size:28px!important}.tab span{font-size:12px!important;font-weight:700!important}.tab.active{color:var(--primary-color,#087de0)!important;background:color-mix(in srgb,var(--primary-color,#087de0) 11%,transparent)!important;box-shadow:none!important}
-        @media(max-width:520px){.header{grid-template-columns:48px minmax(0,1fr) 48px!important;min-height:60px!important}.rail{width:44px!important;height:44px!important}.heading strong{font-size:21px!important}.heading span{font-size:12px!important}.tab{min-height:52px!important}.tab ha-icon{--mdc-icon-size:28px!important}.tab span{font-size:12px!important}}
-      `;
-      root.append(style);
-    }
+    const title = document.createElement("button");
+    title.type = "button";
+    title.className = "heading title-plaque";
+    title.setAttribute("aria-label", "ZONT. Вернуться в базовую панель NikaS");
+    title.innerHTML = `<strong>ZONT</strong><span>UI v${UI_VERSION}</span>`;
+    header.querySelector(".heading")?.replaceWith(title);
+    this.__zontReturnRouteV090 ||= captureReturnRoute(this._config());
+    title.onclick = () => navigate(this.__zontReturnRouteV090);
 
-    const viewport = document.createElement("div");
-    viewport.className = "work-viewport";
-    const canvas = document.createElement("div");
-    canvas.className = "work-canvas";
-    main.replaceWith(viewport);
-    viewport.append(canvas);
-    canvas.append(main);
-    const toast = document.createElement("div");
-    toast.className = "zoom-toast";
-    toast.setAttribute("role", "status");
-    toast.setAttribute("aria-live", "polite");
-    viewport.append(toast);
+    const viewport = document.createElement("section");
+    viewport.className = "work-viewport native-scroll";
+    viewport.setAttribute("aria-label", "Рабочая область ZONT. Масштабирование двумя пальцами");
+    const stage = document.createElement("div");
+    stage.className = "work-stage";
+    const surface = document.createElement("div");
+    surface.className = "work-surface";
+    main.className = "work-view active";
+    main.dataset.view = this._activeTab()?.id || "states";
+    surface.append(main);
+    stage.append(surface);
+    viewport.append(stage);
+    header.after(viewport);
 
-    const state = zontLoadZoomState(this);
-    if (this.__zontResetScrollOnRender) {
-      viewport.scrollTop = 0;
-      this.__zontResetScrollOnRender = false;
-    }
-    zontApplyZoomState(this, viewport, canvas, state, false);
-    zontInstallGestures(this, viewport, canvas);
-    this.__zontZoomResizeObserver?.disconnect();
-    this.__zontZoomResizeObserver = new ResizeObserver(() => zontApplyZoomState(this, viewport, canvas));
-    this.__zontZoomResizeObserver.observe(viewport);
-    this.__zontZoomResizeObserver.observe(canvas);
-    return result;
+    const style = document.createElement("style");
+    style.id = "zont-rules-117-style";
+    style.textContent = `
+      :host{height:100dvh!important;min-height:0!important;overflow:hidden!important}
+      .app{height:100dvh!important;min-height:0!important;padding:0!important;display:grid!important;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden!important;overscroll-behavior:none}
+      .header{position:relative!important;top:auto!important;grid-row:1;grid-template-columns:52px minmax(0,1fr) 52px!important;min-height:calc(60px + env(safe-area-inset-top,0px))!important;padding:max(6px,env(safe-area-inset-top,0px)) 10px 6px!important;z-index:30!important}
+      .rail{width:44px!important;height:44px!important;border:1px solid var(--divider-color,#ddd)!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 7px 20px rgba(23,45,76,.08)!important;padding:0!important}
+      .rail ha-icon{--mdc-icon-size:25px!important}#back{color:var(--primary-text-color,#202124)!important}#refresh{color:var(--primary-color,#087de0)!important}
+      .title-plaque{justify-self:center;min-width:0;min-height:44px;width:min(100%,320px);padding:5px 12px;border:1px solid var(--divider-color,#ddd);border-radius:16px;background:var(--card-background-color,#fff);color:var(--primary-text-color,#202124);box-shadow:0 7px 20px rgba(23,45,76,.08);cursor:pointer}
+      .title-plaque:focus-visible{outline:3px solid color-mix(in srgb,var(--primary-color,#087de0) 45%,transparent);outline-offset:2px}.title-plaque:active{transform:scale(.985)}
+      .title-plaque strong{font-size:23px!important;font-weight:800!important;line-height:1.05}.title-plaque span{margin-top:3px!important;font-size:14px!important;font-weight:560!important;color:var(--secondary-text-color,#666)!important}
+      .work-viewport{grid-row:2;position:relative;min-width:0;min-height:0;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--primary-background-color,#f2f3f5)}
+      .work-viewport.native-scroll{overflow-x:hidden!important;overflow-y:auto!important;touch-action:pan-y!important}.work-viewport.zoomed{overflow:hidden!important;touch-action:none!important}
+      .work-stage{position:relative;min-width:100%;min-height:100%}.work-surface{position:absolute;inset:0 auto auto 0;width:100%;transform-origin:0 0}
+      .work-view{width:min(100%,980px)!important;min-height:100%;margin:0 auto!important;padding:14px 12px 30px!important}.work-view[hidden]{display:none!important}
+      .bottom{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;grid-row:3;z-index:30!important;width:100%;padding:6px max(8px,env(safe-area-inset-left,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-right,0px))!important;box-shadow:0 -5px 18px rgba(23,45,76,.07)!important}
+      .bottom nav{width:min(100%,700px)!important;grid-template-columns:repeat(5,minmax(0,1fr))!important}.tab{min-height:52px!important;border-radius:16px!important;gap:3px!important;padding:4px 2px!important}.tab ha-icon{--mdc-icon-size:28px!important}.tab span{font-size:12px!important;font-weight:700!important}
+      .z82-online{border:1px solid color-mix(in srgb,currentColor 30%,transparent)!important;border-radius:16px!important;min-width:136px!important}.z82-online strong{font-size:16px!important;font-weight:700!important}.z82-online small{font-size:13px!important;font-weight:600!important}
+      .z82-head h1{font-size:25px!important}.z82-head p,.z82-notice,.z82-equipment h3,.z82-equipment header>span,.z82-equipment h3 span,.z82-row,.z82-row strong,.z82-dhw-temperature strong,.z82-dhw-temperature small,.z82-hot-water span,.z82-circulation-loop span,.z82-cold-water span,.z82-hot-water strong,.z82-circulation-loop strong,.z82-cold-water strong,.z82-circulation-loop small,.z82-hydro strong,.z82-hydro-values span,.z82-circuit-card h3,.z82-circuit-device span,.z82-mixer span,.z82-circuit-device strong,.z82-mixer strong,.z82-circuit-values span,.z82-circuit-values strong,.z82-legend span,.z82-metric span,.z82-metric strong,.z82-metric small,.z82-node>strong,.z82-node span,.z82-node small,.z82-mode strong,.z82-mode span{font-size:12px!important}
+      .z82-eyebrow{font-size:12px!important}.z82-metric strong,.z82-circuit-values strong,.z82-dhw-temperature strong{font-size:14px!important}
+      @media(max-width:520px){
+        .header{grid-template-columns:48px minmax(0,1fr) 48px!important;padding-left:7px!important;padding-right:7px!important}.title-plaque{padding-left:7px;padding-right:7px}.title-plaque strong{font-size:21px!important}.title-plaque span{font-size:13px!important}
+        .work-view{padding:10px 8px 24px!important}.z82-system,.z82-section{padding:10px!important}.z82-head{display:grid!important;grid-template-columns:minmax(0,1fr) auto}.z82-statuses{grid-column:2;grid-row:1/3}.z82-head h1{font-size:22px!important}.z82-head p{font-size:12px!important}
+        .z82-equipment-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.z82-dhw-card{grid-column:1/-1!important}.z82-equipment{padding:10px!important}.z82-equipment header{min-height:38px!important}.z82-boiler-visual{height:110px!important}.z82-boiler-art{width:68px!important;height:102px!important}.z82-flame{--mdc-icon-size:22px!important}
+        .z82-dhw-schematic{height:190px!important;min-height:190px!important}.z82-dhw-schematic .z82-tank{left:12%!important;top:34px!important;width:54px!important;height:136px!important}.z82-hot-pipe{left:calc(12% + 54px)!important;right:13%!important;top:50px!important}.z82-loop-branch{left:62%!important;top:50px!important;height:47px!important}.z82-loop-vertical{left:62%!important;top:97px!important;height:42px!important}.z82-loop-return{left:calc(12% + 54px)!important;right:38%!important;top:137px!important}.z82-cold-pipe{left:calc(12% + 22px)!important;right:13%!important;top:178px!important}.z82-hot-water,.z82-circulation-loop,.z82-cold-water{width:112px!important;right:1%!important}.z82-hot-water{top:20px!important}.z82-circulation-loop{top:82px!important}.z82-cold-water{bottom:0!important}.z82-hot-water ha-icon,.z82-circulation-loop ha-icon,.z82-cold-water ha-icon{--mdc-icon-size:20px!important}.z82-loop-pump{left:62%!important;top:116px!important;width:26px!important;height:26px!important}.z82-loop-pump ha-icon{--mdc-icon-size:17px!important}
+        .z82-hydro-stage{height:42px!important;margin:42px 5% 48px!important}.z82-hydro strong{left:37%!important}.z82-hydro-values{right:8px!important}.z82-circuits-grid{grid-template-columns:1fr!important;gap:8px!important}.z82-circuit-card{padding:12px!important}.z82-metrics,.z82-nodes,.z82-modes{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.z82-metric,.z82-node,.z82-mode{min-height:92px!important}.z82-legend{gap:8px 12px!important}
+      }
+      @media(max-width:360px){.title-plaque strong{font-size:20px!important}.z82-online{min-width:124px!important}.z82-online strong{font-size:15px!important}.z82-equipment-grid{grid-template-columns:1fr!important}.z82-dhw-card{grid-column:auto!important}}
+    `;
+    root.append(style);
+
+    const navButtons = [...bottom.querySelectorAll("button[data-tab]")];
+    for (const button of navButtons) button.onclick = () => this._selectTab(button.dataset.tab);
+    this.__zontShellV090 = { app, header, title, viewport, stage, surface, bottom, navButtons, views:new Map([[main.dataset.view, main]]), active:main.dataset.view };
+    this._installZoomV090();
+    return this.__zontShellV090;
   };
 
+  ElementClass.prototype._bindWorkActionsV090 = function bindWorkActionsV090(view) {
+    const diagnostics = view.querySelector("[data-open-diagnostics]");
+    if (diagnostics) diagnostics.onclick = () => this._selectTab("diagnostics");
+    for (const button of view.querySelectorAll("button[data-mode-entity]")) {
+      button.onclick = () => this._pressMode(button.dataset.modeEntity, button.dataset.modeLabel);
+    }
+    for (const target of view.querySelectorAll("[data-entity]")) {
+      if (target.dataset.moreInfoBound === "true") continue;
+      target.dataset.moreInfoBound = "true";
+      let timer = null;
+      let origin = null;
+      const cancel = () => { clearTimeout(timer); timer = null; origin = null; };
+      target.addEventListener("pointerdown", (event) => {
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+        origin = { x:event.clientX, y:event.clientY };
+        timer = setTimeout(() => {
+          timer = null;
+          this.dispatchEvent(new CustomEvent("hass-more-info", {
+            bubbles:true,
+            composed:true,
+            detail:{ entityId:target.dataset.entity },
+          }));
+        }, 550);
+      });
+      target.addEventListener("pointermove", (event) => {
+        if (origin && Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > 10) cancel();
+      });
+      target.addEventListener("pointerup", cancel);
+      target.addEventListener("pointercancel", cancel);
+      target.addEventListener("pointerleave", cancel);
+    }
+  };
+
+  ElementClass.prototype._patchViewV090 = function patchViewV090(view, html) {
+    const fresh = document.createElement("main");
+    fresh.className = view.className;
+    fresh.dataset.view = view.dataset.view;
+    fresh.hidden = view.hidden;
+    fresh.innerHTML = html;
+    morph(view, fresh);
+    this._bindWorkActionsV090(view);
+  };
+
+  ElementClass.prototype._render = function renderV090() {
+    let shell = this.__zontShellV090;
+    if (!shell?.app?.isConnected) shell = this._mountRules117();
+    if (!shell) return;
+    const active = this._activeTab();
+    if (!active) return;
+    const items = this._entries();
+    let view = shell.views.get(active.id);
+    if (!view) {
+      view = document.createElement("main");
+      view.className = "work-view";
+      view.dataset.view = active.id;
+      view.hidden = true;
+      shell.surface.append(view);
+      shell.views.set(active.id, view);
+    }
+    this._patchViewV090(view, this._content(active, items));
+    const changed = shell.active !== active.id;
+    for (const [id, cached] of shell.views) {
+      cached.hidden = id !== active.id;
+      cached.classList.toggle("active", id === active.id);
+    }
+    shell.active = active.id;
+    for (const button of shell.navButtons) {
+      const selected = button.dataset.tab === active.id;
+      button.classList.toggle("active", selected);
+      button.disabled = selected;
+      button.setAttribute("aria-current", selected ? "page" : "false");
+    }
+    if (changed) this.__zontZoomV090?.onTabChange();
+    else this.__zontZoomV090?.clamp();
+  };
+
+  ElementClass.prototype._installZoomV090 = function installZoomV090() {
+    const shell = this.__zontShellV090;
+    if (!shell || this.__zontZoomV090?.viewport === shell.viewport) return;
+    const { viewport, stage, surface } = shell;
+    let state = { scale:1, x:0, y:0 };
+    try {
+      const stored = JSON.parse(localStorage.getItem(ZOOM_KEY) || "null");
+      if (stored && Number.isFinite(stored.scale)) state = {
+        scale:clamp(stored.scale, SCALE_MIN, SCALE_MAX),
+        x:Number.isFinite(stored.x) ? stored.x : 0,
+        y:Number.isFinite(stored.y) ? stored.y : 0,
+      };
+    } catch (_error) { /* use defaults */ }
+    if (state.scale >= SNAP_MIN && state.scale <= SNAP_MAX) state = { scale:1, x:0, y:0 };
+    let pinch = null;
+    let pan = null;
+    let multi = false;
+    let lastTap = null;
+    let guardUntil = 0;
+
+    const save = () => {
+      try { localStorage.setItem(ZOOM_KEY, JSON.stringify(state)); } catch (_error) { /* optional */ }
+    };
+    const baseSize = () => {
+      const view = shell.views.get(shell.active);
+      return {
+        width:Math.max(viewport.clientWidth, view?.scrollWidth || 0),
+        height:Math.max(viewport.clientHeight, view?.scrollHeight || 0),
+      };
+    };
+    const bounds = () => {
+      const base = baseSize();
+      return {
+        minX:Math.min(0, viewport.clientWidth - base.width * state.scale),
+        minY:Math.min(0, viewport.clientHeight - base.height * state.scale),
+        overflowX:base.width * state.scale > viewport.clientWidth + .5,
+        overflowY:base.height * state.scale > viewport.clientHeight + .5,
+        base,
+      };
+    };
+    const clampState = () => {
+      if (state.scale <= 1) { state.x = 0; state.y = 0; return; }
+      const edge = bounds();
+      state.x = edge.overflowX ? clamp(state.x, edge.minX, 0) : 0;
+      state.y = edge.overflowY ? clamp(state.y, edge.minY, 0) : 0;
+    };
+    const apply = ({ persist = false } = {}) => {
+      clampState();
+      const native = state.scale <= 1;
+      viewport.classList.toggle("native-scroll", native);
+      viewport.classList.toggle("zoomed", !native);
+      const base = baseSize();
+      stage.style.width = `${Math.max(viewport.clientWidth, base.width * state.scale)}px`;
+      stage.style.height = `${Math.max(viewport.clientHeight, base.height * state.scale)}px`;
+      surface.style.transform = native
+        ? `scale(${state.scale})`
+        : `translate3d(${state.x}px,${state.y}px,0) scale(${state.scale})`;
+      if (!native) { viewport.scrollLeft = 0; viewport.scrollTop = 0; }
+      if (persist) save();
+    };
+    const showToast = () => {
+      let toast = viewport.querySelector(":scope > .zoom-toast");
+      if (!toast) {
+        toast = document.createElement("div");
+        toast.className = "zoom-toast";
+        toast.textContent = "Масштаб 100%";
+        Object.assign(toast.style, { position:"absolute", left:"50%", top:"16px", transform:"translateX(-50%)", zIndex:"50", padding:"9px 13px", borderRadius:"14px", background:"rgba(20,25,30,.84)", color:"white", fontSize:"13px", fontWeight:"700", pointerEvents:"none", opacity:"1", transition:"opacity .18s" });
+        viewport.append(toast);
+      }
+      toast.style.opacity = "1";
+      clearTimeout(this.__zontToastTimerV090);
+      this.__zontToastTimerV090 = setTimeout(() => { toast.style.opacity = "0"; }, 850);
+    };
+    const reset = (notify = true) => {
+      state = { scale:1, x:0, y:0 };
+      viewport.scrollTo({ left:0, top:0, behavior:"auto" });
+      apply({ persist:true });
+      if (notify) showToast();
+    };
+    const contentPoint = (focal) => state.scale <= 1
+      ? { x:focal.x / state.scale, y:(viewport.scrollTop + focal.y) / state.scale }
+      : { x:(focal.x - state.x) / state.scale, y:(focal.y - state.y) / state.scale };
+    const setAround = (nextScale, focal, anchor) => {
+      state.scale = clamp(nextScale, SCALE_MIN, SCALE_MAX);
+      if (state.scale > 1) {
+        state.x = focal.x - anchor.x * state.scale;
+        state.y = focal.y - anchor.y * state.scale;
+      } else {
+        state.x = 0;
+        state.y = 0;
+        viewport.scrollLeft = 0;
+        viewport.scrollTop = Math.max(0, anchor.y * state.scale - focal.y);
+      }
+      apply();
+    };
+
+    viewport.addEventListener("touchstart", (event) => {
+      if (event.touches.length >= 2) {
+        const [a, b] = event.touches;
+        for (const touch of [a, b]) {
+          touch.target?.dispatchEvent(new Event("pointercancel", { bubbles:true, composed:true }));
+        }
+        const focal = viewportMidpoint(a, b, viewport);
+        pinch = { distance:Math.max(1, distance(a, b)), scale:state.scale, anchor:contentPoint(focal), startedAt:performance.now(), midpoint:pageMidpoint(a, b), moved:false };
+        pan = null;
+        multi = true;
+        guardUntil = performance.now() + CLICK_GUARD_MS;
+      } else if (event.touches.length === 1 && state.scale > 1 && !multi) {
+        const [touch] = event.touches;
+        pan = { x:touch.clientX, y:touch.clientY, startX:state.x, startY:state.y };
+      }
+    }, { passive:true });
+    viewport.addEventListener("touchmove", (event) => {
+      if (event.touches.length >= 2 && pinch) {
+        const [a, b] = event.touches;
+        const focal = viewportMidpoint(a, b, viewport);
+        if (Math.abs(distance(a, b) - pinch.distance) > 3) pinch.moved = true;
+        setAround(pinch.scale * distance(a, b) / pinch.distance, focal, pinch.anchor);
+        event.preventDefault();
+        return;
+      }
+      if (!pan || event.touches.length !== 1 || state.scale <= 1) return;
+      const [touch] = event.touches;
+      state.x = pan.startX + touch.clientX - pan.x;
+      state.y = pan.startY + touch.clientY - pan.y;
+      apply();
+      guardUntil = performance.now() + CLICK_GUARD_MS;
+      event.preventDefault();
+    }, { passive:false });
+    viewport.addEventListener("touchend", (event) => {
+      if (event.touches.length) return;
+      if (pinch) {
+        const now = performance.now();
+        const stationary = !pinch.moved && now - pinch.startedAt < 320;
+        if (stationary && lastTap && now - lastTap.time < 380
+          && Math.hypot(pinch.midpoint.x - lastTap.x, pinch.midpoint.y - lastTap.y) < 42) {
+          reset(true);
+          lastTap = null;
+        } else if (stationary) lastTap = { time:now, ...pinch.midpoint };
+        if (state.scale >= SNAP_MIN && state.scale <= SNAP_MAX && state.scale !== 1) reset(false);
+        else apply({ persist:true });
+        guardUntil = now + CLICK_GUARD_MS;
+      } else if (pan) apply({ persist:true });
+      pinch = null;
+      pan = null;
+      multi = false;
+    }, { passive:true });
+    viewport.addEventListener("touchcancel", () => {
+      pinch = null; pan = null; multi = false; apply({ persist:true }); guardUntil = performance.now() + CLICK_GUARD_MS;
+    }, { passive:true });
+    viewport.addEventListener("click", (event) => {
+      if (performance.now() < guardUntil) { event.preventDefault(); event.stopImmediatePropagation(); }
+    }, true);
+
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(() => apply()) : null;
+    observer?.observe(viewport);
+    this.__zontResizeObserverV090 = observer;
+    this.__zontZoomV090 = {
+      viewport,
+      clamp:() => apply(),
+      onTabChange:() => { viewport.scrollTo({ left:0, top:0, behavior:"auto" }); state.x = 0; state.y = 0; apply({ persist:true }); },
+      reset,
+    };
+    apply();
+  };
+
+  ElementClass.prototype.disconnectedCallback = function disconnectedV090() {
+    this.__zontResizeObserverV090?.disconnect();
+    return legacyDisconnected?.call(this);
+  };
   ElementClass.prototype.__zontV090 = true;
   return true;
 }
