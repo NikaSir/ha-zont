@@ -22,9 +22,9 @@
   const activeStates = new Set(["on", "open", "opening", "active", "running", "heat", "heating", "true", "1"]);
   const inactiveStates = new Set(["off", "closed", "idle", "false", "0", "standby"]);
   const SOURCE_ROUTE_KEY = "nikas.specialized.source_route.v1";
+  const SOURCE_ROUTE_AT_KEY = "nikas.specialized.source_route_at.v1";
   const RETURN_ROUTE_KEY = "nikas.zont.return_route.v1";
-  const SAFE_DEFAULT_ROUTE = "/dashboard-house";
-  const SAFE_ROUTE_PREFIXES = ["/dashboard-house", "/dashboard-actions", "/dashboard-infrastructure"];
+  const SAFE_DEFAULT_ROUTE = "/dashboard-house-v11/home";
 
   function navigate(path) {
     if (!path) return;
@@ -37,8 +37,10 @@
     try {
       const url = new URL(decodeURIComponent(String(value).trim()), window.location.origin);
       if (url.origin !== window.location.origin) return null;
-      const allowed = SAFE_ROUTE_PREFIXES.some((prefix) => url.pathname === prefix || url.pathname.startsWith(`${prefix}/`));
-      return allowed ? `${url.pathname}${url.search}${url.hash}` : null;
+      if (url.pathname === "/dashboard-house-v11" || url.pathname.startsWith("/dashboard-house-v11/")) return "/dashboard-house-v11/home";
+      if (url.pathname === "/dashboard-actions" || url.pathname.startsWith("/dashboard-actions/")) return "/dashboard-actions/home";
+      if (url.pathname === "/dashboard-infrastructure" || url.pathname.startsWith("/dashboard-infrastructure/")) return "/dashboard-infrastructure/overview";
+      return null;
     } catch (_error) {
       return null;
     }
@@ -46,14 +48,16 @@
 
   function resolveReturnRoute(panel) {
     const current = new URL(window.location.href);
-    const explicit = ["return_to", "from"]
-      .map((key) => safeReturnRoute(current.searchParams.get(key)))
-      .find(Boolean) || null;
+    const explicit = safeReturnRoute(current.searchParams.get("return_to")) || safeReturnRoute(current.searchParams.get("from"));
     let handedOff = null;
     let saved = null;
     try {
-      handedOff = safeReturnRoute(sessionStorage.getItem(SOURCE_ROUTE_KEY));
+      const handedOffAtRaw = sessionStorage.getItem(SOURCE_ROUTE_AT_KEY);
+      const handedOffAt = Number(handedOffAtRaw);
+      const handedOffFresh = handedOffAtRaw === null || (Number.isFinite(handedOffAt) && Date.now() - handedOffAt <= 30_000);
+      handedOff = handedOffFresh ? safeReturnRoute(sessionStorage.getItem(SOURCE_ROUTE_KEY)) : null;
       sessionStorage.removeItem(SOURCE_ROUTE_KEY);
+      sessionStorage.removeItem(SOURCE_ROUTE_AT_KEY);
       saved = safeReturnRoute(sessionStorage.getItem(RETURN_ROUTE_KEY));
     } catch (_error) {}
     const config = panel?._config?.() || {};
@@ -1629,8 +1633,6 @@ function zontInstallV091Styles(panel) {
   style.textContent = `
     .heading strong{font-size:23px!important;font-weight:800!important}
     .heading span{font-size:14px!important;font-weight:560!important}
-    .heading:active{transform:scale(.985);background:color-mix(in srgb,var(--primary-color,#087de0) 8%,var(--card-background-color,#fff))!important}
-    .heading:focus-visible{outline:2px solid var(--primary-color,#087de0);outline-offset:2px}
 
     .meter-max,.meter-min,.room-meter span,.room-meter small,.z82-boiler-art b{font-size:9px!important}
     .room-meta,.z82-eyebrow,.z82-head p,.z82-notice,

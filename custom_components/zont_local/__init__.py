@@ -72,7 +72,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "parent": {
                 "id": "house.heating",
                 "title": "Отопление и ГВС",
-                "path": "/dashboard-house/heating",
+                "path": "/dashboard-house-v11/home",
             },
             "source": {
                 "kind": "entity_registry",
