@@ -4,14 +4,6 @@
   const ELEMENT_NAME = "zont-local-panel";
   if (customElements.get(ELEMENT_NAME)) return;
 
-  const CONTROLLER_FACTS = [
-    ["Модель", "H2000 PRO", "mdi:router-wireless"],
-    ["Плата", "710", "mdi:chip"],
-    ["Прошивка", "670", "mdi:memory"],
-    ["Память", "68%", "mdi:chart-donut"],
-    ["Входы / выходы / реле", "18 занято", "mdi:connection"],
-  ];
-
   const esc = (value) => String(value ?? "")
     .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
@@ -41,6 +33,7 @@
       this._error = null;
       this._queued = false;
       this._busyMode = null;
+      this._commandError = null;
       this._onHash = () => { this._active = this._tabFromLocation(); this._queue(); };
     }
 
@@ -388,8 +381,11 @@
       const mixer = `<div class="mixer-card"><div class="system-title"><ha-icon icon="mdi:valve"></ha-icon><strong>Смесительный привод</strong></div><div class="mixer-state">${esc(this._mixerState(opening, closing))}</div><div class="mixer-flags"><span class="${this._isActive(opening) ? "on" : ""}">Открытие · ${esc(this._stateText(opening))}</span><span class="${this._isActive(closing) ? "on" : ""}">Закрытие · ${esc(this._stateText(closing))}</span></div></div>`;
       const modes = this._modeButtons(items);
       const current = this._currentMode(items);
-      const modeHtml = modes.length ? `<div class="mode-card"><div class="mode-current"><span>Текущий режим</span><b>${esc(current)}</b></div><div class="mode-buttons">${modes.map((item) => `<button class="${this._modeActive(item, current) ? "selected" : ""}" data-mode-entity="${esc(item.entry.entity_id)}" data-mode-label="${esc(this._modeLabel(item))}" ${this._busyMode === item.entry.entity_id ? "disabled" : ""}><ha-icon icon="mdi:radiator"></ha-icon><span>${esc(this._modeLabel(item))}</span></button>`).join("")}</div></div>` : `<div class="empty">Кнопки режимов ZONT в Home Assistant не найдены.</div>`;
-      return `${this._section("Насосы и исполнительные устройства", this._grid(pumpTiles))}${this._section("Смесительный контур", mixer)}${this._section("Режим отопления", modeHtml)}`;
+      const modeHtml = modes.length ? `<div class="mode-card"><div class="mode-current"><span>Текущий режим</span><b>${esc(current)}</b></div><div class="mode-buttons">${modes.map((item) => `<button class="${this._modeActive(item, current) ? "selected" : ""}" data-mode-entity="${esc(item.entry.entity_id)}" data-mode-label="${esc(this._modeLabel(item))}" ${this._busyMode || this._isProblem(item) ? "disabled" : ""}><ha-icon icon="mdi:radiator"></ha-icon><span>${esc(this._modeLabel(item))}</span></button>`).join("")}</div></div>` : `<div class="empty">Кнопки режимов ZONT в Home Assistant не найдены.</div>`;
+      const commandError = this._commandError
+        ? `<div class="empty problem">Команда не выполнена: ${esc(this._commandError)}</div>`
+        : "";
+      return `${this._section("Насосы и исполнительные устройства", this._grid(pumpTiles))}${this._section("Смесительный контур", mixer)}${this._section("Режим отопления", commandError + modeHtml)}`;
     }
 
     _boilers(items) {
@@ -419,7 +415,17 @@
     }
 
     _diagnostics(items) {
-      const facts = CONTROLLER_FACTS.map(([label,value,icon]) => this._factCard(label, value, icon)).join("");
+      const deviceIds = [...new Set(items.map((item) => item.entry?.device_id).filter(Boolean))];
+      const facts = deviceIds.flatMap((deviceId) => {
+        const device = this._devices.get(deviceId) || {};
+        return [
+          ["Устройство", device.name_by_user || device.name, "mdi:router-wireless"],
+          ["Модель", device.model, "mdi:chip"],
+          ["Производитель", device.manufacturer, "mdi:factory"],
+          ["Версия ПО", device.sw_version, "mdi:memory"],
+        ];
+      }).filter(([, value]) => value != null && String(value).trim()).slice(0, 8)
+        .map(([label, value, icon]) => this._factCard(label, value, icon)).join("");
       const controller = this._unique(items.filter((item) => ["online","power","voltage"].includes(this._role(item)))).slice(0, 8).map((item) => this._compactCard(item)).join("");
       const errors = this._unique(items.filter((item) => this._role(item) === "error"));
       const actualProblems = this._unique(items.filter((item) => this._isProblem(item) && !["rssi","battery"].includes(this._role(item)))).slice(0, 8);
@@ -443,11 +449,16 @@
 
     async _pressMode(entityId, label) {
       const item = this._entries().find((entry) => entry.entry.entity_id === entityId);
-      if (!item || domainOf(entityId) !== "button" || !["zont", "zont_ha"].includes(item.entry.platform)) return;
+      if (this._busyMode || !item || this._isProblem(item) || domainOf(entityId) !== "button" || !["zont", "zont_ha"].includes(item.entry.platform)) return;
       if (!window.confirm(`Переключить режим отопления на «${label}»?`)) return;
+      this._commandError = null;
       this._busyMode = entityId;
       this._queue();
-      try { await this._hass.callService("button", "press", { entity_id: entityId }); }
+      try {
+        await this._hass.callService("button", "press", { entity_id: entityId });
+      } catch (error) {
+        this._commandError = error instanceof Error ? error.message : String(error || "неизвестная ошибка");
+      }
       finally { this._busyMode = null; this._queue(); }
     }
 
@@ -474,8 +485,9 @@
           .bottom{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));background:var(--card-background-color,#fff);border-top:1px solid var(--divider-color,#ddd)}nav{width:min(100%,700px);margin:auto;display:grid;grid-template-columns:repeat(${tabs.length},minmax(0,1fr));gap:3px}.tab{border:0;background:transparent;color:var(--secondary-text-color,#777);min-width:0;min-height:60px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:5px 2px}.tab.active{color:var(--primary-color,#0097a7);background:color-mix(in srgb,var(--primary-color,#0097a7) 10%,transparent)}.tab ha-icon{--mdc-icon-size:24px}.tab span{width:100%;font-size:10.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
           @media(max-width:420px){main{padding-left:10px;padding-right:10px}.system-card{padding:12px}.system-title{font-size:16px}.meter-card{min-height:160px}.meter-value,.room-value{font-size:23px}.room-card{min-height:175px}.room-meta{font-size:9.5px}.status-tile{min-height:110px}.mode-buttons button{min-height:62px;padding:8px}}
         </style>
-        <div class="app"><header class="header"><button class="rail" id="back" aria-label="Назад"><ha-icon icon="mdi:arrow-left"></ha-icon></button><div class="heading"><strong>ZONT</strong><span>${esc(config.subtitle || "Отопление и ГВС")}</span></div><button class="rail" id="refresh" aria-label="Обновить"><ha-icon icon="mdi:refresh"></ha-icon></button></header><main>${this._content(active, items)}</main><div class="bottom"><nav>${nav}</nav></div></div>`;
-      this.shadowRoot.getElementById("back").onclick = () => navigate(config.parent?.path || "/dashboard-house/heating");
+        <div class="app"><header class="header"><button class="rail" id="back" aria-label="Меню Home Assistant"><ha-icon icon="mdi:menu"></ha-icon></button><button class="heading" id="legacy-return" type="button" aria-label="ZONT. Вернуться в базовую панель NikaS"><strong>ZONT</strong><span>UI v0.9.2</span></button><button class="rail" id="refresh" aria-label="Обновить"><ha-icon icon="mdi:refresh"></ha-icon></button></header><main>${this._content(active, items)}</main><div class="bottom"><nav>${nav}</nav></div></div>`;
+      this.shadowRoot.getElementById("back").onclick = () => this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true }));
+      this.shadowRoot.getElementById("legacy-return").onclick = () => navigate(config.parent?.path || "/dashboard-house-v11/home");
       this.shadowRoot.getElementById("refresh").onclick = () => { this._registry = null; this._load(true); };
       for (const button of this.shadowRoot.querySelectorAll("button[data-tab]")) button.onclick = () => this._selectTab(button.dataset.tab);
       for (const button of this.shadowRoot.querySelectorAll("button[data-mode-entity]")) button.onclick = () => this._pressMode(button.dataset.modeEntity, button.dataset.modeLabel);
@@ -485,53 +497,16 @@
   customElements.define(ELEMENT_NAME, NikasGeneratedZont);
 })();
 
-// ZONT UI v0.9.1 — standalone rules 1.17 rebuild of the approved application layer.
+// ZONT UI v0.9.2 — standalone rules 1.17 rebuild of the approved application layer.
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.9.1";
-const ASSET_VERSION = "0.9.1";
+const UI_VERSION = "0.9.2";
+const ASSET_VERSION = "0.9.2";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
 const STALE_AFTER_MS = 15 * 60 * 1000;
-const ENTITY_BINDINGS = Object.freeze({
-  online: ["binary_sensor.nikas_h2000_pro_online"],
-  controllerPower: ["sensor.nikas_h2000_pro_pitanie"],
-  supplyVoltage: ["sensor.nikas_h2000_pro_napriazhenie_pitaniia_3"],
-  batteryVoltage: ["sensor.nikas_h2000_pro_napriazhenie_batarei_2"],
-  mainState: ["binary_sensor.nikas_h2000_pro_osnovnoi_sostoianie"],
-  mainCurrent: ["sensor.nikas_h2000_pro_osnovnoi_aktualnaia_temperatura"],
-  mainTarget: ["sensor.nikas_h2000_pro_osnovnoi_tselevaia_temperatura"],
-  mainError: ["sensor.nikas_h2000_pro_osnovnoi_oshibka"],
-  mainReturn: ["sensor.kontroller_otopleniia_nikas_h2000_pro_nikas_h2000_pro_ebus_osnovnoi_no2_tdeg_obratnogo_potoka"],
-  mainModulation: ["sensor.kontroller_otopleniia_nikas_h2000_pro_nikas_h2000_pro_ebus_osnovnoi_no2_moduliatsiia"],
-  mainPressure: ["sensor.kontroller_otopleniia_nikas_h2000_pro_nikas_h2000_pro_ebus_osnovnoi_no2_davlenie_tn"],
-  reserveState: ["binary_sensor.nikas_h2000_pro_rezervnyi_sostoianie"],
-  reserveCurrent: ["sensor.nikas_h2000_pro_rezervnyi_aktualnaia_temperatura"],
-  reserveTarget: ["sensor.nikas_h2000_pro_rezervnyi_tselevaia_temperatura"],
-  reserveError: ["sensor.nikas_h2000_pro_rezervnyi_oshibka"],
-  dhwTemperature: ["sensor.kontroller_otopleniia_nikas_h2000_pro_nikas_h2000_pro_ebus_osnovnoi_no2_tdeg_gvs"],
-  coldWaterPressure: ["sensor.nikas_h2000_pro_pitevaia_voda"],
-  systemPressure: ["sensor.nikas_h2000_pro_teplonositel_2"],
-  hydraulicTemperature: ["sensor.nikas_h2000_pro_tn_gidrostrelka_2"],
-  radiatorsState: ["binary_sensor.nikas_h2000_pro_radiatory"],
-  radiatorsSupply: ["sensor.nikas_h2000_pro_tn_radiatory_3"],
-  radiatorsReturn: ["sensor.nikas_h2000_pro_tn_radiatory_4"],
-  floorState: ["binary_sensor.nikas_h2000_pro_teplyi_pol"],
-  floorSupply: ["sensor.nikas_h2000_pro_tn_teplyi_pol_3"],
-  floorReturn: ["sensor.nikas_h2000_pro_tn_teplyi_pol_4"],
-  circulationState: ["binary_sensor.nikas_h2000_pro_tsirkuliatsiia"],
-  circulationTemperature: ["sensor.nikas_h2000_pro_gv_tsirkuliatsiia_2"],
-  mixerOpening: ["binary_sensor.nikas_h2000_pro_otkrytie"],
-  mixerClosing: ["binary_sensor.nikas_h2000_pro_zakrytie"],
-  indoorTemperature: ["sensor.nikas_h2000_pro_gostinaia_tdeg_2", "sensor.nikas_h2000_pro_gostinaia"],
-  outdoorTemperature: [
-    "sensor.nikas_h2000_pro_ulichnyi_datchik_2",
-    "sensor.nikas_h2000_pro_ebus_osnovnoi_tdeg_vne_doma",
-    "sensor.nikas_h2000_pro_pogoda_iz_interneta_2",
-  ],
-});
 const clearErrorStates = new Set([
   "", "0", "0.0", "off", "false", "ok", "normal", "none", "clear", "idle", "no error", "no errors",
   "нет", "нет ошибки", "нет ошибок", "ошибок нет", "отсутствует", "отсутствуют", "—", "-",
@@ -571,17 +546,10 @@ function installV0812() {
   const originalRole = ElementClass.prototype._role;
   const originalMeterScale = ElementClass.prototype._meterScale;
   const originalBoilerSet = ElementClass.prototype._boilerSet;
-  const bound = (items, key) => {
-    const ids = ENTITY_BINDINGS[key] || [];
-    for (const entityId of ids) {
-      const item = items.find((candidate) => candidate?.entry?.entity_id === entityId);
-      if (item) return item;
-    }
-    return null;
-  };
-
-  ElementClass.prototype._boundV089 = function boundV089(items, key, fallback = null) {
-    return bound(items, key) || (typeof fallback === "function" ? fallback() : fallback);
+  ElementClass.prototype._boundV089 = function boundV089(_items, _key, fallback = null) {
+    // Registry-backed semantic discovery is the only mapping source. Missing
+    // roles stay missing instead of being rebound to installation-specific IDs.
+    return typeof fallback === "function" ? fallback() : fallback;
   };
 
   ElementClass.prototype._isActiveErrorV089 = function isActiveErrorV089(item) {
@@ -941,7 +909,7 @@ function installV0812() {
       const label = this._modeLabel(item) || "Режим";
       const [icon, visibleLabel] = modeVisual(label);
       const selected = this._modeActive(item, mode);
-      return `<button class="z82-mode ${selected ? "selected" : ""}" data-mode-entity="${esc(item.entry.entity_id)}" data-mode-label="${esc(label)}" ${this._busyMode === item.entry.entity_id ? "disabled" : ""}>
+      return `<button class="z82-mode ${selected ? "selected" : ""}" data-mode-entity="${esc(item.entry.entity_id)}" data-mode-label="${esc(label)}" ${this._busyMode || this._isProblem(item) ? "disabled" : ""}>
         <ha-icon icon="${icon}"></ha-icon><strong>${esc(visibleLabel)}</strong><span>${selected ? "Сейчас активен" : "Доступен"}</span>
       </button>`;
     }).join("") : `<div class="z82-empty">Кнопки режимов ZONT в Home Assistant не найдены.</div>`;
@@ -1002,7 +970,7 @@ function installV0812() {
       ${nodeCard("Резерв", reserveState, "mdi:water-boiler-off", "Резервный котёл")}
     </div></section>
 
-    <section class="z82-section"><span class="z82-eyebrow">ТЕКУЩИЙ РЕЖИМ</span><div class="z82-modes">${modeButtons}</div></section>`;
+    <section class="z82-section"><span class="z82-eyebrow">ТЕКУЩИЙ РЕЖИМ</span>${this._commandError ? `<div class="empty problem">Команда не выполнена: ${esc(this._commandError)}</div>` : ""}<div class="z82-modes">${modeButtons}</div></section>`;
   };
 
   ElementClass.prototype._states = function statesV089(items) {
@@ -1241,9 +1209,10 @@ function installV090() {
   const SNAP_MAX = 1.03;
   const CLICK_GUARD_MS = 420;
   const SOURCE_KEY = "nikas.specialized.source_route.v1";
+  const SOURCE_AT_KEY = "nikas.specialized.source_route_at.v1";
   const SAVED_SOURCE_KEY = "nikas.specialized.zont.source_route.v1";
   const ZOOM_KEY = "nikas.specialized.zont.zoom.v1";
-  const allowedRoots = ["/dashboard-house", "/dashboard-actions", "/dashboard-infrastructure"];
+  const SOURCE_ROUTE_TTL_MS = 30_000;
 
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
   const distance = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
@@ -1258,8 +1227,16 @@ function installV090() {
     try {
       const url = new URL(String(raw), window.location.origin);
       if (url.origin !== window.location.origin) return null;
-      return allowedRoots.some((root) => url.pathname === root || url.pathname.startsWith(`${root}/`))
-        ? `${url.pathname}${url.search}${url.hash}` : null;
+      if (url.pathname === "/dashboard-house-v11" || url.pathname.startsWith("/dashboard-house-v11/")) {
+        return "/dashboard-house-v11/home";
+      }
+      if (url.pathname === "/dashboard-actions" || url.pathname.startsWith("/dashboard-actions/")) {
+        return "/dashboard-actions/home";
+      }
+      if (url.pathname === "/dashboard-infrastructure" || url.pathname.startsWith("/dashboard-infrastructure/")) {
+        return "/dashboard-infrastructure/overview";
+      }
+      return null;
     } catch (_error) { return null; }
   };
   const captureReturnRoute = (config) => {
@@ -1267,14 +1244,24 @@ function installV090() {
     const explicit = validRoute(params.get("return_to")) || validRoute(params.get("from"));
     let handoff = null;
     try {
-      handoff = validRoute(sessionStorage.getItem(SOURCE_KEY));
-      if (handoff) sessionStorage.removeItem(SOURCE_KEY);
+      const handedOffRaw = sessionStorage.getItem(SOURCE_KEY);
+      const handedOffAtRaw = sessionStorage.getItem(SOURCE_AT_KEY);
+      const handedOffAt = Number(handedOffAtRaw);
+      const handedOffAge = Date.now() - handedOffAt;
+      const handoffIsFresh = handedOffRaw !== null
+        && handedOffAtRaw !== null
+        && Number.isFinite(handedOffAt)
+        && handedOffAge >= 0
+        && handedOffAge <= SOURCE_ROUTE_TTL_MS;
+      handoff = handoffIsFresh ? validRoute(handedOffRaw) : null;
+      sessionStorage.removeItem(SOURCE_KEY);
+      sessionStorage.removeItem(SOURCE_AT_KEY);
     } catch (_error) { /* storage is optional */ }
     let saved = null;
     try { saved = validRoute(localStorage.getItem(SAVED_SOURCE_KEY)); } catch (_error) { /* optional */ }
     const referrer = validRoute(document.referrer);
     const configured = validRoute(config?.parent?.path || config?.parent_route);
-    const route = explicit || handoff || saved || referrer || configured || "/dashboard-house";
+    const route = explicit || handoff || saved || referrer || configured || "/dashboard-house-v11/home";
     try { localStorage.setItem(SAVED_SOURCE_KEY, route); } catch (_error) { /* optional */ }
     return route;
   };
@@ -1348,8 +1335,8 @@ function installV090() {
       .header{position:relative!important;top:auto!important;grid-row:1;grid-template-columns:52px minmax(0,1fr) 52px!important;min-height:calc(60px + env(safe-area-inset-top,0px))!important;padding:max(6px,env(safe-area-inset-top,0px)) 10px 6px!important;z-index:30!important}
       .rail{width:44px!important;height:44px!important;border:1px solid var(--divider-color,#ddd)!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 7px 20px rgba(23,45,76,.08)!important;padding:0!important}
       .rail ha-icon{--mdc-icon-size:25px!important}#back{color:var(--primary-text-color,#202124)!important}#refresh{color:var(--primary-color,#087de0)!important}
-      .title-plaque{justify-self:center;min-width:0;min-height:44px;width:min(100%,320px);padding:5px 12px;border:1px solid var(--divider-color,#ddd);border-radius:16px;background:var(--card-background-color,#fff);color:var(--primary-text-color,#202124);box-shadow:0 7px 20px rgba(23,45,76,.08);cursor:pointer}
-      .title-plaque:focus-visible{outline:3px solid color-mix(in srgb,var(--primary-color,#087de0) 45%,transparent);outline-offset:2px}.title-plaque:active{transform:scale(.985)}
+      .title-plaque{justify-self:center;min-width:min(290px,100%);max-width:100%;min-height:44px;padding:5px 14px;border:1px solid color-mix(in srgb,var(--primary-color,#03a9d9) 24%,var(--divider-color,#dfe3e8));border-radius:16px;background:color-mix(in srgb,var(--primary-color,#03a9d9) 5%,var(--card-background-color,#fff));color:var(--primary-text-color,#202124);box-shadow:0 5px 16px rgba(23,45,76,.06);cursor:pointer}
+      .title-plaque:focus-visible{outline:2px solid var(--primary-color,#03a9d9);outline-offset:2px}.title-plaque:active{transform:scale(.985);background:color-mix(in srgb,var(--primary-color,#03a9d9) 13%,var(--card-background-color,#fff));border-color:color-mix(in srgb,var(--primary-color,#03a9d9) 42%,var(--divider-color,#dfe3e8));box-shadow:0 2px 7px rgba(23,45,76,.05)}
       .title-plaque strong{font-size:23px!important;font-weight:800!important;line-height:1.05}.title-plaque span{margin-top:3px!important;font-size:14px!important;font-weight:560!important;color:var(--secondary-text-color,#666)!important}
       .work-viewport{grid-row:2;position:relative;min-width:0;min-height:0;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--primary-background-color,#f2f3f5)}
       .work-viewport.native-scroll{overflow-x:hidden!important;overflow-y:auto!important;touch-action:pan-y!important}.work-viewport.zoomed{overflow:hidden!important;touch-action:none!important}
@@ -1361,7 +1348,7 @@ function installV090() {
       .z82-head h1{font-size:25px!important}.z82-head p,.z82-notice,.z82-equipment h3,.z82-equipment header>span,.z82-equipment h3 span,.z82-row,.z82-row strong,.z82-dhw-temperature strong,.z82-dhw-temperature small,.z82-hot-water span,.z82-circulation-loop span,.z82-cold-water span,.z82-hot-water strong,.z82-circulation-loop strong,.z82-cold-water strong,.z82-circulation-loop small,.z82-hydro strong,.z82-hydro-values span,.z82-circuit-card h3,.z82-circuit-device span,.z82-mixer span,.z82-circuit-device strong,.z82-mixer strong,.z82-circuit-values span,.z82-circuit-values strong,.z82-legend span,.z82-metric span,.z82-metric strong,.z82-metric small,.z82-node>strong,.z82-node span,.z82-node small,.z82-mode strong,.z82-mode span{font-size:12px!important}
       .z82-eyebrow{font-size:12px!important}.z82-metric strong,.z82-circuit-values strong,.z82-dhw-temperature strong{font-size:14px!important}
       @media(max-width:520px){
-        .header{grid-template-columns:48px minmax(0,1fr) 48px!important;padding-left:7px!important;padding-right:7px!important}.title-plaque{padding-left:7px;padding-right:7px}.title-plaque strong{font-size:21px!important}.title-plaque span{font-size:13px!important}
+        .header{grid-template-columns:48px minmax(0,1fr) 48px!important;padding-left:7px!important;padding-right:7px!important}.title-plaque{min-width:0;width:100%;padding-inline:8px}.title-plaque strong{font-size:21px!important}.title-plaque span{font-size:13px!important}
         .work-view{padding:10px 8px 24px!important}.z82-system,.z82-section{padding:10px!important}.z82-head{display:grid!important;grid-template-columns:minmax(0,1fr) auto}.z82-statuses{grid-column:2;grid-row:1/3}.z82-head h1{font-size:22px!important}.z82-head p{font-size:12px!important}
         .z82-equipment-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.z82-dhw-card{grid-column:1/-1!important}.z82-equipment{padding:10px!important}.z82-equipment header{min-height:38px!important}.z82-boiler-visual{height:110px!important}.z82-boiler-art{width:68px!important;height:102px!important}.z82-flame{--mdc-icon-size:22px!important}
         .z82-dhw-schematic{height:190px!important;min-height:190px!important}.z82-dhw-schematic .z82-tank{left:12%!important;top:34px!important;width:54px!important;height:136px!important}.z82-hot-pipe{left:calc(12% + 54px)!important;right:13%!important;top:50px!important}.z82-loop-branch{left:62%!important;top:50px!important;height:47px!important}.z82-loop-vertical{left:62%!important;top:97px!important;height:42px!important}.z82-loop-return{left:calc(12% + 54px)!important;right:38%!important;top:137px!important}.z82-cold-pipe{left:calc(12% + 22px)!important;right:13%!important;top:178px!important}.z82-hot-water,.z82-circulation-loop,.z82-cold-water{width:112px!important;right:1%!important}.z82-hot-water{top:20px!important}.z82-circulation-loop{top:82px!important}.z82-cold-water{bottom:0!important}.z82-hot-water ha-icon,.z82-circulation-loop ha-icon,.z82-cold-water ha-icon{--mdc-icon-size:20px!important}.z82-loop-pump{left:62%!important;top:116px!important;width:26px!important;height:26px!important}.z82-loop-pump ha-icon{--mdc-icon-size:17px!important}

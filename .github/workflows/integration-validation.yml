@@ -29,10 +29,12 @@ jobs:
         run: python tests/test_panel_registration.py
       - name: Check main version synchronization
         run: |
-          grep -F 'VERSION = "0.9.1"' custom_components/zont_local/const.py
-          grep -F '"version": "0.9.1"' custom_components/zont_local/manifest.json
-          grep -F 'version: 0.9.1' dashboard/manifest/zont.yaml
-      - name: Enforce NikaS rules 1.17
+          grep -F 'VERSION = "0.9.2"' custom_components/zont_local/const.py
+          grep -F 'FRONTEND_BUILD = "b022"' custom_components/zont_local/const.py
+          grep -F '"version": "0.9.2"' custom_components/zont_local/manifest.json
+          grep -F 'version: 0.9.2' dashboard/manifest/zont.yaml
+          grep -F 'const UI_VERSION = "0.9.2"' custom_components/zont_local/frontend/zont-ui.js
+      - name: Enforce NikaS UI standard v1.9
         run: python scripts/check_nikas_ui_standard.py
 
   hassfest:

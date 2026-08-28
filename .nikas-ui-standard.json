@@ -1,0 +1,56 @@
+{
+  "version": "1.9",
+  "navigation_contract_version": "1.1",
+  "standard_path": "docs/NIKAS_SPECIALIZED_PANEL_UI_STANDARD.md",
+  "standard_sha256": "f02b40c0e16d49ced98f3f099382ede1798837e1d709cb8934787c110455fb9c",
+  "navigation_contract_path": "docs/NIKAS_PANEL_NAVIGATION_CONTRACT.md",
+  "navigation_contract_sha256": "c87dc760c0900701f6a807a35aba40e790f68f52c39f4579583598f697997e52",
+  "role": "specialized",
+  "artifact_kind": "production",
+  "runtime_files": [
+    "custom_components/zont_local/frontend/zont-ui.js"
+  ],
+  "production_entrypoint": "custom_components/zont_local/frontend/zont-ui.js",
+  "build_source_files": [],
+  "ui_version": "0.9.2",
+  "web_component": "zont-local-panel",
+  "bundle_contract": {
+    "autonomous": true,
+    "runtime_imports": false,
+    "deterministic": true,
+    "cache_busting": "ui_version"
+  },
+  "data_truth": {
+    "entity_source": "integration_or_ha_registry",
+    "unknown_unavailable": "explicit",
+    "invented_entity_ids": false,
+    "fixed_entity_ids": "none",
+    "command_policy": "entity_services",
+    "command_markers": ["await this._hass.callService(\"button\", \"press\""]
+  },
+  "header_return": {
+    "button_marker": "className = \"heading title-plaque\"",
+    "version_marker": "<span>UI v${UI_VERSION}</span>",
+    "focus_marker": ".title-plaque:focus-visible",
+    "pressed_marker": ".title-plaque:active",
+    "explicit_precedence_marker": "validRoute(params.get(\"return_to\")) || validRoute(params.get(\"from\"))",
+    "capture_once_marker": "this.__zontReturnRouteV090 ||= captureReturnRoute(this._config())",
+    "timestamp_required_marker": "handedOffRaw !== null",
+    "future_timestamp_rejection_marker": "handedOffAge >= 0"
+  },
+  "forbidden_runtime_markers": [
+    "history.back(",
+    "mdi:arrow-left",
+    "aria-label=\"Назад\""
+  ],
+  "title_plaque_reference": {
+    "implementation": "LIDER",
+    "min_width": "min(290px,100%)",
+    "min_height_px": 44,
+    "padding_px": "5 14",
+    "radius_px": 16,
+    "primary_background_mix_percent": 5,
+    "primary_border_mix_percent": 24,
+    "shadow": "0 5px 16px rgba(23,45,76,.06)"
+  }
+}

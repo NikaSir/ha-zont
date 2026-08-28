@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.2
+
+- Requires a complete source-route/timestamp pair and rejects missing, invalid, stale and future hand-offs before the centered Header plaque captures its return route.
+- Adopts NikaS Specialized Panel UI Standard v1.9, Navigation Contract v1.1, explicit unavailable-state behavior and autonomous production-entrypoint guards.
+- Raises the integration/UI version to `0.9.2` and the frontend cache key to `b022` while preserving the approved ZONT application shell.
+
 ## 0.9.1
 
 - Rebuilt ZONT as one integration-owned panel conforming to NikaS rules 1.17 while retaining the approved boilers, DHW, light hydraulic separator, heating circuits and local equipment art.
