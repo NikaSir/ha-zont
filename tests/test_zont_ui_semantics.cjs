@@ -78,8 +78,14 @@ assert.match(constantsSource, /PANEL_WEB_COMPONENT_NAME = "zont-local-panel"/, "
 assert.match(fullSource, /hass-toggle-menu/, "left Header rail must open the native HA menu");
 assert.match(fullSource, /className = "heading title-plaque"/, "Header title must be one source-aware plaque");
 assert.match(fullSource, /nikas\.specialized\.source_route\.v1/, "panel must consume the shared source hand-off");
+assert.match(fullSource, /nikas\.specialized\.source_route_at\.v1/, "panel must validate the shared hand-off timestamp");
+assert.match(fullSource, /\/dashboard-house-v11\/home/, "House return must use the canonical v11 entry");
+assert.match(fullSource, /\/dashboard-actions\/home/, "Actions return must use its canonical entry");
+assert.match(fullSource, /\/dashboard-infrastructure\/overview/, "Infrastructure return must use its canonical entry");
 assert.match(fullSource, /<span>UI v\$\{UI_VERSION\}<\/span>/, "Header second line must contain version only");
 assert.doesNotMatch(fullSource, /history\.back\s*\(/, "browser history is not a navigation contract");
+assert.doesNotMatch(fullSource, /mdi:arrow-left/, "the permanent Header must not retain a legacy Back arrow");
+assert.doesNotMatch(fullSource, /["']\/dashboard-house["']/, "legacy House root must not be a return route");
 assert.match(fullSource, /work-viewport native-scroll/, "panel must mount exactly one standard work viewport");
 assert.match(fullSource, /SCALE_MIN = \.75/, "zoom minimum must be 75 percent");
 assert.match(fullSource, /SCALE_MAX = 2/, "zoom maximum must be 200 percent");

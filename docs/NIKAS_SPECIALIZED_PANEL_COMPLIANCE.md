@@ -2,7 +2,7 @@
 
 **Runtime:** `zont_local` 0.9.1 / ZONT UI 0.9.1 (`b021`)
 
-**Authority:** `NIKAS_SPECIALIZED_PANEL_UI_STANDARD.md` v1.7
+**Authority:** `NIKAS_SPECIALIZED_PANEL_UI_STANDARD.md` v1.8 and `NIKAS_PANEL_NAVIGATION_CONTRACT.md` v1.0
 
 **Primary viewport:** iPhone Pro Max portrait
 
@@ -18,7 +18,7 @@
 - PASS — Header, exactly one work viewport and the Bottom Tab Bar are stable siblings in a height-locked shell.
 - PASS — the left 44 px plaque dispatches `hass-toggle-menu`; the right matching plaque refreshes the registry.
 - PASS — the centered semantic title plaque shows `ZONT` and the version-only line `UI v0.9.1`.
-- PASS — source-aware return accepts only the three NikaS base-dashboard roots, consumes the shared one-shot session key and navigates explicitly with `pushState` plus `location-changed`.
+- PASS — source-aware return normalizes only the three canonical v11 base entries, consumes the timestamped one-shot session hand-off and navigates explicitly with `pushState` plus `location-changed`.
 - PASS — the five equal Bottom Tab destinations use `ha-icon`, 28 px glyphs, 12 px labels and stay above the iOS Home Indicator.
 
 ## Work viewport and zoom

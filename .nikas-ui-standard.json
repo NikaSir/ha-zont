@@ -1,0 +1,35 @@
+{
+  "version": "1.8",
+  "standard_path": "docs/NIKAS_SPECIALIZED_PANEL_UI_STANDARD.md",
+  "standard_sha256": "af41ee58956f0076519157c295f8e9b97f82c1e764fe64456680a1aeae0ba244",
+  "navigation_contract_path": "docs/NIKAS_PANEL_NAVIGATION_CONTRACT.md",
+  "navigation_contract_sha256": "b434169a733d5c40eb0155ccc1a0377354002caab6d2073801754ac5a367c37b",
+  "role": "specialized",
+  "runtime_files": [
+    "custom_components/zont_local/frontend/zont-ui.js"
+  ],
+  "production_entrypoint": "custom_components/zont_local/frontend/zont-ui.js",
+  "header_return": {
+    "button_marker": "className = \"heading title-plaque\"",
+    "version_marker": "<span>UI v${UI_VERSION}</span>",
+    "focus_marker": ".title-plaque:focus-visible",
+    "pressed_marker": ".title-plaque:active",
+    "explicit_precedence_marker": "validRoute(params.get(\"return_to\")) || validRoute(params.get(\"from\"))",
+    "capture_once_marker": "this.__zontReturnRouteV090 ||= captureReturnRoute(this._config())"
+  },
+  "forbidden_runtime_markers": [
+    "history.back(",
+    "mdi:arrow-left",
+    "aria-label=\"Назад\""
+  ],
+  "title_plaque_reference": {
+    "implementation": "LIDER",
+    "min_width": "min(290px,100%)",
+    "min_height_px": 44,
+    "padding_px": "5 14",
+    "radius_px": 16,
+    "primary_background_mix_percent": 5,
+    "primary_border_mix_percent": 24,
+    "shadow": "0 5px 16px rgba(23,45,76,.06)"
+  }
+}

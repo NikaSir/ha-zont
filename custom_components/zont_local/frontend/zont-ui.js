@@ -474,8 +474,9 @@
           .bottom{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));background:var(--card-background-color,#fff);border-top:1px solid var(--divider-color,#ddd)}nav{width:min(100%,700px);margin:auto;display:grid;grid-template-columns:repeat(${tabs.length},minmax(0,1fr));gap:3px}.tab{border:0;background:transparent;color:var(--secondary-text-color,#777);min-width:0;min-height:60px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:5px 2px}.tab.active{color:var(--primary-color,#0097a7);background:color-mix(in srgb,var(--primary-color,#0097a7) 10%,transparent)}.tab ha-icon{--mdc-icon-size:24px}.tab span{width:100%;font-size:10.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
           @media(max-width:420px){main{padding-left:10px;padding-right:10px}.system-card{padding:12px}.system-title{font-size:16px}.meter-card{min-height:160px}.meter-value,.room-value{font-size:23px}.room-card{min-height:175px}.room-meta{font-size:9.5px}.status-tile{min-height:110px}.mode-buttons button{min-height:62px;padding:8px}}
         </style>
-        <div class="app"><header class="header"><button class="rail" id="back" aria-label="Назад"><ha-icon icon="mdi:arrow-left"></ha-icon></button><div class="heading"><strong>ZONT</strong><span>${esc(config.subtitle || "Отопление и ГВС")}</span></div><button class="rail" id="refresh" aria-label="Обновить"><ha-icon icon="mdi:refresh"></ha-icon></button></header><main>${this._content(active, items)}</main><div class="bottom"><nav>${nav}</nav></div></div>`;
-      this.shadowRoot.getElementById("back").onclick = () => navigate(config.parent?.path || "/dashboard-house/heating");
+        <div class="app"><header class="header"><button class="rail" id="back" aria-label="Меню Home Assistant"><ha-icon icon="mdi:menu"></ha-icon></button><button class="heading" id="legacy-return" type="button" aria-label="ZONT. Вернуться в базовую панель NikaS"><strong>ZONT</strong><span>UI v0.9.1</span></button><button class="rail" id="refresh" aria-label="Обновить"><ha-icon icon="mdi:refresh"></ha-icon></button></header><main>${this._content(active, items)}</main><div class="bottom"><nav>${nav}</nav></div></div>`;
+      this.shadowRoot.getElementById("back").onclick = () => this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true }));
+      this.shadowRoot.getElementById("legacy-return").onclick = () => navigate(config.parent?.path || "/dashboard-house-v11/home");
       this.shadowRoot.getElementById("refresh").onclick = () => { this._registry = null; this._load(true); };
       for (const button of this.shadowRoot.querySelectorAll("button[data-tab]")) button.onclick = () => this._selectTab(button.dataset.tab);
       for (const button of this.shadowRoot.querySelectorAll("button[data-mode-entity]")) button.onclick = () => this._pressMode(button.dataset.modeEntity, button.dataset.modeLabel);
@@ -1241,9 +1242,10 @@ function installV090() {
   const SNAP_MAX = 1.03;
   const CLICK_GUARD_MS = 420;
   const SOURCE_KEY = "nikas.specialized.source_route.v1";
+  const SOURCE_AT_KEY = "nikas.specialized.source_route_at.v1";
   const SAVED_SOURCE_KEY = "nikas.specialized.zont.source_route.v1";
   const ZOOM_KEY = "nikas.specialized.zont.zoom.v1";
-  const allowedRoots = ["/dashboard-house", "/dashboard-actions", "/dashboard-infrastructure"];
+  const SOURCE_ROUTE_TTL_MS = 30_000;
 
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
   const distance = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
@@ -1258,8 +1260,16 @@ function installV090() {
     try {
       const url = new URL(String(raw), window.location.origin);
       if (url.origin !== window.location.origin) return null;
-      return allowedRoots.some((root) => url.pathname === root || url.pathname.startsWith(`${root}/`))
-        ? `${url.pathname}${url.search}${url.hash}` : null;
+      if (url.pathname === "/dashboard-house-v11" || url.pathname.startsWith("/dashboard-house-v11/")) {
+        return "/dashboard-house-v11/home";
+      }
+      if (url.pathname === "/dashboard-actions" || url.pathname.startsWith("/dashboard-actions/")) {
+        return "/dashboard-actions/home";
+      }
+      if (url.pathname === "/dashboard-infrastructure" || url.pathname.startsWith("/dashboard-infrastructure/")) {
+        return "/dashboard-infrastructure/overview";
+      }
+      return null;
     } catch (_error) { return null; }
   };
   const captureReturnRoute = (config) => {
@@ -1267,14 +1277,19 @@ function installV090() {
     const explicit = validRoute(params.get("return_to")) || validRoute(params.get("from"));
     let handoff = null;
     try {
-      handoff = validRoute(sessionStorage.getItem(SOURCE_KEY));
-      if (handoff) sessionStorage.removeItem(SOURCE_KEY);
+      const handedOffAtRaw = sessionStorage.getItem(SOURCE_AT_KEY);
+      const handedOffAt = Number(handedOffAtRaw);
+      const handoffIsFresh = handedOffAtRaw === null
+        || (Number.isFinite(handedOffAt) && Date.now() - handedOffAt <= SOURCE_ROUTE_TTL_MS);
+      handoff = handoffIsFresh ? validRoute(sessionStorage.getItem(SOURCE_KEY)) : null;
+      sessionStorage.removeItem(SOURCE_KEY);
+      sessionStorage.removeItem(SOURCE_AT_KEY);
     } catch (_error) { /* storage is optional */ }
     let saved = null;
     try { saved = validRoute(localStorage.getItem(SAVED_SOURCE_KEY)); } catch (_error) { /* optional */ }
     const referrer = validRoute(document.referrer);
     const configured = validRoute(config?.parent?.path || config?.parent_route);
-    const route = explicit || handoff || saved || referrer || configured || "/dashboard-house";
+    const route = explicit || handoff || saved || referrer || configured || "/dashboard-house-v11/home";
     try { localStorage.setItem(SAVED_SOURCE_KEY, route); } catch (_error) { /* optional */ }
     return route;
   };

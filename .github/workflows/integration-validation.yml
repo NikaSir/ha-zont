@@ -32,7 +32,7 @@ jobs:
           grep -F 'VERSION = "0.9.1"' custom_components/zont_local/const.py
           grep -F '"version": "0.9.1"' custom_components/zont_local/manifest.json
           grep -F 'version: 0.9.1' dashboard/manifest/zont.yaml
-      - name: Enforce NikaS rules 1.17
+      - name: Enforce NikaS UI standard v1.8
         run: python scripts/check_nikas_ui_standard.py
 
   hassfest:
