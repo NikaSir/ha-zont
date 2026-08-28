@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="custom_components/zont_local/brand/icon.png" width="112" height="112" alt="ZONT Local & UI icon">
+</p>
+
 # ha-zont
 
 ZONT Local & UI for Home Assistant.
