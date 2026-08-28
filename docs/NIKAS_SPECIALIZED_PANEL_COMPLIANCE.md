@@ -1,6 +1,6 @@
-# ZONT compliance with NikaS rules 1.17
+# ZONT compliance with NikaS UI v1.9
 
-**Runtime:** `zont_local` 0.9.2 / ZONT UI 0.9.2 (`b022`)
+**Runtime:** `zont_local` 0.9.3 / ZONT UI 0.9.3 (`b023`)
 
 **Authority:** `NIKAS_SPECIALIZED_PANEL_UI_STANDARD.md` v1.9 and `NIKAS_PANEL_NAVIGATION_CONTRACT.md` v1.1
 
@@ -11,13 +11,14 @@
 - PASS — `ha-zont` alone registers `/dashboard-zont`, serves the frontend bundle and owns its local assets.
 - PASS — the panel uses the unique custom element `zont-local-panel`; there is no runtime import or dependency on Contract Generated UI.
 - PASS — updates use traceable commits and pull requests without GitHub Releases or automatic release tags.
-- PASS — deterministic frontend cache key `b022` and asset version `0.9.2` are packaged with the integration.
+- PASS — deterministic frontend cache key `b023` and asset version `0.9.3` are packaged with the integration.
 
 ## Fixed shell and navigation
 
 - PASS — Header, exactly one work viewport and the Bottom Tab Bar are stable siblings in a height-locked shell.
+- PASS — the panel host is fixed to the client viewport, outer scroll chaining is blocked and telemetry cannot change the native scroll anchor.
 - PASS — the left 44 px plaque dispatches `hass-toggle-menu`; the right matching plaque refreshes the registry.
-- PASS — the centered semantic title plaque shows `ZONT` and the version-only line `UI v0.9.2`.
+- PASS — the centered semantic title plaque and the Home Assistant menu use the approved name `Отопление`; the second line is exactly `UI v0.9.3`.
 - PASS — source-aware return normalizes only the three canonical v11 base entries, requires the route/timestamp pair, rejects invalid, stale and future timestamps, then navigates explicitly with `pushState` plus `location-changed`.
 - PASS — the five equal Bottom Tab destinations use `ha-icon`, 28 px glyphs, 12 px labels and stay above the iOS Home Indicator.
 
@@ -33,6 +34,7 @@
 ## Rendering, semantics and visual contract
 
 - PASS — the shell mounts once; visited tab views are cached; telemetry morphs the active view instead of replacing `shadowRoot`.
+- PASS — manual Refresh preserves and labels the last accepted telemetry until a new registry snapshot is ready, including refresh failure; it does not replace the work view with a loading frame.
 - PASS — the approved boilers, DHW, light hydraulic separator, circuit topology and packaged equipment art are retained as live layered UI.
 - PASS — meaningful mobile text is recomposed to the 12–25 px envelope; the layout scrolls instead of shrinking operational labels.
 - PASS — the requested ZONT connection plaque uses `Локально / Нет связи / Нет данных` independently from `Данные актуальны / Данные устарели / Нет данных`.

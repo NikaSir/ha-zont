@@ -71,7 +71,9 @@ def main() -> None:
     assert removed == ["dashboard-zont"]
     assert panel["frontend_url_path"] == "dashboard-zont"
     assert panel["webcomponent_name"] == "zont-local-panel"
-    assert panel["module_url"].endswith("?build=b022")
+    assert panel["module_url"].endswith("?v=0.9.3&build=b023")
+    assert panel["sidebar_title"] == "Отопление"
+    assert panel["config"]["title"] == "Отопление"
     assert len(panel["config"]["tabs"]) == 5
 
     asyncio.run(zont_local.async_unload_entry(hass, object()))

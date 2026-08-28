@@ -70,7 +70,7 @@
     }
 
     _load(force = false) {
-      if (!this._hass?.callWS || (this._loading && !force) || (this._registry && !force)) return;
+      if (!this._hass?.callWS || this._loading || (this._registry && !force)) return;
       this._error = null;
       this._loading = Promise.all([
         this._hass.callWS({ type: "config/entity_registry/list" }),
@@ -79,8 +79,10 @@
         this._registry = Array.isArray(entries) ? entries : [];
         this._devices = new Map((Array.isArray(devices) ? devices : []).filter((d) => d?.id).map((d) => [d.id, d]));
       }).catch((error) => {
-        this._registry = [];
-        this._devices = new Map();
+        if (!Array.isArray(this._registry)) {
+          this._registry = [];
+          this._devices = new Map();
+        }
         this._error = error instanceof Error ? error.message : String(error);
       }).finally(() => { this._loading = null; this._queue(); });
     }
@@ -436,15 +438,19 @@
     }
 
     _content(active, items) {
-      if (this._error) return `<div class="empty problem">Ошибка чтения реестра: ${esc(this._error)}</div>`;
       if (!Array.isArray(this._registry)) return `<div class="empty">Читаю данные ZONT…</div>`;
-      if (!items.length) return `<div class="empty">Сущности ZONT не найдены.</div>`;
-      if (active.id === "states") return this._states(items);
-      if (active.id === "boilers") return this._boilers(items);
-      if (active.id === "heating") return this._heating(items);
-      if (active.id === "sensors") return this._sensors(items);
-      if (active.id === "diagnostics") return this._diagnostics(items);
-      return this._states(items);
+      if (!items.length) return this._error
+        ? `<div class="empty problem">Ошибка чтения реестра: ${esc(this._error)}</div>`
+        : `<div class="empty">Сущности ZONT не найдены.</div>`;
+      let content = this._states(items);
+      if (active.id === "boilers") content = this._boilers(items);
+      else if (active.id === "heating") content = this._heating(items);
+      else if (active.id === "sensors") content = this._sensors(items);
+      else if (active.id === "diagnostics") content = this._diagnostics(items);
+      const refreshError = this._error
+        ? `<div class="empty problem">Не удалось обновить реестр. Показаны последние принятые данные: ${esc(this._error)}</div>`
+        : "";
+      return `${refreshError}${content}`;
     }
 
     async _pressMode(entityId, label) {
@@ -485,10 +491,10 @@
           .bottom{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));background:var(--card-background-color,#fff);border-top:1px solid var(--divider-color,#ddd)}nav{width:min(100%,700px);margin:auto;display:grid;grid-template-columns:repeat(${tabs.length},minmax(0,1fr));gap:3px}.tab{border:0;background:transparent;color:var(--secondary-text-color,#777);min-width:0;min-height:60px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:5px 2px}.tab.active{color:var(--primary-color,#0097a7);background:color-mix(in srgb,var(--primary-color,#0097a7) 10%,transparent)}.tab ha-icon{--mdc-icon-size:24px}.tab span{width:100%;font-size:10.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
           @media(max-width:420px){main{padding-left:10px;padding-right:10px}.system-card{padding:12px}.system-title{font-size:16px}.meter-card{min-height:160px}.meter-value,.room-value{font-size:23px}.room-card{min-height:175px}.room-meta{font-size:9.5px}.status-tile{min-height:110px}.mode-buttons button{min-height:62px;padding:8px}}
         </style>
-        <div class="app"><header class="header"><button class="rail" id="back" aria-label="Меню Home Assistant"><ha-icon icon="mdi:menu"></ha-icon></button><button class="heading" id="legacy-return" type="button" aria-label="ZONT. Вернуться в базовую панель NikaS"><strong>ZONT</strong><span>UI v0.9.2</span></button><button class="rail" id="refresh" aria-label="Обновить"><ha-icon icon="mdi:refresh"></ha-icon></button></header><main>${this._content(active, items)}</main><div class="bottom"><nav>${nav}</nav></div></div>`;
+        <div class="app"><header class="header"><button class="rail" id="back" aria-label="Меню Home Assistant"><ha-icon icon="mdi:menu"></ha-icon></button><button class="heading" id="legacy-return" type="button" aria-label="Отопление. Вернуться в базовую панель NikaS"><strong>Отопление</strong><span>UI v0.9.3</span></button><button class="rail" id="refresh" aria-label="Обновить"><ha-icon icon="mdi:refresh"></ha-icon></button></header><main>${this._content(active, items)}</main><div class="bottom"><nav>${nav}</nav></div></div>`;
       this.shadowRoot.getElementById("back").onclick = () => this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true }));
       this.shadowRoot.getElementById("legacy-return").onclick = () => navigate(config.parent?.path || "/dashboard-house-v11/home");
-      this.shadowRoot.getElementById("refresh").onclick = () => { this._registry = null; this._load(true); };
+      this.shadowRoot.getElementById("refresh").onclick = () => this._load(true);
       for (const button of this.shadowRoot.querySelectorAll("button[data-tab]")) button.onclick = () => this._selectTab(button.dataset.tab);
       for (const button of this.shadowRoot.querySelectorAll("button[data-mode-entity]")) button.onclick = () => this._pressMode(button.dataset.modeEntity, button.dataset.modeLabel);
     }
@@ -497,12 +503,12 @@
   customElements.define(ELEMENT_NAME, NikasGeneratedZont);
 })();
 
-// ZONT UI v0.9.2 — standalone rules 1.17 rebuild of the approved application layer.
+// ZONT UI v0.9.3 — standalone NikaS UI v1.9 application.
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.9.2";
-const ASSET_VERSION = "0.9.2";
+const UI_VERSION = "0.9.3";
+const ASSET_VERSION = "0.9.3";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -1307,15 +1313,15 @@ function installV090() {
     const title = document.createElement("button");
     title.type = "button";
     title.className = "heading title-plaque";
-    title.setAttribute("aria-label", "ZONT. Вернуться в базовую панель NikaS");
-    title.innerHTML = `<strong>ZONT</strong><span>UI v${UI_VERSION}</span>`;
+    title.setAttribute("aria-label", "Отопление. Вернуться в базовую панель NikaS");
+    title.innerHTML = `<strong>Отопление</strong><span>UI v${UI_VERSION}</span>`;
     header.querySelector(".heading")?.replaceWith(title);
     this.__zontReturnRouteV090 ||= captureReturnRoute(this._config());
     title.onclick = () => navigate(this.__zontReturnRouteV090);
 
     const viewport = document.createElement("section");
     viewport.className = "work-viewport native-scroll";
-    viewport.setAttribute("aria-label", "Рабочая область ZONT. Масштабирование двумя пальцами");
+    viewport.setAttribute("aria-label", "Рабочая область Отопление. Масштабирование двумя пальцами");
     const stage = document.createElement("div");
     stage.className = "work-stage";
     const surface = document.createElement("div");
@@ -1330,15 +1336,15 @@ function installV090() {
     const style = document.createElement("style");
     style.id = "zont-rules-117-style";
     style.textContent = `
-      :host{height:100dvh!important;min-height:0!important;overflow:hidden!important}
-      .app{height:100dvh!important;min-height:0!important;padding:0!important;display:grid!important;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden!important;overscroll-behavior:none}
+      :host{position:fixed!important;inset:0!important;display:block!important;width:auto!important;height:auto!important;min-width:0!important;min-height:0!important;overflow:hidden!important;overscroll-behavior:none!important}
+      .app{position:absolute!important;inset:0!important;width:auto!important;height:auto!important;min-width:0!important;min-height:0!important;padding:0!important;display:grid!important;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden!important;overscroll-behavior:none}
       .header{position:relative!important;top:auto!important;grid-row:1;grid-template-columns:52px minmax(0,1fr) 52px!important;min-height:calc(60px + env(safe-area-inset-top,0px))!important;padding:max(6px,env(safe-area-inset-top,0px)) 10px 6px!important;z-index:30!important}
       .rail{width:44px!important;height:44px!important;border:1px solid var(--divider-color,#ddd)!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;box-shadow:0 7px 20px rgba(23,45,76,.08)!important;padding:0!important}
       .rail ha-icon{--mdc-icon-size:25px!important}#back{color:var(--primary-text-color,#202124)!important}#refresh{color:var(--primary-color,#087de0)!important}
       .title-plaque{justify-self:center;min-width:min(290px,100%);max-width:100%;min-height:44px;padding:5px 14px;border:1px solid color-mix(in srgb,var(--primary-color,#03a9d9) 24%,var(--divider-color,#dfe3e8));border-radius:16px;background:color-mix(in srgb,var(--primary-color,#03a9d9) 5%,var(--card-background-color,#fff));color:var(--primary-text-color,#202124);box-shadow:0 5px 16px rgba(23,45,76,.06);cursor:pointer}
       .title-plaque:focus-visible{outline:2px solid var(--primary-color,#03a9d9);outline-offset:2px}.title-plaque:active{transform:scale(.985);background:color-mix(in srgb,var(--primary-color,#03a9d9) 13%,var(--card-background-color,#fff));border-color:color-mix(in srgb,var(--primary-color,#03a9d9) 42%,var(--divider-color,#dfe3e8));box-shadow:0 2px 7px rgba(23,45,76,.05)}
       .title-plaque strong{font-size:23px!important;font-weight:800!important;line-height:1.05}.title-plaque span{margin-top:3px!important;font-size:14px!important;font-weight:560!important;color:var(--secondary-text-color,#666)!important}
-      .work-viewport{grid-row:2;position:relative;min-width:0;min-height:0;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--primary-background-color,#f2f3f5)}
+      .work-viewport{grid-row:2;position:relative;min-width:0;min-height:0;overscroll-behavior:none;overflow-anchor:none;-webkit-overflow-scrolling:touch;background:var(--primary-background-color,#f2f3f5)}
       .work-viewport.native-scroll{overflow-x:hidden!important;overflow-y:auto!important;touch-action:pan-y!important}.work-viewport.zoomed{overflow:hidden!important;touch-action:none!important}
       .work-stage{position:relative;min-width:100%;min-height:100%}.work-surface{position:absolute;inset:0 auto auto 0;width:100%;transform-origin:0 0}
       .work-view{width:min(100%,980px)!important;min-height:100%;margin:0 auto!important;padding:14px 12px 30px!important}.work-view[hidden]{display:none!important}
@@ -1357,6 +1363,9 @@ function installV090() {
       @media(max-width:360px){.title-plaque strong{font-size:20px!important}.z82-online{min-width:124px!important}.z82-online strong{font-size:15px!important}.z82-equipment-grid{grid-template-columns:1fr!important}.z82-dhw-card{grid-column:auto!important}}
     `;
     root.append(style);
+
+    const refresh = header.querySelector("#refresh");
+    if (refresh) refresh.onclick = () => this._load(true);
 
     const navButtons = [...bottom.querySelectorAll("button[data-tab]")];
     for (const button of navButtons) button.onclick = () => this._selectTab(button.dataset.tab);
