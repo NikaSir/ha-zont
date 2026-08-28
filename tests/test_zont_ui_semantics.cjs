@@ -7,7 +7,9 @@ assert.match(fullSource, /Standalone semantic ZONT panel/, "standalone bundle mu
 assert.match(fullSource, /const ELEMENT_NAME = "zont-local-panel"/, "ZONT must use its integration-owned custom element");
 assert.doesNotMatch(fullSource, /nikas-generated-zont/, "ZONT must not reuse the retired shared custom element");
 assert.doesNotMatch(fullSource, /^import\s+/m, "standalone bundle must not use runtime imports");
-const appMarker = "// ZONT UI v0.9.1";
+assert.doesNotMatch(fullSource, /["'](?:sensor|binary_sensor)\.nikas_h2000_pro_/, "frontend must not bind installation-specific entity IDs");
+assert.doesNotMatch(fullSource, /const CONTROLLER_FACTS/, "controller facts must come from the HA device registry");
+const appMarker = "// ZONT UI v0.9.2";
 const appOffset = fullSource.indexOf(appMarker);
 assert.ok(appOffset >= 0, "standalone bundle must contain the approved ZONT application layer");
 let source = fullSource.slice(appOffset);
@@ -60,7 +62,7 @@ assert.match(source, /class="z82-loop-pump/, "DHW circulation pump must be a phy
 assert.match(source, /z82-pump-art[\s\S]{0,160}<ha-icon icon="mdi:pump"/, "heating circuit status rows must use a pump symbol");
 
 const panelManifest = JSON.parse(fs.readFileSync("custom_components/zont_local/frontend/panel_manifest.json", "utf8"));
-assert.equal(panelManifest.ui_version, "0.9.1");
+assert.equal(panelManifest.ui_version, "0.9.2");
 for (const asset of panelManifest.assets) {
   const path = `custom_components/zont_local/frontend/${asset.path}`;
   assert.ok(fs.existsSync(path), `declared panel asset must exist: ${path}`);
@@ -79,6 +81,9 @@ assert.match(fullSource, /hass-toggle-menu/, "left Header rail must open the nat
 assert.match(fullSource, /className = "heading title-plaque"/, "Header title must be one source-aware plaque");
 assert.match(fullSource, /nikas\.specialized\.source_route\.v1/, "panel must consume the shared source hand-off");
 assert.match(fullSource, /nikas\.specialized\.source_route_at\.v1/, "panel must validate the shared hand-off timestamp");
+assert.match(fullSource, /handedOffRaw !== null/);
+assert.match(fullSource, /handedOffAtRaw !== null/);
+assert.match(fullSource, /handedOffAge >= 0/);
 assert.match(fullSource, /\/dashboard-house-v11\/home/, "House return must use the canonical v11 entry");
 assert.match(fullSource, /\/dashboard-actions\/home/, "Actions return must use its canonical entry");
 assert.match(fullSource, /\/dashboard-infrastructure\/overview/, "Infrastructure return must use its canonical entry");
@@ -100,6 +105,9 @@ assert.match(fullSource, /\.tab ha-icon\{--mdc-icon-size:28px/, "Bottom Tab Bar 
 assert.match(fullSource, /\.tab span\{font-size:12px/, "Bottom Tab labels must remain readable");
 assert.match(fullSource, /"Локально"/, "connection indicator must identify the local transport");
 assert.match(fullSource, /"Данные актуальны"/, "connection indicator must report freshness independently");
+assert.match(fullSource, /device\.sw_version/, "device facts must be registry-backed");
+assert.match(fullSource, /this\._busyMode \|\| this\._isProblem\(item\)/, "mode commands must reject duplicate and unavailable targets");
+assert.match(fullSource, /this\._commandError = error instanceof Error/, "mode command failures must remain visible");
 
 const brand = "custom_components/zont_local/brand/icon.png";
 assert.ok(fs.existsSync(brand) && fs.statSync(brand).size > 0, "packaged HACS brand icon must exist");
