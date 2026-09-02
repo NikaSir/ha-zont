@@ -1,8 +1,8 @@
-"""Constants for ZONT Local & UI."""
+"""Constants for NikaS ZONT Local & UI."""
 
 DOMAIN = "zont_local"
-NAME = "ZONT Local & UI"
-VERSION = "0.9.3"
+NAME = "NikaS ZONT Local & UI"
+VERSION = "0.9.4"
 
 FRONTEND_DIRECTORY = "frontend"
 FRONTEND_FILENAME = "zont-ui.js"
