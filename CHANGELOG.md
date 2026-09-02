@@ -5,6 +5,7 @@
 - Prefixes the Home Assistant and HACS integration name with `NikaS`.
 - Republishes the approved local ZONT brand icon through a versioned HACS update.
 - Keeps the approved panel title `Отопление`.
+- Synchronizes the production bundle with the NikaS UI version contract.
 
 ## 0.9.3
 
