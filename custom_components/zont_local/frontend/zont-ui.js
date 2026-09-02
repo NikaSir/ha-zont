@@ -491,7 +491,7 @@
           .bottom{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));background:var(--card-background-color,#fff);border-top:1px solid var(--divider-color,#ddd)}nav{width:min(100%,700px);margin:auto;display:grid;grid-template-columns:repeat(${tabs.length},minmax(0,1fr));gap:3px}.tab{border:0;background:transparent;color:var(--secondary-text-color,#777);min-width:0;min-height:60px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:5px 2px}.tab.active{color:var(--primary-color,#0097a7);background:color-mix(in srgb,var(--primary-color,#0097a7) 10%,transparent)}.tab ha-icon{--mdc-icon-size:24px}.tab span{width:100%;font-size:10.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
           @media(max-width:420px){main{padding-left:10px;padding-right:10px}.system-card{padding:12px}.system-title{font-size:16px}.meter-card{min-height:160px}.meter-value,.room-value{font-size:23px}.room-card{min-height:175px}.room-meta{font-size:9.5px}.status-tile{min-height:110px}.mode-buttons button{min-height:62px;padding:8px}}
         </style>
-        <div class="app"><header class="header"><button class="rail" id="back" aria-label="Меню Home Assistant"><ha-icon icon="mdi:menu"></ha-icon></button><button class="heading" id="legacy-return" type="button" aria-label="Отопление. Вернуться в базовую панель NikaS"><strong>Отопление</strong><span>UI v0.9.3</span></button><button class="rail" id="refresh" aria-label="Обновить"><ha-icon icon="mdi:refresh"></ha-icon></button></header><main>${this._content(active, items)}</main><div class="bottom"><nav>${nav}</nav></div></div>`;
+        <div class="app"><header class="header"><button class="rail" id="back" aria-label="Меню Home Assistant"><ha-icon icon="mdi:menu"></ha-icon></button><button class="heading" id="legacy-return" type="button" aria-label="Отопление. Вернуться в базовую панель NikaS"><strong>Отопление</strong><span>UI v0.9.4</span></button><button class="rail" id="refresh" aria-label="Обновить"><ha-icon icon="mdi:refresh"></ha-icon></button></header><main>${this._content(active, items)}</main><div class="bottom"><nav>${nav}</nav></div></div>`;
       this.shadowRoot.getElementById("back").onclick = () => this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true }));
       this.shadowRoot.getElementById("legacy-return").onclick = () => navigate(config.parent?.path || "/dashboard-house-v11/home");
       this.shadowRoot.getElementById("refresh").onclick = () => this._load(true);
@@ -503,12 +503,12 @@
   customElements.define(ELEMENT_NAME, NikasGeneratedZont);
 })();
 
-// ZONT UI v0.9.3 — standalone NikaS UI v1.9 application.
+// ZONT UI v0.9.4 — standalone NikaS UI v1.9 application.
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.9.3";
-const ASSET_VERSION = "0.9.3";
+const UI_VERSION = "0.9.4";
+const ASSET_VERSION = "0.9.4";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;

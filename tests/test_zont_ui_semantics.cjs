@@ -9,7 +9,7 @@ assert.doesNotMatch(fullSource, /nikas-generated-zont/, "ZONT must not reuse the
 assert.doesNotMatch(fullSource, /^import\s+/m, "standalone bundle must not use runtime imports");
 assert.doesNotMatch(fullSource, /["'](?:sensor|binary_sensor)\.nikas_h2000_pro_/, "frontend must not bind installation-specific entity IDs");
 assert.doesNotMatch(fullSource, /const CONTROLLER_FACTS/, "controller facts must come from the HA device registry");
-const appMarker = "// ZONT UI v0.9.3";
+const appMarker = "// ZONT UI v0.9.4";
 const appOffset = fullSource.indexOf(appMarker);
 assert.ok(appOffset >= 0, "standalone bundle must contain the approved ZONT application layer");
 let source = fullSource.slice(appOffset);
@@ -62,7 +62,7 @@ assert.match(source, /class="z82-loop-pump/, "DHW circulation pump must be a phy
 assert.match(source, /z82-pump-art[\s\S]{0,160}<ha-icon icon="mdi:pump"/, "heating circuit status rows must use a pump symbol");
 
 const panelManifest = JSON.parse(fs.readFileSync("custom_components/zont_local/frontend/panel_manifest.json", "utf8"));
-assert.equal(panelManifest.ui_version, "0.9.3");
+assert.equal(panelManifest.ui_version, "0.9.4");
 assert.equal(panelManifest.title, "Отопление");
 assert.equal(panelManifest.path, "/dashboard-zont");
 assert.equal(panelManifest.owner, "zont_local");

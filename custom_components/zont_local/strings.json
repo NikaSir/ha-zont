@@ -1,8 +1,9 @@
 {
+  "title": "NikaS ZONT Local & UI",
   "config": {
     "step": {
       "user": {
-        "title": "ZONT Local & UI",
+        "title": "NikaS ZONT Local & UI",
         "description": "Install the ZONT panel host. Local controller support will be added to this integration later."
       }
     },
