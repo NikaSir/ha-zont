@@ -3,7 +3,7 @@ kind: PanelManifest
 metadata:
   id: zont
   title: Отопление
-  version: 0.9.4
+  version: 0.9.5
   description: Standalone ZONT heating and DHW panel owned and registered by zont_local.
 spec:
   frontend_url_path: dashboard-zont
@@ -13,7 +13,7 @@ spec:
   parent:
     id: house.heating
     title: Отопление и ГВС
-    path: /dashboard-house-v11/home
+    path: /dashboard-house-v13/home
   source:
     kind: entity_registry
     platforms:

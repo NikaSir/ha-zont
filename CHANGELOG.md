@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.5
+
+- Migrates the panel to NikaS Specialized Panel UI Standard v2.2 and Navigation Contract v1.2 using the exact vendored shell kit v2.1.
+- Replaces browser-window fixed positioning with a host-bound three-row shell, canonical Header, one guarded work viewport and the 64 px Bottom Tab Bar.
+- Keeps `Котёл 1`, `Котёл 2` and the DHW tank in one top equipment row on phones as well as wider screens.
+- Brings the local/freshness indicator to the stable S8 OMNI two-line geometry and fail-closed state colors.
+- Adds deterministic build-time concatenation, pins the shell hash and raises frontend cache busting to `b024`.
+- Preserves the approved hydraulic topology, registry discovery, non-destructive refresh and guarded ZONT mode commands.
+
 ## 0.9.4
 
 - Prefixes the Home Assistant and HACS integration name with `NikaS`.
