@@ -1,10 +1,11 @@
 {
   "schema_version": 1,
-  "ui_version": "0.9.4",
+  "ui_version": "0.9.5",
+  "shell_version": "2.1",
   "title": "Отопление",
   "path": "/dashboard-zont",
   "owner": "zont_local",
-  "safe_return_route": "/dashboard-house-v11/home",
+  "safe_return_route": "/dashboard-house-v13/home",
   "public_root": "/zont_local_panel/",
   "zoom": {
     "min_percent": 75,

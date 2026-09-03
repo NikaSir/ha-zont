@@ -26,16 +26,16 @@ def read_relative(path: str) -> str:
 
 def main() -> None:
     config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    require(config.get("version") == "1.9", "NikaS UI standard version must be 1.9")
+    require(config.get("version") == "2.2", "NikaS UI standard version must be 2.2")
     require(
-        config.get("navigation_contract_version") == "1.1",
-        "NikaS navigation contract version must be 1.1",
+        config.get("navigation_contract_version") == "1.2",
+        "NikaS navigation contract version must be 1.2",
     )
 
     standard_path = config.get("standard_path", "docs/NIKAS_SPECIALIZED_PANEL_UI_STANDARD.md")
     standard = read_relative(standard_path)
     digest = hashlib.sha256(standard.encode("utf-8")).hexdigest()
-    require(digest == config.get("standard_sha256"), "local NikaS UI standard is not the canonical v1.9 copy")
+    require(digest == config.get("standard_sha256"), "local NikaS UI standard is not the canonical v2.2 copy")
     navigation_contract = read_relative(config["navigation_contract_path"])
     navigation_digest = hashlib.sha256(navigation_contract.encode("utf-8")).hexdigest()
     require(
@@ -55,10 +55,47 @@ def main() -> None:
         "Ambient shell synchronization",
         "Data truth and command safety",
         "Production bundle and version coherence",
+        "Home Assistant host boundary",
+        "Canonical shell rows",
+        "Canonical work-content frame",
+        "Mandatory viewport acceptance",
+        "capture-phase, non-passive `touchmove` boundary guard",
+        "never displays the Home Assistant refresh spinner",
+        "Build-time shell source",
+        "/dashboard-house-v13/home",
+        "/dashboard-rooms-v11/rooms",
+        "icon no larger than `26px`",
+        "canonical glyph size is `26px`",
     ):
         require(clause in standard, f"canonical Header-return clause missing: {clause}")
+
+    shell = config.get("shell_contract", {})
+    require(shell.get("version") == "2.1", "NikaS shell contract version must be 2.1")
+    require(shell.get("host_boundary") == "ha-panel", "shell must bind to the Home Assistant panel host")
+    require(shell.get("header_body_px") == 60, "canonical Header body must be 60px")
+    require(shell.get("peer_selector_px") == 52, "canonical peer selector must be 52px")
+    require(shell.get("bottom_nav_body_px") == 64, "canonical Bottom Tab Bar body must be 64px")
+    require(shell.get("content_max_width_px") == 1280, "canonical work-content max width must be 1280px")
+    require(shell.get("coordinate_tolerance_px") == 2, "shell coordinate tolerance must be 2px")
+    require(
+        shell.get("scroll_boundary_guard") == "capture-non-passive-touchmove",
+        "shell must block Home Assistant edge scrolling with the iOS boundary guard",
+    )
+    require(shell.get("specialized_tab_range") == [3, 5], "specialized Bottom Tab Bar must contain 3–5 tabs")
+    require(
+        shell.get("viewport_matrix")
+        == {
+            "phone_portrait": "430x932",
+            "phone_landscape": "932x430",
+            "tablet_portrait": "768x1024",
+            "tablet_landscape": "1024x768",
+            "desktop": "1440x900",
+        },
+        "canonical viewport matrix drift",
+    )
     for clause in (
-        "/dashboard-house-v11/home",
+        "/dashboard-house-v13/home",
+        "/dashboard-rooms-v11/rooms",
         "/dashboard-actions/home",
         "/dashboard-infrastructure/overview",
         "/starline",
@@ -98,7 +135,8 @@ def main() -> None:
     for token in (
         "nikas.specialized.source_route.v1",
         "nikas.specialized.source_route_at.v1",
-        "/dashboard-house-v11/home",
+        "/dashboard-house-v13/home",
+        "/dashboard-rooms-v11/rooms",
         "/dashboard-actions/home",
         "/dashboard-infrastructure/overview",
     ):
@@ -246,6 +284,43 @@ def main() -> None:
     )
     for path in build_source_files:
         read_relative(path)
+
+    source_kit = config.get("source_kit", {})
+    require(source_kit.get("delivery") == "vendored-build-time", "shell kit must be vendored at build time")
+    require(source_kit.get("runtime_dependency") is False, "shell kit must not be a runtime dependency")
+    source_kit_path = source_kit.get("path")
+    require(source_kit_path in build_source_files, "vendored shell kit must be a declared build source")
+    source_kit_text = read_relative(source_kit_path)
+    source_kit_digest = hashlib.sha256(source_kit_text.encode("utf-8")).hexdigest()
+    require(source_kit_digest == source_kit.get("sha256"), "canonical shell source-kit hash drift")
+    for token in (
+        'const NIKAS_SHELL_V2_VERSION = "2.1"',
+        "block-size:100%",
+        "calc(60px + env(safe-area-inset-top,0px))",
+        "calc(64px + env(safe-area-inset-bottom,0px))",
+        "max-inline-size:1280px",
+        "container:nikas-panel / inline-size",
+        "@container nikas-panel (min-width:600px)",
+        "@container nikas-panel (min-width:1024px)",
+        "--nikas-shell-tab-count",
+        "padding:2px 3px 6px",
+        "--mdc-icon-size:26px",
+        "line-height:14px",
+        "overscroll-behavior-y:none",
+        "shouldBlockNikasShellBoundaryMove",
+        "createNikasShellScrollBoundaryGuard",
+        "NIKAS_SHELL_BOUNDARY_THRESHOLD_PX = 4",
+        'host.addEventListener("touchmove", moveTouch, { passive: false, capture: true })',
+        "captureNikasShellReturnRoute",
+        "window.history.pushState",
+        'new Event("location-changed")',
+        "/dashboard-house-v13/home",
+        "/dashboard-rooms-v11/rooms",
+    ):
+        require(token in source_kit_text, f"canonical shell source-kit token missing: {token}")
+    for forbidden in ("100vw", "100vh", "100dvh", "position:fixed", "position: fixed"):
+        require(forbidden not in source_kit_text, f"host-bound shell contains forbidden marker: {forbidden}")
+
     bundled_inputs = set(
         re.findall(r"^// BEGIN ([^\n]+)$", entrypoint_source, re.MULTILINE)
     )
@@ -277,8 +352,8 @@ def main() -> None:
     require(panel.get("path") == "/dashboard-zont", "panel contract must keep the public ZONT route")
     require(panel.get("owner") == "zont_local", "panel contract owner must be zont_local")
     require(
-        panel.get("safe_return_route") == "/dashboard-house-v11/home",
-        "panel contract must return direct opens to House now v11",
+        panel.get("safe_return_route") == "/dashboard-house-v13/home",
+        "panel contract must return direct opens to House now v13",
     )
     panel_manifest = json.loads(
         read_relative("custom_components/zont_local/frontend/panel_manifest.json")
@@ -288,6 +363,38 @@ def main() -> None:
             panel_manifest.get(key) == (ui_version if key == "ui_version" else panel.get(key)),
             f"frontend panel manifest does not match panel contract: {key}",
         )
+    require(panel_manifest.get("shell_version") == "2.1", "frontend panel manifest must declare shell v2.1")
+
+    connection = config.get("connection_indicator", {})
+    require(connection.get("enabled") is True, "ZONT connection indicator must be enabled")
+    require(connection.get("implementation") == "S8 OMNI", "connection indicator must use the S8 OMNI reference")
+    require(connection.get("minimum_height_px") == 58, "connection plaque minimum height must be 58px")
+    require(connection.get("radius_px") == 18, "connection plaque radius must be 18px")
+    require(connection.get("lamp_px") == 10, "connection plaque lamp must be 10px")
+    require(connection.get("stable_dom") is True, "connection indicator must preserve a stable DOM node")
+    require(
+        connection.get("transport_values") == ["Локально", "Нет связи", "Нет данных"],
+        "connection transport states drift",
+    )
+    require(
+        connection.get("freshness_values") == ["Данные актуальны", "Данные устарели", "Нет данных"],
+        "connection freshness states drift",
+    )
+
+    equipment_row = config.get("domain_layout", {}).get("overview_equipment_row", {})
+    require(equipment_row.get("required") is True, "overview equipment row must be mandatory")
+    require(equipment_row.get("columns") == 3, "overview equipment row must contain three columns")
+    require(
+        equipment_row.get("order") == ["Котёл 1", "Котёл 2", "Бойлер ГВС"],
+        "overview equipment order must be boilers first, then DHW",
+    )
+    require(equipment_row.get("phone_wrap") is False, "DHW must not wrap below the boilers on phones")
+    for marker in (
+        "grid-template-columns:minmax(0,.92fr) minmax(0,.92fr) minmax(0,1.16fr)!important",
+        ".z82-dhw-card{grid-column:auto!important}",
+        'role="status"',
+    ):
+        require(marker in entrypoint_source, f"ZONT layout runtime marker missing: {marker}")
     constants = read_relative("custom_components/zont_local/const.py")
     require(f'VERSION = "{ui_version}"' in constants, "integration version must match UI version")
     require(

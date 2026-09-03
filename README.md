@@ -47,7 +47,9 @@ ha-zont/
 │       ├── strings.json
 │       ├── translations/
 │       └── frontend/
-│           └── zont-ui.js
+│           ├── nikas-specialized-shell.js
+│           ├── zont-app.js
+│           └── zont-ui.js            # deterministic production bundle
 ├── dashboard/              # Local panel manifest and protected baseline
 ├── docs/                   # Architecture, controller and protocol notes
 ├── hacs.json
@@ -80,7 +82,7 @@ Updates are published through checked pull requests into `main`. The project doe
 
 ## Current UI
 
-Current integration and frontend: **0.9.3** (`b023`). The panel and Home Assistant menu use the approved name **Отопление**. The v0.8.12 hydraulic composition remains the visual and semantic baseline, now hosted by the NikaS UI v1.9 shell with viewport-locked chrome and non-destructive refresh.
+Current integration and frontend: **0.9.5** (`b024`). The panel and Home Assistant menu use the approved name **Отопление**. The v0.8.12 hydraulic composition remains the visual and semantic baseline, now hosted by the host-bound NikaS UI v2.2 shell with non-destructive refresh. On phones, both boilers and the DHW tank remain together in the first three-card equipment row.
 
 The State view now follows the real hydraulic topology: main and reserve
 boilers, the DHW tank with cold-water pressure and recirculation, hydraulic

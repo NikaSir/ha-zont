@@ -9,7 +9,7 @@ assert.doesNotMatch(fullSource, /nikas-generated-zont/, "ZONT must not reuse the
 assert.doesNotMatch(fullSource, /^import\s+/m, "standalone bundle must not use runtime imports");
 assert.doesNotMatch(fullSource, /["'](?:sensor|binary_sensor)\.nikas_h2000_pro_/, "frontend must not bind installation-specific entity IDs");
 assert.doesNotMatch(fullSource, /const CONTROLLER_FACTS/, "controller facts must come from the HA device registry");
-const appMarker = "// ZONT UI v0.9.4";
+const appMarker = "// ZONT UI v0.9.5";
 const appOffset = fullSource.indexOf(appMarker);
 assert.ok(appOffset >= 0, "standalone bundle must contain the approved ZONT application layer");
 let source = fullSource.slice(appOffset);
@@ -62,11 +62,12 @@ assert.match(source, /class="z82-loop-pump/, "DHW circulation pump must be a phy
 assert.match(source, /z82-pump-art[\s\S]{0,160}<ha-icon icon="mdi:pump"/, "heating circuit status rows must use a pump symbol");
 
 const panelManifest = JSON.parse(fs.readFileSync("custom_components/zont_local/frontend/panel_manifest.json", "utf8"));
-assert.equal(panelManifest.ui_version, "0.9.4");
+assert.equal(panelManifest.ui_version, "0.9.5");
+assert.equal(panelManifest.shell_version, "2.1");
 assert.equal(panelManifest.title, "Отопление");
 assert.equal(panelManifest.path, "/dashboard-zont");
 assert.equal(panelManifest.owner, "zont_local");
-assert.equal(panelManifest.safe_return_route, "/dashboard-house-v11/home");
+assert.equal(panelManifest.safe_return_route, "/dashboard-house-v13/home");
 for (const asset of panelManifest.assets) {
   const path = `custom_components/zont_local/frontend/${asset.path}`;
   assert.ok(fs.existsSync(path), `declared panel asset must exist: ${path}`);
@@ -83,42 +84,58 @@ assert.match(constantsSource, /PANEL_WEB_COMPONENT_NAME = "zont-local-panel"/, "
 assert.match(constantsSource, /PANEL_TITLE = "Отопление"/, "the HA menu must use the approved panel name");
 
 assert.match(fullSource, /hass-toggle-menu/, "left Header rail must open the native HA menu");
-assert.match(fullSource, /className = "heading title-plaque"/, "Header title must be one source-aware plaque");
+assert.match(fullSource, /id="zont-title" class="nikas-shell__title"/, "Header title must be one source-aware plaque");
 assert.match(fullSource, /nikas\.specialized\.source_route\.v1/, "panel must consume the shared source hand-off");
 assert.match(fullSource, /nikas\.specialized\.source_route_at\.v1/, "panel must validate the shared hand-off timestamp");
-assert.match(fullSource, /handedOffRaw !== null/);
-assert.match(fullSource, /handedOffAtRaw !== null/);
-assert.match(fullSource, /handedOffAge >= 0/);
-assert.match(fullSource, /\/dashboard-house-v11\/home/, "House return must use the canonical v11 entry");
+assert.match(fullSource, /if \(!route \|\| !timestamp\) return null/);
+assert.match(fullSource, /age < 0 \|\| age > NIKAS_SOURCE_ROUTE_MAX_AGE_MS/);
+assert.match(fullSource, /\/dashboard-house-v13\/home/, "House return must use the canonical v13 entry");
+assert.match(fullSource, /\/dashboard-rooms-v11\/rooms/, "Rooms return must use the canonical v11 entry");
 assert.match(fullSource, /\/dashboard-actions\/home/, "Actions return must use its canonical entry");
 assert.match(fullSource, /\/dashboard-infrastructure\/overview/, "Infrastructure return must use its canonical entry");
-assert.match(fullSource, /<span>UI v\$\{UI_VERSION\}<\/span>/, "Header second line must contain version only");
+assert.match(fullSource, /<small>UI v\$\{UI_VERSION\}<\/small>/, "Header second line must contain version only");
 assert.doesNotMatch(fullSource, /history\.back\s*\(/, "browser history is not a navigation contract");
 assert.doesNotMatch(fullSource, /mdi:arrow-left/, "the permanent Header must not retain a legacy Back arrow");
 assert.doesNotMatch(fullSource, /["']\/dashboard-house["']/, "legacy House root must not be a return route");
-assert.match(fullSource, /work-viewport native-scroll/, "panel must mount exactly one standard work viewport");
+assert.match(fullSource, /zont-viewport nikas-shell__viewport/, "panel must mount exactly one standard work viewport");
 assert.match(fullSource, /SCALE_MIN = \.75/, "zoom minimum must be 75 percent");
 assert.match(fullSource, /SCALE_MAX = 2/, "zoom maximum must be 200 percent");
 assert.match(fullSource, /SNAP_MIN = \.97/, "near-100 pinch must snap to origin");
 assert.match(fullSource, /touch-action:pan-y/, "100 percent must retain native vertical scrolling");
-assert.match(fullSource, /state\.scale > 1/, "one-finger transform pan must be gated above 100 percent");
+assert.match(fullSource, /state\.scale <= 1 \|\| event\.touches\.length !== 1/, "one-finger transform pan must be gated above 100 percent");
 assert.match(fullSource, /Масштаб 100%/, "two-finger reset must provide confirmation");
 assert.doesNotMatch(fullSource, /zoom-(?:in|out)|data-zoom|scale-controls/, "permanent zoom controls are prohibited");
-assert.match(fullSource, /views:new Map/, "work views must be cached instead of rebuilding the shell");
+assert.match(fullSource, /views: new Map/, "work views must be cached instead of rebuilding the shell");
 assert.match(fullSource, /morph\(view, fresh\)/, "telemetry must patch the active cached view");
-assert.match(fullSource, /:host\{position:fixed!important;inset:0!important/, "the application shell must be locked to the viewport");
+assert.match(fullSource, /:host\{\s*display:block;position:relative;inline-size:100%;block-size:100%/, "the application shell must bind to the Home Assistant host");
+assert.doesNotMatch(fullSource, /position:fixed|100vh|100vw/, "browser-window shell geometry is prohibited");
 assert.match(fullSource, /overflow-anchor:none/, "telemetry must not move the native scroll anchor");
 assert.match(fullSource, /refresh\.onclick = \(\) => this\._load\(true\)/, "refresh must preserve the last accepted telemetry while polling");
 assert.doesNotMatch(fullSource, /refresh\.onclick = \(\) => \{ this\._registry = null/, "refresh must not blank the work view");
 assert.match(fullSource, /if \(!Array\.isArray\(this\._registry\)\) \{[\s\S]{0,180}this\._registry = \[\]/, "initial registry failure must stay explicit");
 assert.match(fullSource, /Показаны последние принятые данные/, "refresh failure must retain and label the previous registry snapshot");
-assert.match(fullSource, /\.tab ha-icon\{--mdc-icon-size:28px/, "Bottom Tab Bar must use canonical MDI size");
-assert.match(fullSource, /\.tab span\{font-size:12px/, "Bottom Tab labels must remain readable");
+assert.match(fullSource, /\.nikas-shell__tab ha-icon\{--mdc-icon-size:26px/, "Bottom Tab Bar must use canonical MDI size");
+assert.match(fullSource, /\.nikas-shell__tab small\{[\s\S]{0,180}font-size:12px/, "Bottom Tab labels must remain readable");
+assert.match(fullSource, /createNikasShellScrollBoundaryGuard\(\{ host: this, viewport \}\)/, "host boundary guard must be installed");
+assert.match(fullSource, /passive: false, capture: true/, "iOS boundary guard must be capture-phase and non-passive");
 assert.match(fullSource, /"Локально"/, "connection indicator must identify the local transport");
 assert.match(fullSource, /"Данные актуальны"/, "connection indicator must report freshness independently");
+assert.match(fullSource, /min-block-size:58px!important/, "connection indicator must keep canonical height");
+assert.match(fullSource, /grid-template-columns:10px minmax\(0,1fr\)/, "connection indicator must keep its lamp inside the plaque");
 assert.match(fullSource, /device\.sw_version/, "device facts must be registry-backed");
 assert.match(fullSource, /this\._busyMode \|\| this\._isProblem\(item\)/, "mode commands must reject duplicate and unavailable targets");
 assert.match(fullSource, /this\._commandError = error instanceof Error/, "mode command failures must remain visible");
+
+const equipmentMarkup = source.indexOf('<div class="z82-equipment-grid">');
+const boilerOne = source.indexOf('boilerCard(1, "основной + ГВС"', equipmentMarkup);
+const boilerTwo = source.indexOf('boilerCard(2, "резервный"', equipmentMarkup);
+const dhw = source.indexOf("${dhwCard}", equipmentMarkup);
+assert.ok(equipmentMarkup >= 0 && boilerOne > equipmentMarkup && boilerTwo > boilerOne && dhw > boilerTwo,
+  "overview order must remain Boiler 1, Boiler 2, DHW tank");
+assert.match(fullSource, /grid-template-columns:minmax\(0,\.92fr\) minmax\(0,\.92fr\) minmax\(0,1\.16fr\)!important/,
+  "phone equipment layout must remain a three-column row");
+assert.match(fullSource, /\.z82-dhw-card\{grid-column:auto!important\}/,
+  "DHW tank must not wrap below both boilers");
 
 const brand = "custom_components/zont_local/brand/icon.png";
 assert.ok(fs.existsSync(brand) && fs.statSync(brand).size > 0, "packaged HACS brand icon must exist");
