@@ -9,7 +9,7 @@ assert.doesNotMatch(fullSource, /nikas-generated-zont/, "ZONT must not reuse the
 assert.doesNotMatch(fullSource, /^import\s+/m, "standalone bundle must not use runtime imports");
 assert.doesNotMatch(fullSource, /["'](?:sensor|binary_sensor)\.nikas_h2000_pro_/, "frontend must not bind installation-specific entity IDs");
 assert.doesNotMatch(fullSource, /const CONTROLLER_FACTS/, "controller facts must come from the HA device registry");
-const appMarker = "// ZONT UI v0.9.5";
+const appMarker = "// ZONT UI v0.9.6";
 const appOffset = fullSource.indexOf(appMarker);
 assert.ok(appOffset >= 0, "standalone bundle must contain the approved ZONT application layer");
 let source = fullSource.slice(appOffset);
@@ -29,6 +29,12 @@ FakeElement.prototype._isInactive = function isInactive(item) {
 };
 FakeElement.prototype._isActive = function isActive(item) {
   return ["on", "1", "true"].includes(String(item?.state?.state).toLowerCase());
+};
+FakeElement.prototype._stateText = function stateText(item) {
+  return String(item?.state?.state || "Нет данных");
+};
+FakeElement.prototype._config = function config() {
+  return { source: { transport: { kind: "unknown", confirmed: false, evidence: "upstream_entities_do_not_expose_transport" } } };
 };
 
 vm.runInNewContext(source, {
@@ -54,6 +60,32 @@ assert.equal(panel._mixerState(item("off"), item("on")), "Закрывается
 assert.equal(panel._mixerState(item("on"), item("on")), "Ошибка сигналов");
 assert.equal(panel._mixerState(item("unavailable"), item("off")), "Нет данных");
 
+for (const missing of [undefined, item(""), item("   "), item("unknown"), item("unavailable")]) {
+  assert.equal(panel._number(missing), null, "missing numeric states must not become zero");
+}
+assert.equal(panel._number(item("0")), 0, "an explicit numeric zero must remain valid");
+assert.equal(panel._number(item("44,5")), 44.5);
+assert.equal(panel._dhwStatusV096(undefined), "Нет данных");
+assert.equal(panel._dhwStatusV096(item("on")), "Нагрев");
+assert.equal(panel._dhwStatusV096(item("off")), "Не нагревается");
+assert.equal(panel._dhwStatusV096(item("ready")), "Готово");
+
+const usableTelemetry = [item("22")];
+assert.deepEqual(
+  panel._connectionStatusV096(usableTelemetry, item("on")),
+  { offline: false, unknown: true, text: "Нет данных", tone: "unknown", reason: "Канал связи с контроллером не подтверждён" },
+  "online alone must not be presented as a local transport",
+);
+panel._config = () => ({ source: { transport: { kind: "local", confirmed: true, evidence: "integration-owned local API" } } });
+assert.equal(panel._connectionStatusV096(usableTelemetry, item("on")).text, "Локально");
+panel._config = () => ({ source: { transport: { kind: "local", confirmed: true, evidence: "" } } });
+assert.equal(panel._connectionStatusV096(usableTelemetry, item("on")).text, "Нет данных", "a transport claim without evidence must fail closed");
+panel._config = () => ({ source: { transport: { kind: "cloud", confirmed: true, evidence: "integration-owned cloud API" } } });
+assert.equal(panel._connectionStatusV096(usableTelemetry, item("on")).text, "Облако");
+panel._config = () => ({ source: { transport: { kind: "reserve", confirmed: true, evidence: "integration-owned reserve path" } } });
+assert.deepEqual(panel._connectionStatusV096(usableTelemetry, item("on")).text, "Резерв");
+assert.equal(panel._connectionStatusV096(usableTelemetry, item("off")).text, "Нет связи");
+
 assert.deepEqual(panel._meterScale(item("2.6", "pressure_dhw")), [0, 6]);
 assert.deepEqual(panel._meterScale(item("1.7", "pressure_system")), [0, 3]);
 assert.deepEqual(panel._meterScale(item("25", "temperature", "тёплый пол")), [0, 45]);
@@ -62,7 +94,7 @@ assert.match(source, /class="z82-loop-pump/, "DHW circulation pump must be a phy
 assert.match(source, /z82-pump-art[\s\S]{0,160}<ha-icon icon="mdi:pump"/, "heating circuit status rows must use a pump symbol");
 
 const panelManifest = JSON.parse(fs.readFileSync("custom_components/zont_local/frontend/panel_manifest.json", "utf8"));
-assert.equal(panelManifest.ui_version, "0.9.5");
+assert.equal(panelManifest.ui_version, "0.9.6");
 assert.equal(panelManifest.shell_version, "2.1");
 assert.equal(panelManifest.title, "Отопление");
 assert.equal(panelManifest.path, "/dashboard-zont");
@@ -118,7 +150,9 @@ assert.match(fullSource, /\.nikas-shell__tab ha-icon\{--mdc-icon-size:26px/, "Bo
 assert.match(fullSource, /\.nikas-shell__tab small\{[\s\S]{0,180}font-size:12px/, "Bottom Tab labels must remain readable");
 assert.match(fullSource, /createNikasShellScrollBoundaryGuard\(\{ host: this, viewport \}\)/, "host boundary guard must be installed");
 assert.match(fullSource, /passive: false, capture: true/, "iOS boundary guard must be capture-phase and non-passive");
-assert.match(fullSource, /"Локально"/, "connection indicator must identify the local transport");
+assert.match(fullSource, /transportStates/, "connection indicator must use an explicit transport contract");
+assert.match(fullSource, /contract\?\.confirmed === true && evidence/, "transport must carry confirmation and evidence");
+assert.doesNotMatch(source, /dhwNumber >= 45 \? "Готово" : "Нагрев"/, "temperature must not imply DHW operation");
 assert.match(fullSource, /"Данные актуальны"/, "connection indicator must report freshness independently");
 assert.match(fullSource, /min-block-size:58px!important/, "connection indicator must keep canonical height");
 assert.match(fullSource, /grid-template-columns:10px minmax\(0,1fr\)/, "connection indicator must keep its lamp inside the plaque");

@@ -1,5 +1,5 @@
 // GENERATED FILE. DO NOT EDIT DIRECTLY.
-// ZONT autonomous UI 0.9.5 production bundle.
+// ZONT autonomous UI 0.9.6 production bundle.
 // One active shell: zont-local-panel / NikaS shell kit v2.1.
 
 // BEGIN custom_components/zont_local/frontend/nikas-specialized-shell.js
@@ -827,12 +827,12 @@ function navigateNikasShell(path, { captureSource = false } = {}) {
   customElements.define(ELEMENT_NAME, NikasGeneratedZont);
 })();
 
-// ZONT UI v0.9.5 — standalone NikaS UI v2.2 application.
+// ZONT UI v0.9.6 — standalone NikaS UI v2.2 application.
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.9.5";
-const ASSET_VERSION = "0.9.5";
+const UI_VERSION = "0.9.6";
+const ASSET_VERSION = "0.9.6";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -843,6 +843,11 @@ const clearErrorStates = new Set([
 ]);
 const onlineStates = new Set(["on", "online", "connected", "подключен", "подключено", "в сети", "true", "1"]);
 const offlineStates = new Set(["off", "offline", "disconnected", "отключен", "отключено", "нет связи", "false", "0"]);
+const transportStates = new Map([
+  ["local", { text: "Локально", tone: "online" }],
+  ["cloud", { text: "Облако", tone: "online" }],
+  ["reserve", { text: "Резерв", tone: "reserve" }],
+]);
 const esc = (value) => String(value ?? "—")
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
@@ -880,6 +885,49 @@ function installV0812() {
     // Registry-backed semantic discovery is the only mapping source. Missing
     // roles stay missing instead of being rebound to installation-specific IDs.
     return typeof fallback === "function" ? fallback() : fallback;
+  };
+
+  ElementClass.prototype._isMissingV096 = function isMissingV096(item) {
+    return !item || this._isProblem(item) || rawState(item) === "";
+  };
+
+  ElementClass.prototype._number = function numberV096(item) {
+    if (this._isMissingV096(item)) return null;
+    const raw = String(item.state.state).trim().replace(",", ".");
+    const numeric = Number(raw);
+    return Number.isFinite(numeric) ? numeric : null;
+  };
+
+  ElementClass.prototype._dhwStatusV096 = function dhwStatusV096(item) {
+    if (this._isMissingV096(item)) return "Нет данных";
+    const current = rawState(item);
+    if (this._isActive(item) || ["heat", "heating", "нагрев"].includes(current)) return "Нагрев";
+    if (["ready", "готов", "готово"].includes(current)) return "Готово";
+    if (this._isInactive(item)) return "Не нагревается";
+    return this._stateText(item);
+  };
+
+  ElementClass.prototype._connectionStatusV096 = function connectionStatusV096(items, online) {
+    const usableCount = items.filter((item) => !this._isMissingV096(item)).length;
+    const onlineState = rawState(online);
+    const onlineActive = !!online && !this._isMissingV096(online)
+      && (this._isActive(online) || onlineStates.has(onlineState));
+    const onlineInactive = !!online && !this._isMissingV096(online)
+      && (this._isInactive(online) || offlineStates.has(onlineState));
+    if (usableCount === 0 || onlineInactive) {
+      return { offline: true, unknown: false, text: "Нет связи", tone: "offline", reason: "Телеметрия ZONT недоступна" };
+    }
+    if (!onlineActive) {
+      return { offline: false, unknown: true, text: "Нет данных", tone: "unknown", reason: "Состояние связи с контроллером неизвестно" };
+    }
+    const contract = this._config().source?.transport;
+    const kind = String(contract?.kind || "").trim().toLocaleLowerCase();
+    const evidence = String(contract?.evidence || "").trim();
+    const transport = contract?.confirmed === true && evidence ? transportStates.get(kind) : null;
+    if (!transport) {
+      return { offline: false, unknown: true, text: "Нет данных", tone: "unknown", reason: "Канал связи с контроллером не подтверждён" };
+    }
+    return { offline: false, unknown: false, ...transport, reason: "" };
   };
 
   ElementClass.prototype._isActiveErrorV089 = function isActiveErrorV089(item) {
@@ -1003,13 +1051,13 @@ function installV0812() {
     };
     const value = (item, fallback = "—") => {
       if (!item) return fallback;
-      return this._isProblem(item) ? "Нет данных" : this._value(item, fallback);
+      return this._isMissingV096(item) ? "Нет данных" : this._value(item, fallback);
     };
     const state = (item, fallback = "Нет данных") => {
-      if (!item || this._isProblem(item)) return fallback;
+      if (this._isMissingV096(item)) return fallback;
       return this._stateText(item);
     };
-    const valid = (item) => !!item && !this._isProblem(item);
+    const valid = (item) => !!item && !this._isMissingV096(item);
     const active = (item) => !!item && this._isActive(item);
     const entityAttr = (item) => item?.entry?.entity_id ? ` data-entity="${esc(item.entry.entity_id)}"` : "";
     const scope = (words) => items.filter((item) => includesAny(this._text(item), words));
@@ -1108,15 +1156,10 @@ function installV0812() {
       main.current || main.supply, main.ret, reserveBoiler.current || reserveBoiler.supply,
       dhwTemperature, systemPressure, indoor, outdoor,
     ];
-    const essentialProblems = essentials.filter((item) => !item || this._isProblem(item));
-    const usableCount = items.filter((item) => !this._isProblem(item)).length;
-    const onlineState = rawState(online);
-    const onlineActive = !!online && !this._isProblem(online)
-      && (this._isActive(online) || onlineStates.has(onlineState));
-    const onlineInactive = !!online && !this._isProblem(online)
-      && (this._isInactive(online) || offlineStates.has(onlineState));
-    const offline = usableCount === 0 || onlineInactive;
-    const connectionUnknown = !offline && (!online || this._isProblem(online) || !onlineActive);
+    const essentialProblems = essentials.filter((item) => this._isMissingV096(item));
+    const connectionStatus = this._connectionStatusV096(items, online);
+    const offline = connectionStatus.offline;
+    const connectionUnknown = connectionStatus.unknown;
     const timestamps = items.map(updateTimestamp).filter((timestamp) => timestamp != null);
     const latestTimestamp = timestamps.length ? Math.max(...timestamps) : null;
     const dataAge = latestTimestamp == null ? null : Math.max(0, Date.now() - latestTimestamp);
@@ -1131,14 +1174,13 @@ function installV0812() {
     const subtitle = offline ? "Телеметрия ZONT недоступна"
       : errors.length ? "Проверьте сообщения контроллера"
         : actuatorProblem ? "Проверьте сигналы смесительного крана"
-          : connectionUnknown ? "Состояние связи с контроллером неизвестно"
+          : connectionUnknown ? connectionStatus.reason
             : stale ? "Показания давно не обновлялись"
               : freshnessUnknown ? "Время обновления данных неизвестно"
                 : errorDataProblems.length ? "Состояние ошибок контроллера недоступно"
                   : essentialProblems.length ? "Часть показаний временно недоступна" : "Отопление и ГВС в норме";
-    const onlineText = offline ? "Нет связи"
-      : connectionUnknown ? "Нет данных" : "Локально";
-    const onlineTone = offline ? "offline" : connectionUnknown ? "unknown" : "online";
+    const onlineText = connectionStatus.text;
+    const onlineTone = connectionStatus.tone;
     const freshness = offline || freshnessUnknown ? "Нет данных"
       : stale ? "Данные устарели" : "Данные актуальны";
     const mode = this._currentMode(items);
@@ -1173,8 +1215,7 @@ function installV0812() {
     const dhwNumber = this._number(dhwTemperature);
     const fill = dhwNumber == null ? 0 : Math.max(8, Math.min(92, (dhwNumber / 70) * 100));
     const shellWaterFill = fill * 0.59;
-    const dhwStatusText = dhwState ? state(dhwState)
-      : dhwNumber == null ? "Нет данных" : dhwNumber >= 45 ? "Готово" : "Нагрев";
+    const dhwStatusText = this._dhwStatusV096(dhwState);
     const dhwCard = `<article class="z82-equipment z82-dhw-card"${entityAttr(dhwTemperature)}>
       <header><h3>ГВС <span>(бойлер Котла 1)</span></h3></header>
       <div class="z82-dhw-schematic">
@@ -1182,7 +1223,7 @@ function installV0812() {
           <i class="z82-water" style="height:${shellWaterFill.toFixed(1)}%"></i>
           <span class="z82-port hot"></span><span class="z82-port loop"></span><span class="z82-port cold"></span>
         </div>
-        <div class="z82-dhw-temperature"><ha-icon icon="mdi:thermometer"></ha-icon><strong>${esc(value(dhwTemperature))}</strong><small>${esc(dhwStatusText)}</small>${statusDot(dhwState || dhwTemperature)}</div>
+        <div class="z82-dhw-temperature"><ha-icon icon="mdi:thermometer"></ha-icon><strong>${esc(value(dhwTemperature))}</strong><small>${esc(dhwStatusText)}</small>${statusDot(dhwState)}</div>
         <i class="z82-pipe z82-hot-pipe"></i><i class="z82-flow-arrow hot"></i>
         <i class="z82-pipe z82-loop-branch"></i><i class="z82-pipe z82-loop-return"></i><i class="z82-pipe z82-loop-vertical"></i><i class="z82-flow-arrow loop"></i>
         <span class="z82-loop-pump ${statusClass(circulationState)}" title="Насос циркуляции: ${esc(state(circulationState))}"><ha-icon icon="mdi:pump"></ha-icon></span>
@@ -1624,6 +1665,7 @@ function installV095() {
       .z82-online small{font-size:13px!important;font-weight:600!important;line-height:1.05!important;color:var(--secondary-text-color,#68737d)!important}
       .z82-online small.stale{color:var(--warning-color,#f6a623)!important}
       .z82-online.online{color:var(--success-color,#43a047)!important;background:color-mix(in srgb,var(--success-color,#43a047) 11%,var(--card-background-color,#fff))!important;border-color:color-mix(in srgb,var(--success-color,#43a047) 30%,var(--divider-color,#dfe3e8))!important}
+      .z82-online.reserve{color:var(--primary-color,#087de0)!important;background:color-mix(in srgb,var(--primary-color,#087de0) 9%,var(--card-background-color,#fff))!important;border-color:color-mix(in srgb,var(--primary-color,#087de0) 28%,var(--divider-color,#dfe3e8))!important}
       .z82-online.unknown{color:var(--disabled-text-color,var(--secondary-text-color,#68737d))!important;background:color-mix(in srgb,var(--secondary-text-color,#68737d) 8%,var(--card-background-color,#fff))!important;border-color:color-mix(in srgb,var(--secondary-text-color,#68737d) 28%,var(--divider-color,#dfe3e8))!important}
       .z82-online.offline{color:var(--error-color,#db4437)!important;background:color-mix(in srgb,var(--error-color,#db4437) 10%,var(--card-background-color,#fff))!important;border-color:color-mix(in srgb,var(--error-color,#db4437) 30%,var(--divider-color,#dfe3e8))!important}
 

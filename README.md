@@ -82,7 +82,7 @@ Updates are published through checked pull requests into `main`. The project doe
 
 ## Current UI
 
-Current integration and frontend: **0.9.5** (`b024`). The panel and Home Assistant menu use the approved name **Отопление**. The v0.8.12 hydraulic composition remains the visual and semantic baseline, now hosted by the host-bound NikaS UI v2.2 shell with non-destructive refresh. On phones, both boilers and the DHW tank remain together in the first three-card equipment row.
+Current integration and frontend: **0.9.6** (`b025`). The panel and Home Assistant menu use the approved name **Отопление**. The v0.8.12 hydraulic composition remains the visual and semantic baseline, now hosted by the host-bound NikaS UI v2.2 shell with non-destructive refresh. On phones, both boilers and the DHW tank remain together in the first three-card equipment row.
 
 The State view now follows the real hydraulic topology: main and reserve
 boilers, the DHW tank with cold-water pressure and recirculation, hydraulic
@@ -90,8 +90,12 @@ separator, radiator and underfloor-heating circuits, pumps, mixer, summary
 metrics and heating modes. Verified H2000 entity IDs are preferred for the
 current controller, with semantic discovery retained as a migration fallback.
 Only active non-zero controller errors raise the warning badge; communication
-and data freshness are reported independently. Missing, stale and unavailable
-sources stay explicit. The upper-left button opens the native Home Assistant
+and data freshness are reported independently. `online` proves controller
+availability but not a local, cloud or reserve data path: a transport name is
+shown only when the panel receives an explicit confirmed contract with its
+evidence; otherwise the channel is `Нет данных`. Missing, empty, stale and
+unavailable sources stay explicit. DHW temperature is displayed only as a
+measurement, while `Нагрев` requires an actual circuit-state entity. The upper-left button opens the native Home Assistant
 menu via `hass-toggle-menu`; the centered title plaque returns to the NikaS
 base panel that opened ZONT.
 

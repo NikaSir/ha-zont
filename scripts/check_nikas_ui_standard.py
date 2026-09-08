@@ -373,7 +373,7 @@ def main() -> None:
     require(connection.get("lamp_px") == 10, "connection plaque lamp must be 10px")
     require(connection.get("stable_dom") is True, "connection indicator must preserve a stable DOM node")
     require(
-        connection.get("transport_values") == ["Локально", "Нет связи", "Нет данных"],
+        connection.get("transport_values") == ["Локально", "Облако", "Резерв", "Нет связи", "Нет данных"],
         "connection transport states drift",
     )
     require(
@@ -409,6 +409,16 @@ def main() -> None:
         "data truth entity_source must be integration_or_ha_registry",
     )
     require(data_truth.get("unknown_unavailable") == "explicit", "unknown/unavailable policy must be explicit")
+    require(data_truth.get("empty_numeric_state") == "missing", "empty numeric states must stay missing")
+    require(
+        data_truth.get("dhw_operating_state") == "explicit_entity_only",
+        "DHW operation must not be inferred from temperature",
+    )
+    require(data_truth.get("transport_default") == "unknown", "unverified transport must fail closed")
+    require(
+        data_truth.get("transport_confirmation") == "explicit_kind_confirmed_and_evidence",
+        "transport must require an explicit evidence-bearing contract",
+    )
     require(data_truth.get("invented_entity_ids") is False, "invented entity IDs are forbidden")
     require(
         data_truth.get("fixed_entity_ids") in {"none", "tested_public_contract_only"},
