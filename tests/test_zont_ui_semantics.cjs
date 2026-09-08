@@ -65,10 +65,8 @@ for (const missing of [undefined, item(""), item("   "), item("unknown"), item("
 }
 assert.equal(panel._number(item("0")), 0, "an explicit numeric zero must remain valid");
 assert.equal(panel._number(item("44,5")), 44.5);
-assert.equal(panel._dhwStatusV096(undefined), "Нет данных");
-assert.equal(panel._dhwStatusV096(item("on")), "Нагрев");
-assert.equal(panel._dhwStatusV096(item("off")), "Не нагревается");
-assert.equal(panel._dhwStatusV096(item("ready")), "Готово");
+// DHW discovery and labels are covered against the full production element in
+// test_zont_dhw_truth.cjs, without substituting its state/discovery methods.
 
 const usableTelemetry = [item("22")];
 assert.deepEqual(

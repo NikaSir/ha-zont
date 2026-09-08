@@ -566,12 +566,55 @@ function installV0812() {
     return Number.isFinite(numeric) ? numeric : null;
   };
 
+  ElementClass.prototype._dhwSignalV096 = function dhwSignalV096(item) {
+    const domain = String(item?.entry?.entity_id || "").split(".")[0];
+    if (!["sensor", "binary_sensor", "switch", "input_boolean"].includes(domain)) return "";
+    const attributes = item?.state?.attributes || {};
+    if (domain === "sensor" && (attributes.unit_of_measurement
+      || (attributes.device_class && attributes.device_class !== "enum"))) return "";
+    // Classify the signal itself: a controller's name does not describe what
+    // each of its entities measures. A command switch only grants permission.
+    const text = [item?.entry?.entity_id, item?.entry?.name, item?.entry?.original_name,
+      item?.state?.attributes?.friendly_name].filter(Boolean).join(" ").toLocaleLowerCase();
+    if (item?.state?.attributes?.device_class === "temperature"
+      || includesAny(text, ["температур", "temperature", "t°", "target", "целев", "уставк", "циркуляц", "circulation", "насос", "pump"])) return "";
+    if (["switch", "input_boolean"].includes(domain)
+      || includesAny(text, ["enable", "включ", "разреш"])) return "permission";
+    if (includesAny(text, ["ready", "готов"])) return "readiness";
+    if (/(?:^|[^a-zа-яё])(?:heating|нагрев|нагревается|active|работа|работает)(?=$|[^a-zа-яё])/.test(text)) return "activity";
+    if (includesAny(text, ["status", "state", "состояни"])) return "status";
+    return "";
+  };
+
+  ElementClass.prototype._dhwStateV096 = function dhwStateV096(items) {
+    // Prefer measured operation over readiness and permission, independent of
+    // registry order and current value. An unavailable activity stays unknown.
+    for (const signal of ["activity", "status", "readiness", "permission"]) {
+      const item = items.find((candidate) => this._dhwSignalV096(candidate) === signal);
+      if (item) return item;
+    }
+    return null;
+  };
+
   ElementClass.prototype._dhwStatusV096 = function dhwStatusV096(item) {
     if (this._isMissingV096(item)) return "Нет данных";
     const current = rawState(item);
-    if (this._isActive(item) || ["heat", "heating", "нагрев"].includes(current)) return "Нагрев";
-    if (["ready", "готов", "готово"].includes(current)) return "Готово";
-    if (this._isInactive(item)) return "Не нагревается";
+    const signal = this._dhwSignalV096(item);
+    const on = ["on", "true", "1"].includes(current);
+    const off = ["off", "false", "0"].includes(current);
+    if (signal === "permission") {
+      if (on) return "Разрешено";
+      if (off) return "Отключено";
+    } else if (signal === "readiness") {
+      if (on || ["ready", "готов", "готово"].includes(current)) return "Готово";
+      if (off || ["not_ready", "не готов", "не готово"].includes(current)) return "Не готово";
+    } else if (signal === "activity") {
+      if (on || ["active", "running", "heat", "heating", "нагрев"].includes(current)) return "Нагрев";
+      if (off || ["idle", "standby"].includes(current)) return "Не нагревается";
+    } else if (signal === "status") {
+      if (["heating", "нагрев"].includes(current)) return "Нагрев";
+      if (["ready", "готов", "готово"].includes(current)) return "Готово";
+    }
     return this._stateText(item);
   };
 
@@ -777,10 +820,19 @@ function installV0812() {
     const circulationTemperature = this._boundV089(items, "circulationTemperature", () =>
       numericIn(circulationItems, ["температур", "temperature", "t°"])
       || numericIn(circulationItems));
+    const dhwMeasurements = dhwItems.filter((item) => {
+      const attributes = item.state?.attributes || {};
+      const text = [item.entry.entity_id, item.entry.name, item.entry.original_name,
+        attributes.friendly_name].filter(Boolean).join(" ").toLocaleLowerCase();
+      return item.entry.entity_id.startsWith("sensor.") && !this._dhwSignalV096(item)
+        && !includesAny(text, ["циркуляц", "circulation", "хвс", "давлен", "pressure", "целев", "target", "уставк"])
+        && (attributes.device_class === "temperature"
+          || ["°C", "°F", "K"].includes(attributes.unit_of_measurement)
+          || (!attributes.unit_of_measurement && includesAny(text, ["температур", "temperature", "t°"])));
+    });
     const dhwTemperature = this._boundV089(items, "dhwTemperature", () =>
-      numericIn(dhwItems, ["температур", "temperature", "t°"], ["циркуляц", "хвс", "давлен"])
-      || numericIn(dhwItems, [], ["циркуляц", "хвс", "давлен"]));
-    const dhwState = this._findState(dhwItems, ["готов", "нагрев", "состояни", "status", "active", "включ"], ["циркуляц"]);
+      dhwMeasurements[0]);
+    const dhwState = this._dhwStateV096(dhwItems);
     const coldWaterPressure = this._boundV089(items, "coldWaterPressure", () => items.find((item) => {
       const text = this._text(item);
       return includesAny(text, ["давлен", "pressure"])
@@ -856,7 +908,7 @@ function installV0812() {
     const statusClass = (item) => active(item) ? "on"
       : item && this._isInactive(item) ? "off" : valid(item) ? "ready" : "problem";
     const nodeStatusClass = (item) => statusClass(item);
-    const statusDot = (item) => `<i class="z82-dot ${statusClass(item)}" title="${esc(state(item))}"></i>`;
+    const statusDot = (item, label = state(item)) => `<i class="z82-dot ${statusClass(item)}" title="${esc(label)}"></i>`;
     const lineRow = (label, item, tone = "", fallback = "—") => `
       <div class="z82-row"><span class="${tone}">${esc(label)}</span><strong>${esc(value(item, fallback))}</strong></div>`;
 
@@ -891,7 +943,7 @@ function installV0812() {
           <i class="z82-water" style="height:${shellWaterFill.toFixed(1)}%"></i>
           <span class="z82-port hot"></span><span class="z82-port loop"></span><span class="z82-port cold"></span>
         </div>
-        <div class="z82-dhw-temperature"><ha-icon icon="mdi:thermometer"></ha-icon><strong>${esc(value(dhwTemperature))}</strong><small>${esc(dhwStatusText)}</small>${statusDot(dhwState)}</div>
+        <div class="z82-dhw-temperature"><ha-icon icon="mdi:thermometer"></ha-icon><strong>${esc(value(dhwTemperature))}</strong><small>${esc(dhwStatusText)}</small>${statusDot(dhwState, dhwStatusText)}</div>
         <i class="z82-pipe z82-hot-pipe"></i><i class="z82-flow-arrow hot"></i>
         <i class="z82-pipe z82-loop-branch"></i><i class="z82-pipe z82-loop-return"></i><i class="z82-pipe z82-loop-vertical"></i><i class="z82-flow-arrow loop"></i>
         <span class="z82-loop-pump ${statusClass(circulationState)}" title="Насос циркуляции: ${esc(state(circulationState))}"><ha-icon icon="mdi:pump"></ha-icon></span>
