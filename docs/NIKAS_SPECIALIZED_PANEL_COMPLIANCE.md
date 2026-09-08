@@ -1,6 +1,6 @@
 # NikaS specialized-panel compliance — ZONT
 
-**Audit date:** 2026-09-03
+**Audit date:** 2026-09-08
 
 **Standard:** NikaS Specialized Panel UI Standard v2.2 + NikaS Panel Navigation and Return Contract v1.2
 
@@ -8,7 +8,7 @@
 
 **Audited production path:** `custom_components/zont_local/__init__.py` → autonomous `zont-ui.js` → `zont-local-panel`
 
-**Release candidate:** UI/integration 0.9.5-b024
+**Release candidate:** UI/integration 0.9.6-b025
 
 | Area | Result | Evidence |
 |---|---|---|
@@ -22,12 +22,12 @@
 | Bottom Tab Bar | PASS (code) | Five equal tabs use 26 px MDI glyphs, 12/14 px labels and the canonical active treatment. |
 | Scale and gesture safety | PASS (code) | The retained 75–200% focal pinch, bounded pan, 97–103% snap, two-finger reset, hold cancellation and click suppression operate inside the canonical viewport. |
 | Stable runtime | PASS (code) | The shell mounts once, visited tab views are cached and live telemetry morphs the active view without replacing the shell. |
-| Connection plaque | PASS (code) | The stable two-line plaque independently exposes transport (`Локально / Нет связи / Нет данных`) and freshness (`Данные актуальны / Данные устарели / Нет данных`) with fail-closed colours. |
+| Connection plaque | PASS (code) | The stable two-line plaque independently exposes transport (`Локально / Облако / Резерв / Нет связи / Нет данных`) and freshness (`Данные актуальны / Данные устарели / Нет данных`) with fail-closed colours. A named transport requires an explicit confirmed contract and evidence; `online` alone leaves the channel at `Нет данных`. |
 | Top equipment row | PASS (code) | `Котёл 1`, `Котёл 2` and `Бойлер ГВС` retain that exact order in one three-column row at every supported width; DHW cannot span or wrap below the boilers. |
 | Domain UI preservation | PASS (code) | Boilers, DHW, hydraulic separator, circuits, modes and packaged equipment artwork remain live layered UI. |
-| Data truth | PASS (code) | Entity and device facts come from the ZONT integration and Home Assistant registries; unavailable, unknown, stale and active-error states remain explicit. |
+| Data truth | PASS (code) | Entity and device facts come from the ZONT integration and Home Assistant registries; absent, empty, malformed, unavailable, unknown, stale and active-error states remain explicit. DHW operation comes only from its circuit-state entity and is not inferred from temperature. |
 | Command safety | PASS (code) | Only discovered ZONT mode buttons are actionable, require confirmation, reject duplicate sends and expose service-call errors without optimistic success. |
-| Version coherence | PASS (code) | Visible UI, runtime/cache key, panel manifest, dashboard metadata and integration metadata agree on 0.9.5-b024. |
+| Version coherence | PASS (code) | Visible UI, runtime/cache key, panel manifest, dashboard metadata and integration metadata agree on 0.9.6-b025. |
 | Deterministic delivery | PASS (code) | The generated production bundle is autonomous, import-free and reproducible from the declared local sources, including the hash-pinned shell kit. |
 
 ## Device verification still required

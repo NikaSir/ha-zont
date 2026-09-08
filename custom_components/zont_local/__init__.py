@@ -78,6 +78,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "kind": "entity_registry",
                 "platforms": ["zont", "zont_ha"],
                 "include_disabled": False,
+                "transport": {
+                    "kind": "unknown",
+                    "confirmed": False,
+                    "evidence": "upstream_entities_do_not_expose_transport",
+                },
             },
             "tabs": [
                 {"id": "states", "label": "Состояние", "icon": "mdi:pump"},

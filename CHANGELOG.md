@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.6
+
+- Treats absent, empty, `unknown`, unavailable and malformed numeric telemetry as missing instead of coercing it to zero.
+- Derives the DHW operating label only from an explicit circuit state; temperature remains a separate measurement and no longer implies heating or readiness.
+- Distinguishes DHW readiness (`Готово`), permission (`Разрешено`) and measured heating (`Нагрев`), with stable source priority and full-runtime discovery tests in CI. Numeric status signals are not used as temperature measurements.
+- Requires an evidence-bearing source transport contract before showing `Локально`, `Облако` or `Резерв`; the current upstream `zont`/`zont_ha` entity source therefore reports `Нет данных` for the channel while retaining its independent online and freshness handling.
+- Extends semantic regression coverage and raises frontend cache busting to `b025`.
+
 ## 0.9.5
 
 - Migrates the panel to NikaS Specialized Panel UI Standard v2.2 and Navigation Contract v1.2 using the exact vendored shell kit v2.1.
