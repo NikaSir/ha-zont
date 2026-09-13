@@ -70,9 +70,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "title": PANEL_TITLE,
             "subtitle": "Отопление и ГВС",
             "parent": {
-                "id": "house.heating",
+                "id": "home",
                 "title": "Отопление и ГВС",
-                "path": "/dashboard-house-v13/home",
+                "path": "/home/overview",
             },
             "source": {
                 "kind": "entity_registry",

@@ -499,8 +499,8 @@
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.9.6";
-const ASSET_VERSION = "0.9.6";
+const UI_VERSION = "0.9.7";
+const ASSET_VERSION = "0.9.7";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -1456,19 +1456,13 @@ function installV095() {
     }
 
     const config = this._config();
-    if (!this.__zontReturnRouteV095) {
-      this.__zontReturnRouteV095 = captureNikasShellReturnRoute({
-        panelId: "zont",
-        parentRoute: config?.parent?.path || config?.parent_route,
-        safeReturnRoute: "/dashboard-house-v13/home",
-      });
-    }
+
     shell.querySelector("#zont-menu").onclick = () => this.dispatchEvent(new CustomEvent(
       "hass-toggle-menu",
       { bubbles: true, composed: true },
     ));
     shell.querySelector("#zont-title").onclick = () => navigateNikasShell(
-      this.__zontReturnRouteV095 || "/dashboard-house-v13/home",
+      "/home/overview",
     );
     const refresh = shell.querySelector("#zont-refresh");
     refresh.onclick = () => this._load(true);

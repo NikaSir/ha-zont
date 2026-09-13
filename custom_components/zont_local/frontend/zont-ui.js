@@ -1,5 +1,5 @@
 // GENERATED FILE. DO NOT EDIT DIRECTLY.
-// ZONT autonomous UI 0.9.6 production bundle.
+// ZONT autonomous UI 0.9.7 production bundle.
 // One active shell: zont-local-panel / NikaS shell kit v2.1.
 
 // BEGIN custom_components/zont_local/frontend/nikas-specialized-shell.js
@@ -15,6 +15,7 @@ const NIKAS_SOURCE_ROUTE_MAX_AGE_MS = 30_000;
 const NIKAS_SHELL_BOUNDARY_THRESHOLD_PX = 4;
 
 const NIKAS_BASE_ROUTES = Object.freeze([
+  Object.freeze({ root: "/home", entry: "/home/overview" }),
   Object.freeze({ root: "/dashboard-house-v13", entry: "/dashboard-house-v13/home" }),
   Object.freeze({ root: "/dashboard-rooms-v11", entry: "/dashboard-rooms-v11/rooms" }),
   Object.freeze({ root: "/dashboard-actions", entry: "/dashboard-actions/home" }),
@@ -262,33 +263,19 @@ function consumeNikasSourceHandoff(now = Date.now()) {
   return normalizeNikasBaseRoute(route);
 }
 
-function captureNikasShellReturnRoute({ panelId, parentRoute, safeReturnRoute }) {
-  const savedKey = `nikas.${panelId}.return_route.v1`;
-  const params = new URLSearchParams(window.location.search);
-  const handoff = consumeNikasSourceHandoff();
-  let saved = null;
+// Navigation contract v1.3: the declared hierarchy is the only authority.
+function captureNikasShellReturnRoute({ parentRoute } = {}) {
+  const overview = "/home/overview";
+  if (typeof parentRoute !== "string" || !parentRoute.startsWith("/")
+      || parentRoute.startsWith("//")) return overview;
   try {
-    saved = window.localStorage.getItem(savedKey);
+    const parent = new URL(parentRoute, window.location.origin);
+    if (parent.origin !== window.location.origin || parent.search || parent.hash
+        || parent.pathname === window.location.pathname) return overview;
+    return parent.pathname;
   } catch (_error) {
-    // Saved return routes are an optional convenience.
+    return overview;
   }
-  const candidates = [
-    ...params.getAll("return_to"),
-    ...params.getAll("from"),
-    handoff,
-    saved,
-    document.referrer,
-    parentRoute,
-    safeReturnRoute,
-  ];
-  const accepted = candidates.map(normalizeNikasBaseRoute).find(Boolean)
-    || NIKAS_BASE_ROUTES[0].entry;
-  try {
-    window.localStorage.setItem(savedKey, accepted);
-  } catch (_error) {
-    // The captured route remains stable for the mounted panel instance.
-  }
-  return accepted;
 }
 
 function rememberNikasSpecializedSourceRoute(destination) {
@@ -831,8 +818,8 @@ function navigateNikasShell(path, { captureSource = false } = {}) {
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.9.6";
-const ASSET_VERSION = "0.9.6";
+const UI_VERSION = "0.9.7";
+const ASSET_VERSION = "0.9.7";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -1788,19 +1775,13 @@ function installV095() {
     }
 
     const config = this._config();
-    if (!this.__zontReturnRouteV095) {
-      this.__zontReturnRouteV095 = captureNikasShellReturnRoute({
-        panelId: "zont",
-        parentRoute: config?.parent?.path || config?.parent_route,
-        safeReturnRoute: "/dashboard-house-v13/home",
-      });
-    }
+
     shell.querySelector("#zont-menu").onclick = () => this.dispatchEvent(new CustomEvent(
       "hass-toggle-menu",
       { bubbles: true, composed: true },
     ));
     shell.querySelector("#zont-title").onclick = () => navigateNikasShell(
-      this.__zontReturnRouteV095 || "/dashboard-house-v13/home",
+      "/home/overview",
     );
     const refresh = shell.querySelector("#zont-refresh");
     refresh.onclick = () => this._load(true);
