@@ -44,6 +44,10 @@ jobs:
           grep -F 'const UI_VERSION = "0.9.6"' custom_components/zont_local/frontend/zont-ui.js
       - name: Enforce NikaS UI standard v2.2
         run: python scripts/check_nikas_ui_standard.py
+      - name: Verify pinned standard documents
+        run: |
+          python scripts/check_standard_documents.py
+          python tests/test_standard_document_sync.py
 
   hassfest:
     name: Hassfest
