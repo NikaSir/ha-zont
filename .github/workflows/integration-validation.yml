@@ -26,7 +26,9 @@ jobs:
       - name: Check frontend module syntax
         run: node --input-type=module --check < custom_components/zont_local/frontend/zont-ui.js
       - name: Check frontend semantic states
-        run: node tests/test_zont_ui_semantics.cjs
+        run: |
+          node tests/test_title_parent.cjs
+          node tests/test_zont_ui_semantics.cjs
       - name: Check DHW discovery and operating states
         run: node tests/test_zont_dhw_truth.cjs
       - name: Check standalone panel registration
@@ -37,11 +39,11 @@ jobs:
           node tests/shell_v2_harness.mjs
       - name: Check main version synchronization
         run: |
-          grep -F 'VERSION = "0.9.6"' custom_components/zont_local/const.py
-          grep -F 'FRONTEND_BUILD = "b025"' custom_components/zont_local/const.py
-          grep -F '"version": "0.9.6"' custom_components/zont_local/manifest.json
-          grep -F 'version: 0.9.6' dashboard/manifest/zont.yaml
-          grep -F 'const UI_VERSION = "0.9.6"' custom_components/zont_local/frontend/zont-ui.js
+          grep -F 'VERSION = "0.9.7"' custom_components/zont_local/const.py
+          grep -F 'FRONTEND_BUILD = "b026"' custom_components/zont_local/const.py
+          grep -F '"version": "0.9.7"' custom_components/zont_local/manifest.json
+          grep -F 'version: 0.9.7' dashboard/manifest/zont.yaml
+          grep -F 'const UI_VERSION = "0.9.7"' custom_components/zont_local/frontend/zont-ui.js
       - name: Enforce NikaS UI standard v2.2
         run: python scripts/check_nikas_ui_standard.py
       - name: Verify pinned standard documents
