@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.1
+
+- Restores the approved Overview composition: compact status, exactly four metric cards in a 2×2 grid, and a concise active-equipment list.
+- Uses explicit quantity matching instead of registry order; physical outdoor sensor takes precedence over internet weather, ambiguous sources remain unknown.
+- Replaces raw technical names with user-facing labels; labels indoor temperature as the living-room measurement rather than a house average.
+- Adds real-browser layout coverage for 320/390/430/768px and regression tests for source selection. Frontend build b028.
+
 ## 0.10.0
 
 - Adds the daily read-only views: overview, zones, equipment, history and service.
