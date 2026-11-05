@@ -6,6 +6,8 @@
 
 ZONT Local & UI for Home Assistant.
 
+UI **0.10.0 / b027** provides five read-only tabs: Обзор, Зоны, Оборудование, История, Сервис. Zones include the eight approved HA thermostats; history uses Recorder temperature data. See [DAILY_OVERVIEW.md](docs/DAILY_OVERVIEW.md) for data limitations and acceptance status.
+
 ## Project status
 
 **Phase 1 — HACS-managed ZONT UI**

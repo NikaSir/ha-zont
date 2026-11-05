@@ -447,20 +447,7 @@
       return `${refreshError}${content}`;
     }
 
-    async _pressMode(entityId, label) {
-      const item = this._entries().find((entry) => entry.entry.entity_id === entityId);
-      if (this._busyMode || !item || this._isProblem(item) || domainOf(entityId) !== "button" || !["zont", "zont_ha"].includes(item.entry.platform)) return;
-      if (!window.confirm(`Переключить режим отопления на «${label}»?`)) return;
-      this._commandError = null;
-      this._busyMode = entityId;
-      this._queue();
-      try {
-        await this._hass.callService("button", "press", { entity_id: entityId });
-      } catch (error) {
-        this._commandError = error instanceof Error ? error.message : String(error || "неизвестная ошибка");
-      }
-      finally { this._busyMode = null; this._queue(); }
-    }
+    async _pressMode() { /* Read-only panel. */ }
 
     _render() {
       const active = this._activeTab();
@@ -499,8 +486,8 @@
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.9.7";
-const ASSET_VERSION = "0.9.7";
+const UI_VERSION = "0.10.0";
+const ASSET_VERSION = "0.10.0";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -722,7 +709,9 @@ function installV0812() {
     const controllerHtml = controllerItems.length
       ? controllerItems.map((item) => this._compactCard(item)).join("")
       : '<div class="empty problem">Телеметрия контроллера не найдена.</div>';
-    const errorHtml = activeErrors.length
+    const errorHtml = !errorSources.length
+      ? '<div class="empty">Источники состояния ошибок не найдены.</div>'
+      : activeErrors.length
       ? activeErrors.slice(0, 8).map((item) => this._compactCard(item)).join("")
       : unavailableErrors.length
         ? '<div class="empty problem">Состояние ошибок недоступно.</div>'
@@ -1316,7 +1305,7 @@ function installV095() {
 
   const syncAttributes = (current, fresh) => {
     for (const attribute of [...current.attributes]) {
-      if (attribute.name === "data-more-info-bound") continue;
+      if (attribute.name === "data-more-info-bound" || (current.tagName === "DETAILS" && attribute.name === "open")) continue;
       if (!fresh.hasAttribute(attribute.name)) current.removeAttribute(attribute.name);
     }
     for (const attribute of [...fresh.attributes]) {
@@ -1482,38 +1471,7 @@ function installV095() {
     return this.__zontShellV095;
   };
 
-  ElementClass.prototype._bindWorkActionsV095 = function bindWorkActionsV095(view) {
-    const diagnostics = view.querySelector("[data-open-diagnostics]");
-    if (diagnostics) diagnostics.onclick = () => this._selectTab("diagnostics");
-    for (const button of view.querySelectorAll("button[data-mode-entity]")) {
-      button.onclick = () => this._pressMode(button.dataset.modeEntity, button.dataset.modeLabel);
-    }
-    for (const target of view.querySelectorAll("[data-entity]")) {
-      if (target.dataset.moreInfoBound === "true") continue;
-      target.dataset.moreInfoBound = "true";
-      let timer = null;
-      let origin = null;
-      const cancel = () => { clearTimeout(timer); timer = null; origin = null; };
-      target.addEventListener("pointerdown", (event) => {
-        if (event.pointerType === "mouse" && event.button !== 0) return;
-        origin = { x: event.clientX, y: event.clientY };
-        timer = setTimeout(() => {
-          timer = null;
-          this.dispatchEvent(new CustomEvent("hass-more-info", {
-            bubbles: true,
-            composed: true,
-            detail: { entityId: target.dataset.entity },
-          }));
-        }, 550);
-      });
-      target.addEventListener("pointermove", (event) => {
-        if (origin && Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > 10) cancel();
-      });
-      target.addEventListener("pointerup", cancel);
-      target.addEventListener("pointercancel", cancel);
-      target.addEventListener("pointerleave", cancel);
-    }
-  };
+  ElementClass.prototype._bindWorkActionsV095 = function bindWorkActionsV095() {};
 
   ElementClass.prototype._patchViewV095 = function patchViewV095(view, html) {
     const fresh = document.createElement("div");
