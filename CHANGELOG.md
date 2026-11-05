@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.0
+
+- Adds the daily read-only views: overview, zones, equipment, history and service.
+- Includes eight user-approved room thermostats, separating measured heating from mode and showing unavailable sources explicitly.
+- Moves the technical schematic under Service; removes equipment service calls and native command dialogs.
+- Adds Recorder temperature charts for the last 24 hours with explicit unavailable-state breaks and error/empty states.
+- Retains the autonomous NikaS shell and gesture engine. Burner cycles remain unavailable without a confirmed source.
+- Raises the frontend cache build to b027. Browser/mobile acceptance remains outstanding: Chromium download failed in the build environment.
+
 ## 0.9.6
 
 - Treats absent, empty, `unknown`, unavailable and malformed numeric telemetry as missing instead of coercing it to zero.

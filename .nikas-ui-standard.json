@@ -15,9 +15,10 @@
   "build_source_files": [
     "scripts/build_frontend_bundle.py",
     "custom_components/zont_local/frontend/nikas-specialized-shell.js",
-    "custom_components/zont_local/frontend/zont-app.js"
+    "custom_components/zont_local/frontend/zont-app.js",
+    "custom_components/zont_local/frontend/daily-overview.js"
   ],
-  "ui_version": "0.9.7",
+  "ui_version": "0.10.0",
   "web_component": "zont-local-panel",
   "panel": {
     "id": "zont",
@@ -68,9 +69,10 @@
     "transport_confirmation": "explicit_kind_confirmed_and_evidence",
     "invented_entity_ids": false,
     "fixed_entity_ids": "none",
-    "command_policy": "entity_services",
-    "command_markers": [
-      "await this._hass.callService(\"button\", \"press\""
+    "command_policy": "read_only",
+    "forbidden_command_markers": [
+      ".callService(",
+      "hass-more-info"
     ]
   },
   "header_return": {
