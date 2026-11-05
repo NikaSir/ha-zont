@@ -41,17 +41,31 @@ jobs:
           node tests/shell_v2_harness.mjs
       - name: Check main version synchronization
         run: |
-          grep -F 'VERSION = "0.10.0"' custom_components/zont_local/const.py
-          grep -F 'FRONTEND_BUILD = "b027"' custom_components/zont_local/const.py
-          grep -F '"version": "0.10.0"' custom_components/zont_local/manifest.json
-          grep -F 'version: 0.10.0' dashboard/manifest/zont.yaml
-          grep -F 'const UI_VERSION = "0.10.0"' custom_components/zont_local/frontend/zont-ui.js
+          grep -F 'VERSION = "0.10.1"' custom_components/zont_local/const.py
+          grep -F 'FRONTEND_BUILD = "b028"' custom_components/zont_local/const.py
+          grep -F '"version": "0.10.1"' custom_components/zont_local/manifest.json
+          grep -F 'version: 0.10.1' dashboard/manifest/zont.yaml
+          grep -F 'const UI_VERSION = "0.10.1"' custom_components/zont_local/frontend/zont-ui.js
       - name: Enforce NikaS UI standard v2.2
         run: python scripts/check_nikas_ui_standard.py
       - name: Verify pinned standard documents
         run: |
           python scripts/check_standard_documents.py
           python tests/test_standard_document_sync.py
+
+  overview-browser:
+    name: Overview browser layout
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+      - run: npm install --no-save --prefix /tmp/zont-browser playwright@1.64.1
+      - run: node /tmp/zont-browser/node_modules/playwright/cli.js install --with-deps chromium
+      - run: node tests/test_overview_browser.cjs
+        env:
+          NODE_PATH: /tmp/zont-browser/node_modules
 
   hassfest:
     name: Hassfest

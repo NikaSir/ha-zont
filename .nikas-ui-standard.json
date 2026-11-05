@@ -18,7 +18,7 @@
     "custom_components/zont_local/frontend/zont-app.js",
     "custom_components/zont_local/frontend/daily-overview.js"
   ],
-  "ui_version": "0.10.0",
+  "ui_version": "0.10.1",
   "web_component": "zont-local-panel",
   "panel": {
     "id": "zont",
