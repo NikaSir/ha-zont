@@ -1,0 +1,34 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+class Panel {}
+for(const path of ['daily-overview.js','heating-detail-tabs.js'])vm.runInNewContext(fs.readFileSync('custom_components/zont_local/frontend/'+path,'utf8'),{customElements:{get:()=>Panel}});
+const p=new Panel();p._config=()=>({zone_entities:[],zone_labels:{'climate.a':'Гардероб'}});p._hass={states:{}};p._queue=()=>{};
+const item=(id,name,state,unit='°C')=>({entry:{entity_id:id,original_name:name},state:{state,attributes:{unit_of_measurement:unit}}});
+const a=item('sensor.main','eBUS Основной подача','45'),b=item('sensor.ret','eBUS Основной обратка','38'),c=item('sensor.reserve','Резерв температура','24');
+assert.equal(p._htEquipmentModel([a,b,c]).supply,a);
+assert.equal(p._htEquipmentModel([a,b,c]).reserve,c);
+assert.equal(p._htEquipmentModel([a,b]).reserve,null,'reserve cannot borrow main telemetry');
+assert.equal(p._htEquipmentModel([a,item('sensor.duplicate','Основной подача','46')]).supply,null,'ambiguous boiler source is missing');
+const zone={id:'climate.a',name:'technical device name',current:0,target:22,delta:-22,active:true,uncertain:false,missing:false,action:'Нагрев'};
+assert.ok(p._htZoneCard(zone).includes('Гардероб'));
+assert.ok(!p._htZoneCard(zone).includes('technical device name'));
+assert.ok(p._htZoneCard(zone).includes('0,0'));
+assert.ok(p._htZones([{...zone,active:false,missing:true,current:null}]).includes('Нет связи'));
+const range={start:100000,end:200000};
+const samples=[{state:'20',last_changed:new Date(100000).toISOString()},{state:'unavailable',last_changed:new Date(150000).toISOString()},{state:'21',last_changed:new Date(190000).toISOString()}];
+const chart=p._htChart(samples,range,'°C');
+const path=chart.match(/<path d="([^"]*)"/)[1];assert.equal((path.match(/M/g)||[]).length,2);
+assert.equal((path.match(/L/g)||[]).length,0);
+assert.ok(p._htActivity([],range).includes('Нет истории'));
+assert.ok(!p._htActivity(samples,range).includes('<i style'));
+(async()=>{
+ const pending=[];p._hass.callApi=()=>new Promise(resolve=>pending.push(resolve));
+ const items=[item('sensor.room','Гостиная','23')];
+ p._htHistoryData(items);await Promise.resolve();
+ p.__htPeriod=7;p._htHistoryData(items);await Promise.resolve();
+ pending[1]([['new']]);await new Promise(r=>setTimeout(r,0));
+ pending[0]([['old']]);await new Promise(r=>setTimeout(r,0));
+ assert.equal(p.__htHistory.data[0][0],'new','late old-period response must not replace new period');
+ console.log('Detail tabs: zone cards, boiler isolation, history gaps and request race passed');
+})().catch(e=>{console.error(e);process.exitCode=1;});

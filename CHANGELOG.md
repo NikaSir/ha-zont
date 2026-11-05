@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.0-beta001
+
+- Implements the approved Zones, Equipment, History and Service card layouts while retaining the Overview and shared shell.
+- Adds short thermostat labels, separate heating/incomplete/unavailable groups, expandable details and explicit unknown readings.
+- Adds isolated main/reserve boiler sources, supply/return cards and measured circuit/DHW statuses without commands.
+- Adds temperature selection and 24-hour/7-day Recorder history, explicit missing-data gaps, measured circuit-activity bands and stale-request protection.
+- Separates HA receipt timestamps from controller transport confirmation in Service. Burner cycle counts remain unavailable without a confirmed source.
+- Adds unit and browser coverage across all tabs. UI/integration use the full beta version; cache build b029. The local version guard accepts the user-requested X.Y.Z-betaNNN form.
+
 ## 0.10.1
 
 - Restores the approved Overview composition: compact status, exactly four metric cards in a 2×2 grid, and a concise active-equipment list.

@@ -14,7 +14,10 @@ const assert=require('node:assert/strict');
    const data=[['sensor.room','Гостиная (t°)','23.2','°C'],['sensor.out','Уличный датчик','4.5','°C'],['sensor.dhw','t° ГВС','45','°C'],['sensor.p','Теплоноситель','1.9','bar'],['binary_sensor.floor','Тёплый пол','on','']];
    panel._registry=data.map(([entity_id,name])=>({entity_id,original_name:name,platform:'zont'}));
    panel._hass={states:Object.fromEntries(data.map(([entity_id,friendly_name,state,unit_of_measurement])=>[entity_id,{entity_id,state,attributes:{friendly_name,unit_of_measurement},last_updated:new Date().toISOString()}]))};
-   panel._panel={config:{source:{platforms:['zont']},zone_entities:[]}};
+   panel._hass.states['climate.a']={state:'auto',attributes:{friendly_name:'ТГ Гардероб',current_temperature:20,temperature:22,hvac_action:'heating'}};
+   panel._hass.states['climate.b']={state:'unavailable',attributes:{friendly_name:'Гараж'}};
+   panel._hass.callApi=async()=>[[{entity_id:'sensor.room',state:'22',last_changed:new Date(Date.now()-3600000).toISOString()},{entity_id:'sensor.room',state:'23',last_changed:new Date().toISOString()}]];
+   panel._panel={config:{source:{platforms:['zont']},zone_entities:['climate.a','climate.b']}};
    document.body.append(panel);
    window.testPanel=panel;
   });
@@ -28,6 +31,25 @@ const assert=require('node:assert/strict');
   await page.evaluate(()=>{window.shellBefore=window.testPanel.shadowRoot.querySelector('.nikas-shell');window.testPanel._render();});
   assert.ok(await page.evaluate(()=>window.shellBefore===window.testPanel.shadowRoot.querySelector('.nikas-shell')),'telemetry retains shell');
   assert.ok(await page.locator('zont-local-panel .overview').evaluate(el=>el.scrollWidth<=el.clientWidth+1),'overview has no horizontal overflow');
+  for(const tab of ['zones','equipment','history','service']) {
+   await page.locator(`zont-local-panel #zont-tabs button[data-tab="${tab}"]`).click();
+   const view=page.locator('zont-local-panel .zont-work-view:not([hidden])');
+   await view.locator('.ht-title').waitFor();
+   assert.ok(await view.evaluate(el=>el.scrollWidth<=el.clientWidth+1),tab+' must fit');
+   if(tab==='zones'){
+    await view.locator('details[data-detail="absent"] summary').click();
+    await page.evaluate(()=>window.testPanel._render());
+    assert.ok(await view.locator('details[data-detail="absent"]').evaluate(el=>el.open),'telemetry preserves expanded details');
+   }
+   if(tab==='history'){
+    await view.locator('[data-ht-period="7"]').click();
+    await page.waitForFunction(()=>window.testPanel.__htPeriod===7 && window.testPanel.__htHistory?.key.startsWith('7:') && window.testPanel.__htHistory?.loading===false);
+    assert.equal(await view.locator('[data-ht-period="7"]').getAttribute('aria-pressed'),'true');
+    await view.locator('[data-ht-metric="dhw"]').click();
+    await page.waitForFunction(()=>window.testPanel.__htMetric==='dhw' && window.testPanel.shadowRoot.querySelector('.zont-work-view:not([hidden]) [data-ht-metric="dhw"]')?.getAttribute('aria-pressed')==='true');
+    assert.equal(await view.locator('[data-ht-metric="dhw"]').getAttribute('aria-pressed'),'true');
+   }
+  }
   assert.deepEqual(errors,[]);
   await page.close();
  }
