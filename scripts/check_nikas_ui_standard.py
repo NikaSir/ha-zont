@@ -257,8 +257,8 @@ def main() -> None:
 
     ui_version = config.get("ui_version")
     require(
-        isinstance(ui_version, str) and re.fullmatch(r"\d+\.\d+\.\d+", ui_version),
-        "production specialized panel must declare numeric ui_version",
+        isinstance(ui_version, str) and re.fullmatch(r"\d+\.\d+\.\d+(?:-beta\d{3})?", ui_version),
+        "panel ui_version must be X.Y.Z or X.Y.Z-betaNNN",
     )
     require(ui_version in entrypoint_source, "production entrypoint does not contain configured ui_version")
     require(

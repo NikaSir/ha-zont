@@ -94,6 +94,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "climate.thermostat_zb_15_2",
                 "climate.thermostat_zb_15_3",
             ],
+            "zone_labels": {
+                "climate.tambur_2": "Тамбур · тёплый пол",
+                "climate.thermostat_zb_03": "Гардероб",
+                "climate.thermostat_zb_08": "Холл",
+                "climate.thermostat_zb_11_1": "Гостиная · радиатор 1",
+                "climate.thermostat_zb_11_2": "Гостиная · радиатор 2",
+                "climate.thermostat_zb_15_1": "Гараж · радиатор 1",
+                "climate.thermostat_zb_15_2": "Гараж · радиатор 2",
+                "climate.thermostat_zb_15_3": "Гараж · радиатор 3",
+            },
             "tabs": [
                 {"id": "overview", "label": "Обзор", "icon": "mdi:home-outline"},
                 {"id": "zones", "label": "Зоны", "icon": "mdi:home-thermometer-outline"},
