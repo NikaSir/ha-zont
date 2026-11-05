@@ -6,7 +6,10 @@ const assert=require('node:assert/strict');
  try {
  for(const width of [320,390,430,768]) {
   const page=await browser.newPage({viewport:{width,height:932}});
-  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  const errors=[];page.on('pageerror',e=>{errors.push(e.message);console.error('PAGE ERROR:',e.message);});
+  // HA navigation uses same-origin history. about:blank has no usable pathname.
+  await page.route('http://zont.test/**',route=>route.fulfill({contentType:'text/html',body:'<html><body></body></html>'}));
+  await page.goto('http://zont.test/');
   await page.setContent(`<style>html,body{margin:0;width:100%;height:100%;--primary-text-color:#eee;--secondary-text-color:#aaa;--card-background-color:#202020;--primary-background-color:#111;--secondary-background-color:#282828;--divider-color:#444;--primary-color:#03a9cf}zont-local-panel{display:block;width:100%;height:100%}</style>`);
   await page.addScriptTag({path:'custom_components/zont_local/frontend/zont-ui.js'});
   await page.evaluate(()=>{
