@@ -71,7 +71,7 @@ def main() -> None:
     assert removed == ["dashboard-zont"]
     assert panel["frontend_url_path"] == "dashboard-zont"
     assert panel["webcomponent_name"] == "zont-local-panel"
-    assert panel["module_url"].endswith("?v=0.11.0-beta001&build=b029")
+    assert panel["module_url"].endswith("?v=0.11.0-beta002&build=b030")
     assert panel["sidebar_title"] == "Отопление"
     assert panel["config"]["title"] == "Отопление"
     assert panel["config"]["parent"]["path"] == "/home/overview"

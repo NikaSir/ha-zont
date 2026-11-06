@@ -63,3 +63,22 @@ assert.equal(p._dailyTemperatureChart([sample('unknown',-1000)],'sensor.temperat
  assert.ok(p._dailyHistory([]).includes('нет записей'));
  console.log('Daily history: gaps, empty data, API error and escaping passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
+// Heating outlets are independent of the ZONT registry and remain visible while off.
+p._config = () => ({heating_outlets:[{entity_id:'switch.socket_wf4',label:'Тамбур · WF4'},{entity_id:'switch.socket_wf2',label:'Веранда · WF2'},{entity_id:'switch.socket_wf3',label:'Веранда · WF3'}]});
+p._hass.states['switch.socket_wf4']={state:'on',attributes:{}};
+p._hass.states['switch.socket_wf2']={state:'off',attributes:{}};
+p._hass.states['switch.socket_wf3']={state:'unavailable',attributes:{}};
+let outlets=p._dailyOverview(fixture,[]);
+assert.ok(outlets.includes('Электрообогрев'));
+assert.ok(outlets.includes('Тамбур · WF4'));
+assert.ok(outlets.includes('Веранда · WF2'));
+assert.ok(outlets.includes('Веранда · WF3'));
+assert.ok(outlets.includes('Включена'));
+assert.ok(outlets.includes('Выключена'));
+assert.ok(outlets.includes('Нет связи'));
+delete p._hass.states['switch.socket_wf3'];
+outlets=p._dailyOverview(fixture,[]);
+assert.ok(outlets.includes('Нет данных'));
+assert.ok(!/<button|data-entity=/.test(outlets),'outlets expose no command or more-info path');
+console.log('Overview heating outlets: on, off, unavailable, missing and read-only passed');
