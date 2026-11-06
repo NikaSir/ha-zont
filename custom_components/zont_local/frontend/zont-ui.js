@@ -1,5 +1,5 @@
 // GENERATED FILE. DO NOT EDIT DIRECTLY.
-// ZONT autonomous UI 0.11.0-beta001 production bundle.
+// ZONT autonomous UI 0.11.0-beta002 production bundle.
 // One active shell: zont-local-panel / NikaS shell kit v2.1.
 
 // BEGIN custom_components/zont_local/frontend/nikas-specialized-shell.js
@@ -805,8 +805,8 @@ function navigateNikasShell(path, { captureSource = false } = {}) {
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.11.0-beta001";
-const ASSET_VERSION = "0.11.0-beta001";
+const UI_VERSION = "0.11.0-beta002";
+const ASSET_VERSION = "0.11.0-beta002";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -2153,7 +2153,13 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     const freshness = age===null ? "Время данных неизвестно" : age===0 ? "HA: менее минуты назад" : `HA: до ${age} мин назад`;
     const cards = metrics.map(m=>`<div class="overview-metric"><div class="overview-label"><ha-icon icon="${m.icon}"></ha-icon>${m.label}</div><div class="overview-value">${m.value===null ? "Нет данных" : `${escape(m.value.toLocaleString("ru",{maximumFractionDigits:2}))}<span>${escape(m.item.state.attributes?.unit_of_measurement || "")}</span>`}</div><small>${m.value===null ? "Источник отсутствует или неоднозначен" : m.note}</small></div>`).join("");
     const nodes = active.map(n=>`<div class="overview-node"><ha-icon icon="${n.icon}"></ha-icon><strong>${n.name}</strong><span>${n.state}</span></div>`).join("");
-    return `<div class="overview"><div class="overview-hero"><div><p class="overview-eyebrow">Состояние дома</p><h1>${title}</h1><small>${escape(notes.join(" · ") || "Температуры и давление доступны")}</small></div><div class="overview-connection"><strong>${escape(connection.text)}</strong><small>${escape(freshness)}</small></div></div><div class="overview-metrics">${cards}</div><div class="overview-section-title"><h2>Работает сейчас</h2><small>${active.length} узл.</small></div><div class="overview-nodes">${nodes || '<div class="overview-empty">Нет подтверждённых активных узлов</div>'}</div></div>`;
+    const outlets = (this._config().heating_outlets || []).map(outlet => {
+      const state = this._hass?.states?.[outlet.entity_id];
+      const status = !state ? "Нет данных" : state.state === "on" ? "Включена" : state.state === "off" ? "Выключена" : state.state === "unavailable" ? "Нет связи" : "Нет данных";
+      return `<div class="overview-node"><ha-icon icon="mdi:power-socket-eu"></ha-icon><strong>${escape(outlet.label)}</strong><span>${status}</span></div>`;
+    }).join("");
+    const heating = outlets ? `<div class="overview-section-title"><h2>Электрообогрев</h2></div><div class="overview-nodes">${outlets}</div>` : "";
+    return `<div class="overview"><div class="overview-hero"><div><p class="overview-eyebrow">Состояние дома</p><h1>${title}</h1><small>${escape(notes.join(" · ") || "Температуры и давление доступны")}</small></div><div class="overview-connection"><strong>${escape(connection.text)}</strong><small>${escape(freshness)}</small></div></div><div class="overview-metrics">${cards}</div><div class="overview-section-title"><h2>Работает сейчас</h2><small>${active.length} узл.</small></div><div class="overview-nodes">${nodes || '<div class="overview-empty">Нет подтверждённых активных узлов</div>'}</div>${heating}</div>`;
   };
   p._dailyHistory = function(items) {
     if (!this.__dailyHistory && !this.__dailyHistoryLoading) {

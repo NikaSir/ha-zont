@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0-beta002
+
+- Overview adds read-only heating outlet states: Tambour WF4, Veranda WF2 and WF3, verified against the existing heating automations.
+- Outlets remain visible while off; missing and unavailable data are explicit. No switching or more-info commands.
+- UI/integration version and cache build synchronized to b030.
+
 ## 0.11.0-beta001
 
 - Implements the approved Zones, Equipment, History and Service card layouts while retaining the Overview and shared shell.

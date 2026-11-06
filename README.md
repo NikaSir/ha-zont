@@ -6,7 +6,7 @@
 
 ZONT Local & UI for Home Assistant.
 
-UI **0.11.0-beta001 / b029** provides five read-only tabs: Обзор, Зоны, Оборудование, История, Сервис. The four detail tabs follow the approved card designs; Overview retains its four-card layout. History supports temperature selection and 24-hour/7-day Recorder data with circuit-activity lanes. Unknown sources stay unknown. See [DAILY_OVERVIEW.md](docs/DAILY_OVERVIEW.md) for data limitations and acceptance status. Updates continue from main without GitHub Releases or tags.
+UI **0.11.0-beta002 / b030** provides five read-only tabs: Обзор, Зоны, Оборудование, История, Сервис. The four detail tabs follow the approved card designs; Overview retains its four-card layout. History supports temperature selection and 24-hour/7-day Recorder data with circuit-activity lanes. Unknown sources stay unknown. See [DAILY_OVERVIEW.md](docs/DAILY_OVERVIEW.md) for data limitations and acceptance status. Updates continue from main without GitHub Releases or tags.
 
 ## Project status
 

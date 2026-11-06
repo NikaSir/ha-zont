@@ -84,6 +84,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     "evidence": "upstream_entities_do_not_expose_transport",
                 },
             },
+            "heating_outlets": [
+                {"entity_id": "switch.socket_wf4", "label": "Тамбур · WF4"},
+                {"entity_id": "switch.socket_wf2", "label": "Веранда · WF2"},
+                {"entity_id": "switch.socket_wf3", "label": "Веранда · WF3"},
+            ],
             "zone_entities": [
                 "climate.tambur_2",
                 "climate.thermostat_zb_03",
