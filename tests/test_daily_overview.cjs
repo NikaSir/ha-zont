@@ -26,6 +26,24 @@ p._pressMode('button.test');
 p._bindWorkActionsV095({});
 assert.equal(commands,0);
 assert.deepEqual(Array.from(p._tabs(),t=>t.id),['overview','zones','equipment','history','service']);
+p._config = () => ({
+ zone_entities:['climate.b'],
+ zone_room_sources:{'climate.b':{temperature:'sensor.b_room',selector:'select.b_source'}},
+});
+p._hass.states['sensor.b_room']={state:'19.5'};
+p._hass.states['select.b_source']={state:'remote_source_offline'};
+let [roomZone]=p._dailyZones();
+assert.equal(roomZone.current,19.5);
+assert.equal(roomZone.target,22);
+assert.equal(roomZone.active,true);
+assert.equal(roomZone.delta,-2.5);
+assert.equal(roomZone.sourceNote,'Внешний датчик: термоголовка не получает данные');
+p._hass.states['select.b_source'].state='remote_temperature';
+p._hass.states['sensor.b_room'].state='unavailable';
+[roomZone]=p._dailyZones();
+assert.equal(roomZone.current,null,'missing room sensor must not fall back to valve temperature');
+assert.equal(roomZone.uncertain,true);
+assert.equal(roomZone.sourceNote,'Внешний датчик');
 console.log('Daily overview: zones and read-only checks passed');
 const measured = (id,name,value,unit='°C') => ({entry:{entity_id:id,original_name:name},state:{state:value,attributes:{friendly_name:name,unit_of_measurement:unit}}});
 const fixture = [measured('sensor.internet','Погода из интернета','4'),measured('sensor.street','Уличный датчик','4.5'),measured('sensor.room','Гостиная (t°)','23.2'),measured('sensor.child','Детская 1','22.9'),measured('sensor.water','eBUS Основной №2 t° ГВС','45'),measured('sensor.pressure','Теплоноситель','1.9','bar'),measured('binary_sensor.floor','Тёплый пол','on','')];
@@ -65,7 +83,7 @@ assert.equal(p._dailyTemperatureChart([sample('unknown',-1000)],'sensor.temperat
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 // Heating outlets are independent of the ZONT registry and remain visible while off.
-p._config = () => ({heating_outlets:[{entity_id:'switch.socket_wf4',label:'Тамбур · WF4'},{entity_id:'switch.socket_wf2',label:'Веранда · WF2'},{entity_id:'switch.socket_wf3',label:'Веранда · WF3'}]});
+p._config = () => ({heating_outlets:[{entity_id:'switch.socket_wf4',label:'Тамбур · WF4',on_below:8,off_above:10},{entity_id:'switch.socket_wf2',label:'Веранда · WF2',on_below:8,off_above:10},{entity_id:'switch.socket_wf3',label:'Веранда · WF3',on_below:8,off_above:10}]});
 p._hass.states['switch.socket_wf4']={state:'on',attributes:{}};
 p._hass.states['switch.socket_wf2']={state:'off',attributes:{}};
 p._hass.states['switch.socket_wf3']={state:'unavailable',attributes:{}};
@@ -77,6 +95,7 @@ assert.ok(outlets.includes('Веранда · WF3'));
 assert.ok(outlets.includes('Включена'));
 assert.ok(outlets.includes('Выключена'));
 assert.ok(outlets.includes('Нет связи'));
+assert.equal((outlets.match(/Вкл\. ниже 8 °C · Выкл\. выше 10 °C/g)||[]).length,3);
 delete p._hass.states['switch.socket_wf3'];
 outlets=p._dailyOverview(fixture,[]);
 assert.ok(outlets.includes('Нет данных'));

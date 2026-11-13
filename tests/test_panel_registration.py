@@ -71,7 +71,7 @@ def main() -> None:
     assert removed == ["dashboard-zont"]
     assert panel["frontend_url_path"] == "dashboard-zont"
     assert panel["webcomponent_name"] == "zont-local-panel"
-    assert panel["module_url"].endswith("?v=0.11.0-beta002&build=b030")
+    assert panel["module_url"].endswith("?v=0.11.0-beta003&build=b031")
     assert panel["sidebar_title"] == "Отопление"
     assert panel["config"]["title"] == "Отопление"
     assert panel["config"]["parent"]["path"] == "/home/overview"
@@ -81,6 +81,24 @@ def main() -> None:
         "evidence": "upstream_entities_do_not_expose_transport",
     }
     assert len(panel["config"]["tabs"]) == 5
+    assert "climate.thermostat_zb_sn_02" in panel["config"]["zone_entities"]
+    assert "climate.tambur_2" not in panel["config"]["zone_entities"]
+    assert "climate.thermostat_zb_sn_03" in panel["config"]["zone_entities"]
+    assert "climate.thermostat_zb_03" not in panel["config"]["zone_entities"]
+    assert {
+        key: source["temperature"]
+        for key, source in panel["config"]["zone_room_sources"].items()
+    } == {
+        "climate.thermostat_zb_sn_02": "sensor.sensor_th_zb_02_temperature",
+        "climate.thermostat_zb_sn_03": "sensor.sensor_th_zb_03_temperature",
+    }
+    assert panel["config"]["zone_sensors"] == [
+        {"entity_id": "sensor.sensor_th_zb_13_temperature", "label": "Тамбур"}
+    ]
+    assert [
+        (outlet["entity_id"], outlet["on_below"], outlet["off_above"])
+        for outlet in panel["config"]["heating_outlets"]
+    ] == [("switch.socket_wf4", 8, 10), ("switch.socket_wf2", 8, 10), ("switch.socket_wf3", 8, 10)]
 
     asyncio.run(zont_local.async_unload_entry(hass, object()))
     assert removed == ["dashboard-zont", "dashboard-zont"]

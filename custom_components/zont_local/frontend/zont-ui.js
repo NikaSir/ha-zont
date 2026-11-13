@@ -1,5 +1,5 @@
 // GENERATED FILE. DO NOT EDIT DIRECTLY.
-// ZONT autonomous UI 0.11.0-beta002 production bundle.
+// ZONT autonomous UI 0.11.0-beta003 production bundle.
 // One active shell: zont-local-panel / NikaS shell kit v2.1.
 
 // BEGIN custom_components/zont_local/frontend/nikas-specialized-shell.js
@@ -805,8 +805,8 @@ function navigateNikasShell(path, { captureSource = false } = {}) {
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.11.0-beta002";
-const ASSET_VERSION = "0.11.0-beta002";
+const UI_VERSION = "0.11.0-beta003";
+const ASSET_VERSION = "0.11.0-beta003";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -2086,14 +2086,24 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
   p._pressMode = async () => {}; // No command path in the read-only product.
   p._bindWorkActionsV095 = () => {}; // Native HA more-info may expose commands.
   p._dailyZones = function() {
-    return (this._config().zone_entities || []).map((id) => {
-      const state = this._hass?.states?.[id];
+    const config = this._config();
+    const states = this._hass?.states;
+    return (config.zone_entities || []).map((id) => {
+      const state = states?.[id];
       const a = state?.attributes || {};
       const missing = unavailable(state);
-      const current = missing ? null : number(a.current_temperature);
+      const roomSource = config.zone_room_sources?.[id];
+      const sourceStatus = states?.[roomSource?.selector]?.state;
+      const sourceWarning = sourceStatus === "remote_source_offline" || sourceStatus === "local_temperature";
+      const sourceNote = !roomSource ? "" : {
+        remote_source_offline: "Внешний датчик: термоголовка не получает данные",
+        local_temperature: "Внешний датчик: термоголовка использует встроенный датчик",
+      }[sourceStatus] || "Внешний датчик";
+      const current = roomSource ? number(states?.[roomSource.temperature]?.state)
+        : missing ? null : number(a.current_temperature);
       const target = missing ? null : number(a.temperature);
       const action = missing ? null : a.hvac_action;
-      return {id, name:a.friendly_name || id, current, target, missing,
+      return {id, name:a.friendly_name || id, current, target, missing, sourceNote, sourceWarning,
         active: action === "heating", uncertain:missing || current === null || target === null || !["heating", "idle", "off"].includes(action),
         delta:current !== null && target !== null ? current - target : null,
         action:action === "heating" ? "Нагрев" : ["idle", "off"].includes(action) ? "Не нагревается" : "Активность неизвестна"};
@@ -2156,7 +2166,10 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     const outlets = (this._config().heating_outlets || []).map(outlet => {
       const state = this._hass?.states?.[outlet.entity_id];
       const status = !state ? "Нет данных" : state.state === "on" ? "Включена" : state.state === "off" ? "Выключена" : state.state === "unavailable" ? "Нет связи" : "Нет данных";
-      return `<div class="overview-node"><ha-icon icon="mdi:power-socket-eu"></ha-icon><strong>${escape(outlet.label)}</strong><span>${status}</span></div>`;
+      const range = Number.isFinite(outlet.on_below) && Number.isFinite(outlet.off_above)
+        ? `<small>Вкл. ниже ${outlet.on_below.toLocaleString("ru")} °C · Выкл. выше ${outlet.off_above.toLocaleString("ru")} °C</small>`
+        : "";
+      return `<div class="overview-node"><ha-icon icon="mdi:power-socket-eu"></ha-icon><div><strong>${escape(outlet.label)}</strong>${range}</div><span>${status}</span></div>`;
     }).join("");
     const heating = outlets ? `<div class="overview-section-title"><h2>Электрообогрев</h2></div><div class="overview-nodes">${outlets}</div>` : "";
     return `<div class="overview"><div class="overview-hero"><div><p class="overview-eyebrow">Состояние дома</p><h1>${title}</h1><small>${escape(notes.join(" · ") || "Температуры и давление доступны")}</small></div><div class="overview-connection"><strong>${escape(connection.text)}</strong><small>${escape(freshness)}</small></div></div><div class="overview-metrics">${cards}</div><div class="overview-section-title"><h2>Работает сейчас</h2><small>${active.length} узл.</small></div><div class="overview-nodes">${nodes || '<div class="overview-empty">Нет подтверждённых активных узлов</div>'}</div>${heating}</div>`;
@@ -2272,16 +2285,25 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
   };
   p._htZoneCard=function(zone){
     const delta=zone.delta===null?'Отклонение неизвестно':zone.delta===0?'Температура у цели':`${zone.delta<0?'Ниже':'Выше'} цели на ${fmt(Math.abs(zone.delta))} °C`;
-    return `<div class="ht-card ht-pad" data-zone="${esc(zone.id)}"><div class="ht-head"><span>${esc(this._htZoneName(zone))}</span><span class="ht-status ${zone.active?'ht-heating':''}">${esc(zone.action)}</span></div><div class="ht-values"><div><small>Сейчас</small><strong>${fmt(zone.current)}${zone.current===null?'':' <em>°C</em>'}</strong></div><div><small>Цель</small><strong>${fmt(zone.target)}${zone.target===null?'':' <em>°C</em>'}</strong></div></div><div class="ht-foot">${esc(zone.uncertain?'Часть данных не передаётся · '+delta:delta)}</div></div>`;
+    const source=zone.sourceNote?`<small${zone.sourceWarning?' class="ht-heating"':''}>${esc(zone.sourceNote)}</small>`:'';
+    return `<div class="ht-card ht-pad" data-zone="${esc(zone.id)}"><div class="ht-head"><span>${esc(this._htZoneName(zone))}</span><span class="ht-status ${zone.active?'ht-heating':''}">${esc(zone.action)}</span></div><div class="ht-values"><div><small>Сейчас</small><strong>${fmt(zone.current)}${zone.current===null?'':' <em>°C</em>'}</strong>${source}</div><div><small>Цель</small><strong>${fmt(zone.target)}${zone.target===null?'':' <em>°C</em>'}</strong></div></div><div class="ht-foot">${esc(zone.uncertain?'Часть данных не передаётся · '+delta:delta)}</div></div>`;
   };
   p._htZones=function(zones){
-    const active=zones.filter(z=>z.active&&!z.missing), absent=zones.filter(z=>z.missing), check=zones.filter(z=>!z.missing&&!z.active&&(z.uncertain||(z.delta!==null&&z.delta!==0))), rest=zones.filter(z=>!active.includes(z)&&!absent.includes(z)&&!check.includes(z));
-    return title('Зоны')+`<div class="ht-count">${active.length} нагревает · ${absent.length} без связи · ${zones.filter(z=>!z.missing&&z.uncertain).length} с неполными данными</div>`+
+    const active=zones.filter(z=>z.active&&!z.missing), absent=zones.filter(z=>z.missing), check=zones.filter(z=>!z.missing&&!z.active&&(z.sourceWarning||z.uncertain||(z.delta!==null&&z.delta!==0))), rest=zones.filter(z=>!active.includes(z)&&!absent.includes(z)&&!check.includes(z));
+    const roomSensors=(this._config().zone_sensors||[]).map(sensor=>{
+      const state=this._hass?.states?.[sensor.entity_id];
+      const current=num(state?.state);
+      const reading=state?.state==='unavailable'?'Нет связи':current===null?'Нет данных':`${fmt(current)} ${esc(state.attributes?.unit_of_measurement||'°C')}`;
+      return line(sensor.label,reading);
+    }).join('');
+    return title('Зоны')+(zones.length?`<div class="ht-count">${active.length} нагревает · ${absent.length} без связи · ${zones.filter(z=>!z.missing&&z.uncertain).length} с неполными данными</div>`:'')+
       (active.length?'<h3>Сейчас нагревается</h3>'+active.map(z=>this._htZoneCard(z)).join(''):'')+
       (check.length?'<h3>Требуют проверки</h3>'+check.map(z=>this._htZoneCard(z)).join(''):'')+
-      (absent.length?detail('absent',`Нет связи · ${absent.length} термостата`,absent.map(z=>line(this._htZoneName(z),'Нет данных')).join('')):'')+
+      (absent.length?detail('absent',`Нет связи · ${absent.length} термостата`,absent.map(z=>line(this._htZoneName(z),z.current===null?'Нет данных':`${fmt(z.current)} °C · датчик комнаты`)).join('')):'')+
       (rest.length?detail('rest',`Остальные зоны · ${rest.length}`,rest.map(z=>this._htZoneCard(z)).join('')):'')+
-      (!zones.length?warning('Термостаты не настроены'):'')+'<small>Отклонение от уставки не означает аварию. Режим auto не подтверждает нагрев.</small>';
+      (roomSensors?`<h3>Датчики температуры</h3><div class="ht-card ht-pad">${roomSensors}</div>`:'')+
+      (!zones.length&&!roomSensors?warning('Термостаты не настроены'):'')+
+      (zones.length?'<small>Отклонение от уставки не означает аварию. Режим auto не подтверждает нагрев.</small>':'');
   };
   p._htEquipmentModel=function(items){
     const pick=(pool,re)=>unique(pool.filter(i=>re.test(ownText(i))));

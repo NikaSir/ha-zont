@@ -6,7 +6,7 @@
 
 ZONT Local & UI for Home Assistant.
 
-UI **0.11.0-beta002 / b030** provides five read-only tabs: Обзор, Зоны, Оборудование, История, Сервис. The four detail tabs follow the approved card designs; Overview retains its four-card layout. History supports temperature selection and 24-hour/7-day Recorder data with circuit-activity lanes. Unknown sources stay unknown. See [DAILY_OVERVIEW.md](docs/DAILY_OVERVIEW.md) for data limitations and acceptance status. Updates continue from main without GitHub Releases or tags.
+UI **0.11.0-beta003 / b031** provides five read-only tabs: Обзор, Зоны, Оборудование, История, Сервис. The four detail tabs follow the approved card designs; Overview retains its four-card layout. History supports temperature selection and 24-hour/7-day Recorder data with circuit-activity lanes. Unknown sources stay unknown. See [DAILY_OVERVIEW.md](docs/DAILY_OVERVIEW.md) for data limitations and acceptance status. Updates continue from main without GitHub Releases or tags.
 
 ## Project status
 
@@ -84,7 +84,7 @@ Updates are published through checked pull requests into `main`. The project doe
 
 ## Current UI
 
-Current integration and frontend: **0.9.7** (`b026`). The panel title returns to `/home/overview`. The panel and Home Assistant menu use the approved name **Отопление**. The v0.8.12 hydraulic composition remains the visual and semantic baseline, now hosted by the host-bound NikaS UI v2.2 shell with non-destructive refresh. On phones, both boilers and the DHW tank remain together in the first three-card equipment row.
+The hydraulic overview originated in **0.9.7** (`b026`). The panel title returns to `/home/overview`. The panel and Home Assistant menu use the approved name **Отопление**. The v0.8.12 hydraulic composition remains the visual and semantic baseline, now hosted by the host-bound NikaS UI v2.2 shell with non-destructive refresh. On phones, both boilers and the DHW tank remain together in the first three-card equipment row.
 
 The State view now follows the real hydraulic topology: main and reserve
 boilers, the DHW tank with cold-water pressure and recirculation, hydraulic

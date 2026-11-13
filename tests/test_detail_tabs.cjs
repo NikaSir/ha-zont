@@ -15,6 +15,16 @@ assert.ok(p._htZoneCard(zone).includes('Гардероб'));
 assert.ok(!p._htZoneCard(zone).includes('technical device name'));
 assert.ok(p._htZoneCard(zone).includes('0,0'));
 assert.ok(p._htZones([{...zone,active:false,missing:true,current:null}]).includes('Нет связи'));
+assert.match(p._htZones([{...zone,active:false,missing:true,current:24.1}]),/24,1 °C · датчик комнаты/);
+assert.match(p._htZoneCard({...zone,sourceNote:'Внешний датчик: термоголовка не получает данные',sourceWarning:true}), /Внешний датчик: термоголовка не получает данные/);
+// A measured room temperature has neither a thermostat setpoint nor an HVAC action.
+p._config=()=>({zone_sensors:[{entity_id:'sensor.hall_temperature',label:'Тамбур'}]});
+p._hass.states['sensor.hall_temperature']={state:'13.2',attributes:{unit_of_measurement:'°C'}};
+const roomCard=p._htZones([]);
+assert.match(roomCard,/Тамбур.*13,2 °C/);
+assert.doesNotMatch(roomCard,/Уставка|Активность неизвестна|Термостаты не настроены/);
+p._hass.states['sensor.hall_temperature'].state='unavailable';
+assert.match(p._htZones([]),/Тамбур.*Нет связи/);
 const range={start:100000,end:200000};
 const samples=[{state:'20',last_changed:new Date(100000).toISOString()},{state:'unavailable',last_changed:new Date(150000).toISOString()},{state:'21',last_changed:new Date(190000).toISOString()}];
 const chart=p._htChart(samples,range,'°C');
