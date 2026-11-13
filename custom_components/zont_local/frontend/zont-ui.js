@@ -1,5 +1,5 @@
 // GENERATED FILE. DO NOT EDIT DIRECTLY.
-// ZONT autonomous UI 0.11.0-beta003 production bundle.
+// ZONT autonomous UI 0.11.0-beta004 production bundle.
 // One active shell: zont-local-panel / NikaS shell kit v2.1.
 
 // BEGIN custom_components/zont_local/frontend/nikas-specialized-shell.js
@@ -805,8 +805,8 @@ function navigateNikasShell(path, { captureSource = false } = {}) {
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.11.0-beta003";
-const ASSET_VERSION = "0.11.0-beta003";
+const UI_VERSION = "0.11.0-beta004";
+const ASSET_VERSION = "0.11.0-beta004";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -2307,23 +2307,47 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
   };
   p._htEquipmentModel=function(items){
     const pick=(pool,re)=>unique(pool.filter(i=>re.test(ownText(i))));
-    const primary=items.filter(i=>/ebus|основн|main/.test(ownText(i))&&!/резерв|reserve/.test(ownText(i)));
+    const preferred=(pool,...patterns)=>{
+      for(const pattern of patterns){
+        const matches=pool.filter(i=>pattern.test(ownText(i)));
+        if(matches.length)return unique(matches);
+      }
+      return unique(pool);
+    };
+    const primary=items.filter(i=>/[eе]bus|основн|main/.test(ownText(i))&&!/резерв|reserve/.test(ownText(i)));
     const reserve=items.filter(i=>/резерв|reserve/.test(ownText(i)));
     const temps=pool=>pool.filter(temperature);
-    const mainTemp=temps(primary).filter(i=>!/гвс|dhw|обрат|return|целев|устав|расч[её]т|target/.test(ownText(i)));
-    const reserveTemp=temps(reserve).filter(i=>!/целев|устав|расч[её]т|target|обрат|return|гвс/.test(ownText(i)));
+    const excluded=/гвс|dhw|обрат|return|<<<|целев|устав|расч[её]т|target|вне дома|улиц|наруж|outdoor|outside/;
+    const mainTemp=temps(primary).filter(i=>!excluded.test(ownText(i)));
+    const reserveTemp=temps(reserve).filter(i=>!excluded.test(ownText(i)));
     const signal=re=>pick(items.filter(i=>i.entry.entity_id.startsWith('binary_sensor.')&&!/разреш|enable/.test(ownText(i))),re);
-    return {supply:pick(mainTemp,/подач|supply|>>>/) || unique(mainTemp),ret:pick(temps(primary),/обрат|return|<<</),reserve:unique(reserveTemp),modulation:pick(primary,/модуляц|modulation/),burner:signal(/горелк|burner/),radiators:signal(/радиатор|radiator/),floor:signal(/т[её]пл.*пол|floor/),circulation:signal(/циркуляц|circulation/),dhw:this._dailyOverviewModel(items).metrics[2].item};
+    const boilerActivity=pool=>unique(pool.filter(i=>i.entry.entity_id.startsWith('binary_sensor.')&&
+      i.entry.platform==='zont_ha'&&i.state?.attributes?.device_class==='heat'&&/состояние|status/.test(ownText(i))));
+    return {
+      supply:preferred(mainTemp, /[eе]bus.*t°\s*тн/, /подач|supply|>>>/, /актуальн[а-яё]*[ _]+температур|actual[ _]+temp/),
+      ret:pick(temps(primary),/обрат|return|<<</),
+      reserve:preferred(reserveTemp,/актуальн[а-яё]*[ _]+температур|actual[ _]+temp/,/подач|supply|>>>/),
+      boilerActivity:boilerActivity(primary),
+      reserveActivity:boilerActivity(reserve),
+      modulation:pick(primary,/модуляц|modulation/),
+      burner:signal(/горелк|burner|пламя|flame/),
+      online:unique(items.filter(i=>i.entry.entity_id.startsWith('binary_sensor.')&&i.state?.attributes?.device_class==='connectivity')),
+      radiators:signal(/радиатор|radiator/),
+      floor:signal(/т[её]пл.*пол|floor/),
+      circulation:signal(/циркуляц|circulation/),
+      dhw:this._dailyOverviewModel(items).metrics[2].item,
+    };
   };
   const signalValue=item=>missing(item?.state)?'Нет данных':['on','heating','active','running'].includes(item.state.state)?'Включено':['off','idle','standby'].includes(item.state.state)?'Выключено':'Состояние неизвестно';
   p._htEquipment=function(items){
     const m=this._htEquipmentModel(items);
+    const dhwStatus=this._dhwStateV096(items.filter(i=>/гвс|dhw/.test(ownText(i))));
     const pair=(a,b)=>`<div class="ht-values"><div><small>Подача</small><strong>${value(a)}</strong></div><div><small>Обратка</small><strong>${value(b)}</strong></div></div>`;
     return title('Оборудование')+`<div class="ht-card"><div class="ht-pad"><div class="ht-head"><span>Котёл 1</span><span class="ht-status">Основной</span></div><small>Отопление и ГВС</small>${pair(m.supply,m.ret)}</div>`+
-      `<details data-detail="boiler"><summary>Подробности</summary><div class="ht-detail">${line('Горелка',signalValue(m.burner))}${line('Модуляция',value(m.modulation))}</div></details></div>`+
-      `<div class="ht-card ht-pad"><div class="ht-head"><span>Котёл 2</span><span class="ht-status">Резерв</span></div>${line('Температура',value(m.reserve))}<small>Резервная роль — не признак работы</small></div>`+
+      `<details data-detail="boiler"><summary>Подробности</summary><div class="ht-detail">${m.boilerActivity?line('Работа котла',signalValue(m.boilerActivity)):''}${m.burner?line('Горелка',signalValue(m.burner)):''}${line('Модуляция',value(m.modulation))}</div></details></div>`+
+      `<div class="ht-card ht-pad"><div class="ht-head"><span>Котёл 2</span><span class="ht-status">Резерв</span></div>${line('Температура',value(m.reserve))}${m.reserveActivity?line('Работа котла',signalValue(m.reserveActivity)):''}</div>`+
       `<div class="ht-grid">${[['Радиаторы',m.radiators],['Тёплый пол',m.floor]].map(([name,item])=>`<div class="ht-card ht-pad"><div class="ht-head">${name}</div><div class="ht-foot">${signalValue(item)}</div></div>`).join('')}</div>`+
-      `<div class="ht-card ht-pad"><div class="ht-head"><span>Горячая вода</span><span>${value(m.dhw)}</span></div>${line('Циркуляция',signalValue(m.circulation))}<small>Готовность: ${esc(this._dhwStatusV096(this._dhwStateV096(items.filter(i=>/гвс|dhw/.test(ownText(i))))))}</small></div>`;
+      `<div class="ht-card ht-pad"><div class="ht-head"><span>Горячая вода</span><span>${value(m.dhw)}</span></div>${line('Циркуляция',signalValue(m.circulation))}${dhwStatus?line(this._dhwSignalV096(dhwStatus)==='readiness'?'Готовность':'Состояние ГВС',esc(this._dhwStatusV096(dhwStatus))):''}</div>`;
   };
   p._htHistoryData=function(items){
     const days=this.__htPeriod===7?7:1,m=this._htEquipmentModel(items),metrics=this._dailyOverviewModel(items).metrics;
@@ -2371,18 +2395,18 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
   };
   p._htService=function(items,zones){
     const absent=zones.filter(z=>z.missing),m=this._htEquipmentModel(items);
-    const online=unique(items.filter(i=>/online|подключ/.test(ownText(i))));
-    const channel=this._connectionStatusV096(items,online);
+    const channel=this._connectionStatusV096(items,m.online);
+    const connection=m.online?.state?.state;
+    const onlineStatus=connection==='on'?'На связи':connection==='off'?'Нет связи':'Не подтверждён';
     const dates=items.map(i=>Date.parse(i.state?.last_reported||i.state?.last_updated)).filter(Number.isFinite);
     const age=dates.length?Math.max(0,Math.floor((Date.now()-Math.max(...dates))/60000)):null;
     const errors=items.filter(i=>this._role(i)==='error');
     return title('Сервис')+(absent.length?warning(`${absent.length} термостата недоступны`):'')+
-      `<div class="ht-card ht-pad"><div class="ht-head">ZONT → Home Assistant</div>${line('Получение данных HA',this._error?'Ошибка реестра':items.length?'Есть':'Нет данных')}${line('Канал к контроллеру',channel.unknown?'Не подтверждён':esc(channel.text))}${line('Обновление в HA',age===null?'Нет отметки времени':age===0?'Менее минуты назад':age+' мин назад')}<small>Время получения HA не подтверждает свежесть измерения контроллера.</small></div><h3>Замечания и неполные данные</h3>`+
+      `<div class="ht-card ht-pad"><div class="ht-head">ZONT → Home Assistant</div>${line('Получение данных HA',this._error?'Ошибка реестра':items.length?'Есть':'Нет данных')}${line('Контроллер ZONT',onlineStatus)}${line('Канал к контроллеру',channel.unknown?'Не подтверждён':esc(channel.text))}${line('Обновление в HA',age===null?'Нет отметки времени':age===0?'Менее минуты назад':age+' мин назад')}<small>Время получения HA не подтверждает свежесть измерения контроллера.</small></div><h3>Замечания и неполные данные</h3>`+
       (absent.length?detail('lost','Недоступные термостаты',absent.map(z=>line(this._htZoneName(z),'Нет данных')).join('')):'')+
       zones.filter(z=>!z.missing&&z.uncertain).map(z=>detail('zone-'+z.id,this._htZoneName(z)+' · неполные данные','<small>Проверьте наличие температуры, уставки и hvac_action у источника. Auto не означает нагрев.</small>')).join('')+
-      (m.burner?'':detail('burner','Горелка · нет источника','<small>Активность и циклы не рассчитываются по температуре.</small>'))+
       detail('errors','Ошибки оборудования',errors.length?errors.map(i=>line(this._semanticName(i),value(i))).join(''):'<small>Источники состояния ошибок не найдены.</small>')+
-      '<h3>Технические сведения</h3>'+detail('sources','Источники показаний',this._dailyOverviewModel(items).metrics.map(metric=>line(metric.label,metric.item?`<span class="ht-source-id">${esc(metric.item.entry.entity_id)}</span>`:'Не определён')).join(''))+
+      '<h3>Технические сведения</h3>'+detail('sources','Источники показаний',[...this._dailyOverviewModel(items).metrics,{label:'Подача котла',item:m.supply},{label:'Обратка котла',item:m.ret},{label:'Температура резервного котла',item:m.reserve},{label:'Работа основного котла',item:m.boilerActivity}].map(metric=>line(metric.label,metric.item?`<span class="ht-source-id">${esc(metric.item.entry.entity_id)}</span>`:'Не определён')).join(''))+
       detail('scheme','Схема системы',items.length?this._systemOverviewV089(items):'<small>Телеметрия ZONT не получена.</small>');
   };
   p._content=function(active,items){

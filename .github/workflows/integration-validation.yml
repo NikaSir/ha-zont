@@ -43,11 +43,11 @@ jobs:
           node tests/shell_v2_harness.mjs
       - name: Check main version synchronization
         run: |
-          grep -F 'VERSION = "0.11.0-beta003"' custom_components/zont_local/const.py
-          grep -F 'FRONTEND_BUILD = "b031"' custom_components/zont_local/const.py
-          grep -F '"version": "0.11.0-beta003"' custom_components/zont_local/manifest.json
-          grep -F 'version: 0.11.0-beta003' dashboard/manifest/zont.yaml
-          grep -F 'const UI_VERSION = "0.11.0-beta003"' custom_components/zont_local/frontend/zont-ui.js
+          grep -F 'VERSION = "0.11.0-beta004"' custom_components/zont_local/const.py
+          grep -F 'FRONTEND_BUILD = "b032"' custom_components/zont_local/const.py
+          grep -F '"version": "0.11.0-beta004"' custom_components/zont_local/manifest.json
+          grep -F 'version: 0.11.0-beta004' dashboard/manifest/zont.yaml
+          grep -F 'const UI_VERSION = "0.11.0-beta004"' custom_components/zont_local/frontend/zont-ui.js
       - name: Enforce NikaS UI standard v2.2
         run: python scripts/check_nikas_ui_standard.py
       - name: Verify pinned standard documents
