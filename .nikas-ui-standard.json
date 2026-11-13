@@ -19,7 +19,7 @@
     "custom_components/zont_local/frontend/daily-overview.js",
     "custom_components/zont_local/frontend/heating-detail-tabs.js"
   ],
-  "ui_version": "0.11.0-beta002",
+  "ui_version": "0.11.0-beta003",
   "web_component": "zont-local-panel",
   "panel": {
     "id": "zont",

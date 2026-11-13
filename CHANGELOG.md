@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.0-beta003
+
+- Adds the Bedroom radiator valve, uses external room temperatures for Bedroom and Dressing Room, and indicates when the valve reports its external source offline.
+- Shows the Tambour room temperature from its independent Zigbee sensor.
+- Shows the verified automation thresholds next to each heating outlet: on below 8 °C and off above 10 °C.
+- Synchronizes the integration version and frontend cache build to b031.
+
 ## 0.11.0-beta002
 
 - Overview adds read-only heating outlet states: Tambour WF4, Veranda WF2 and WF3, verified against the existing heating automations.

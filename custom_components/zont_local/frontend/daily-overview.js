@@ -21,14 +21,24 @@
   p._pressMode = async () => {}; // No command path in the read-only product.
   p._bindWorkActionsV095 = () => {}; // Native HA more-info may expose commands.
   p._dailyZones = function() {
-    return (this._config().zone_entities || []).map((id) => {
-      const state = this._hass?.states?.[id];
+    const config = this._config();
+    const states = this._hass?.states;
+    return (config.zone_entities || []).map((id) => {
+      const state = states?.[id];
       const a = state?.attributes || {};
       const missing = unavailable(state);
-      const current = missing ? null : number(a.current_temperature);
+      const roomSource = config.zone_room_sources?.[id];
+      const sourceStatus = states?.[roomSource?.selector]?.state;
+      const sourceWarning = sourceStatus === "remote_source_offline" || sourceStatus === "local_temperature";
+      const sourceNote = !roomSource ? "" : {
+        remote_source_offline: "Внешний датчик: термоголовка не получает данные",
+        local_temperature: "Внешний датчик: термоголовка использует встроенный датчик",
+      }[sourceStatus] || "Внешний датчик";
+      const current = roomSource ? number(states?.[roomSource.temperature]?.state)
+        : missing ? null : number(a.current_temperature);
       const target = missing ? null : number(a.temperature);
       const action = missing ? null : a.hvac_action;
-      return {id, name:a.friendly_name || id, current, target, missing,
+      return {id, name:a.friendly_name || id, current, target, missing, sourceNote, sourceWarning,
         active: action === "heating", uncertain:missing || current === null || target === null || !["heating", "idle", "off"].includes(action),
         delta:current !== null && target !== null ? current - target : null,
         action:action === "heating" ? "Нагрев" : ["idle", "off"].includes(action) ? "Не нагревается" : "Активность неизвестна"};
@@ -91,7 +101,10 @@
     const outlets = (this._config().heating_outlets || []).map(outlet => {
       const state = this._hass?.states?.[outlet.entity_id];
       const status = !state ? "Нет данных" : state.state === "on" ? "Включена" : state.state === "off" ? "Выключена" : state.state === "unavailable" ? "Нет связи" : "Нет данных";
-      return `<div class="overview-node"><ha-icon icon="mdi:power-socket-eu"></ha-icon><strong>${escape(outlet.label)}</strong><span>${status}</span></div>`;
+      const range = Number.isFinite(outlet.on_below) && Number.isFinite(outlet.off_above)
+        ? `<small>Вкл. ниже ${outlet.on_below.toLocaleString("ru")} °C · Выкл. выше ${outlet.off_above.toLocaleString("ru")} °C</small>`
+        : "";
+      return `<div class="overview-node"><ha-icon icon="mdi:power-socket-eu"></ha-icon><div><strong>${escape(outlet.label)}</strong>${range}</div><span>${status}</span></div>`;
     }).join("");
     const heating = outlets ? `<div class="overview-section-title"><h2>Электрообогрев</h2></div><div class="overview-nodes">${outlets}</div>` : "";
     return `<div class="overview"><div class="overview-hero"><div><p class="overview-eyebrow">Состояние дома</p><h1>${title}</h1><small>${escape(notes.join(" · ") || "Температуры и давление доступны")}</small></div><div class="overview-connection"><strong>${escape(connection.text)}</strong><small>${escape(freshness)}</small></div></div><div class="overview-metrics">${cards}</div><div class="overview-section-title"><h2>Работает сейчас</h2><small>${active.length} узл.</small></div><div class="overview-nodes">${nodes || '<div class="overview-empty">Нет подтверждённых активных узлов</div>'}</div>${heating}</div>`;

@@ -38,16 +38,25 @@
   };
   p._htZoneCard=function(zone){
     const delta=zone.delta===null?'Отклонение неизвестно':zone.delta===0?'Температура у цели':`${zone.delta<0?'Ниже':'Выше'} цели на ${fmt(Math.abs(zone.delta))} °C`;
-    return `<div class="ht-card ht-pad" data-zone="${esc(zone.id)}"><div class="ht-head"><span>${esc(this._htZoneName(zone))}</span><span class="ht-status ${zone.active?'ht-heating':''}">${esc(zone.action)}</span></div><div class="ht-values"><div><small>Сейчас</small><strong>${fmt(zone.current)}${zone.current===null?'':' <em>°C</em>'}</strong></div><div><small>Цель</small><strong>${fmt(zone.target)}${zone.target===null?'':' <em>°C</em>'}</strong></div></div><div class="ht-foot">${esc(zone.uncertain?'Часть данных не передаётся · '+delta:delta)}</div></div>`;
+    const source=zone.sourceNote?`<small${zone.sourceWarning?' class="ht-heating"':''}>${esc(zone.sourceNote)}</small>`:'';
+    return `<div class="ht-card ht-pad" data-zone="${esc(zone.id)}"><div class="ht-head"><span>${esc(this._htZoneName(zone))}</span><span class="ht-status ${zone.active?'ht-heating':''}">${esc(zone.action)}</span></div><div class="ht-values"><div><small>Сейчас</small><strong>${fmt(zone.current)}${zone.current===null?'':' <em>°C</em>'}</strong>${source}</div><div><small>Цель</small><strong>${fmt(zone.target)}${zone.target===null?'':' <em>°C</em>'}</strong></div></div><div class="ht-foot">${esc(zone.uncertain?'Часть данных не передаётся · '+delta:delta)}</div></div>`;
   };
   p._htZones=function(zones){
-    const active=zones.filter(z=>z.active&&!z.missing), absent=zones.filter(z=>z.missing), check=zones.filter(z=>!z.missing&&!z.active&&(z.uncertain||(z.delta!==null&&z.delta!==0))), rest=zones.filter(z=>!active.includes(z)&&!absent.includes(z)&&!check.includes(z));
-    return title('Зоны')+`<div class="ht-count">${active.length} нагревает · ${absent.length} без связи · ${zones.filter(z=>!z.missing&&z.uncertain).length} с неполными данными</div>`+
+    const active=zones.filter(z=>z.active&&!z.missing), absent=zones.filter(z=>z.missing), check=zones.filter(z=>!z.missing&&!z.active&&(z.sourceWarning||z.uncertain||(z.delta!==null&&z.delta!==0))), rest=zones.filter(z=>!active.includes(z)&&!absent.includes(z)&&!check.includes(z));
+    const roomSensors=(this._config().zone_sensors||[]).map(sensor=>{
+      const state=this._hass?.states?.[sensor.entity_id];
+      const current=num(state?.state);
+      const reading=state?.state==='unavailable'?'Нет связи':current===null?'Нет данных':`${fmt(current)} ${esc(state.attributes?.unit_of_measurement||'°C')}`;
+      return line(sensor.label,reading);
+    }).join('');
+    return title('Зоны')+(zones.length?`<div class="ht-count">${active.length} нагревает · ${absent.length} без связи · ${zones.filter(z=>!z.missing&&z.uncertain).length} с неполными данными</div>`:'')+
       (active.length?'<h3>Сейчас нагревается</h3>'+active.map(z=>this._htZoneCard(z)).join(''):'')+
       (check.length?'<h3>Требуют проверки</h3>'+check.map(z=>this._htZoneCard(z)).join(''):'')+
-      (absent.length?detail('absent',`Нет связи · ${absent.length} термостата`,absent.map(z=>line(this._htZoneName(z),'Нет данных')).join('')):'')+
+      (absent.length?detail('absent',`Нет связи · ${absent.length} термостата`,absent.map(z=>line(this._htZoneName(z),z.current===null?'Нет данных':`${fmt(z.current)} °C · датчик комнаты`)).join('')):'')+
       (rest.length?detail('rest',`Остальные зоны · ${rest.length}`,rest.map(z=>this._htZoneCard(z)).join('')):'')+
-      (!zones.length?warning('Термостаты не настроены'):'')+'<small>Отклонение от уставки не означает аварию. Режим auto не подтверждает нагрев.</small>';
+      (roomSensors?`<h3>Датчики температуры</h3><div class="ht-card ht-pad">${roomSensors}</div>`:'')+
+      (!zones.length&&!roomSensors?warning('Термостаты не настроены'):'')+
+      (zones.length?'<small>Отклонение от уставки не означает аварию. Режим auto не подтверждает нагрев.</small>':'');
   };
   p._htEquipmentModel=function(items){
     const pick=(pool,re)=>unique(pool.filter(i=>re.test(ownText(i))));

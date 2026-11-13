@@ -84,14 +84,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     "evidence": "upstream_entities_do_not_expose_transport",
                 },
             },
+            # Temperature thresholds verified against enabled HA automations.
             "heating_outlets": [
-                {"entity_id": "switch.socket_wf4", "label": "Тамбур · WF4"},
-                {"entity_id": "switch.socket_wf2", "label": "Веранда · WF2"},
-                {"entity_id": "switch.socket_wf3", "label": "Веранда · WF3"},
+                {"entity_id": "switch.socket_wf4", "label": "Тамбур · WF4", "on_below": 8, "off_above": 10},
+                {"entity_id": "switch.socket_wf2", "label": "Веранда · WF2", "on_below": 8, "off_above": 10},
+                {"entity_id": "switch.socket_wf3", "label": "Веранда · WF3", "on_below": 8, "off_above": 10},
+            ],
+            "zone_sensors": [
+                {"entity_id": "sensor.sensor_th_zb_13_temperature", "label": "Тамбур"},
             ],
             "zone_entities": [
-                "climate.tambur_2",
-                "climate.thermostat_zb_03",
+                "climate.thermostat_zb_sn_02",
+                "climate.thermostat_zb_sn_03",
                 "climate.thermostat_zb_08",
                 "climate.thermostat_zb_11_1",
                 "climate.thermostat_zb_11_2",
@@ -99,9 +103,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "climate.thermostat_zb_15_2",
                 "climate.thermostat_zb_15_3",
             ],
+            "zone_room_sources": {
+                "climate.thermostat_zb_sn_02": {
+                    "temperature": "sensor.sensor_th_zb_02_temperature",
+                    "selector": "select.thermostat_zb_sn_02_temperature_sensor_select",
+                },
+                "climate.thermostat_zb_sn_03": {
+                    "temperature": "sensor.sensor_th_zb_03_temperature",
+                    "selector": "select.thermostat_zb_sn_03_temperature_sensor_select",
+                },
+            },
             "zone_labels": {
-                "climate.tambur_2": "Тамбур · тёплый пол",
-                "climate.thermostat_zb_03": "Гардероб",
+                "climate.thermostat_zb_sn_02": "Спальня",
+                "climate.thermostat_zb_sn_03": "Гардероб",
                 "climate.thermostat_zb_08": "Холл",
                 "climate.thermostat_zb_11_1": "Гостиная · радиатор 1",
                 "climate.thermostat_zb_11_2": "Гостиная · радиатор 2",
