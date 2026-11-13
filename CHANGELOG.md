@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.0-beta004
+
+- Restores the main boiler eBUS supply temperature and the reserve boiler circuit temperature.
+- Shows each boiler circuit’s activity from ZONT and keeps the dedicated burner signal separate when available.
+- Shows controller online status independently from the transport type and lists boiler telemetry sources under Service.
+- Shows DHW readiness only when ZONT supplies a readiness source. Frontend cache build b032.
+
 ## 0.11.0-beta003
 
 - Adds the Bedroom radiator valve, uses external room temperatures for Bedroom and Dressing Room, and indicates when the valve reports its external source offline.
