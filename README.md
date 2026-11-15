@@ -6,7 +6,7 @@
 
 ZONT Local & UI for Home Assistant.
 
-UI **0.11.0-beta005 / b033** provides five read-only tabs: Обзор, Климат, Зоны, Оборудование, История. Overview and Recorder history use ZONT for both floor temperatures. Climate uses Home Assistant room devices tagged «Датчик климата помещения». Overview shows connectivity and HA receipt freshness separately. Expand diagnostics under the controller, thermostats and equipment cards. Updates continue from main without GitHub Releases or tags.
+UI **0.11.0-beta006 / b034** provides five read-only tabs: Обзор, Климат, Зоны, Оборудование, История. Overview and Recorder history use ZONT for both floor temperatures. Climate uses Home Assistant room devices tagged «Датчик климата помещения». Overview shows connectivity and HA receipt freshness separately. Expand diagnostics under the controller, thermostats and equipment cards. Updates continue from main without GitHub Releases or tags.
 
 ## Project status
 

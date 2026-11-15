@@ -48,6 +48,8 @@ async function assertFits(locator,label) {
    panel._areas=new Map([['child',{area_id:'child',name:'05 - Детская Ильи'}]]);
    panel._devices=new Map([['child',{id:'child',area_id:'child',labels:['datchik_klimata_pomeshcheniia'],name:'Zigbee Илья'}]]);
    panel._registry.push({entity_id:'sensor.child_ha',device_id:'child',original_device_class:'temperature',platform:'mqtt'});
+   panel._registry.push({entity_id:'climate.a',area_id:'room'},{entity_id:'binary_sensor.room_window',area_id:'room',device_class:'window'});
+   panel._hass.states['binary_sensor.room_window']={state:'off',attributes:{device_class:'window'}};
    panel._hass.states['sensor.child_ha']={state:'24.4',attributes:{device_class:'temperature',unit_of_measurement:'°C'}};
    panel._hass.states['climate.a']={state:'auto',attributes:{friendly_name:'ТГ Гардероб',current_temperature:20,temperature:22,hvac_action:'heating'}};
    panel._hass.states['climate.b']={state:'unavailable',attributes:{friendly_name:'Гараж'}};
@@ -78,7 +80,14 @@ async function assertFits(locator,label) {
   const boxes=await Promise.all(cards.map(c=>c.boundingBox()));
   assert.ok(Math.abs(floorBoxes[0].y-floorBoxes[1].y)<2,'floor pair shares a row');
   assert.ok(boxes[0].y>floorBoxes[0].y && boxes.every(box=>Math.abs(box.y-boxes[0].y)<2),'three secondary measurements share a row');
-  await page.locator('zont-local-panel details[data-detail="zont-diagnostics"] summary').click();
+  const overviewDiagnostics=page.locator('zont-local-panel details[data-detail="zont-diagnostics"] > summary');
+  const collapsedLayout=await overviewDiagnostics.evaluate(summary=>{
+   const bounds=summary.getBoundingClientRect();
+   return {height:bounds.height,bottomGap:summary.closest('.overview-hero').getBoundingClientRect().bottom-bounds.bottom};
+  });
+  assert.ok(collapsedLayout.height>=44,'collapsed diagnostics keeps its touch target');
+  assert.ok(collapsedLayout.bottomGap<=5,'collapsed diagnostics leaves no extra bottom space: '+JSON.stringify(collapsedLayout));
+  await overviewDiagnostics.click();
   await page.evaluate(()=>window.testPanel._render());
   assert.ok(await page.locator('zont-local-panel details[data-detail="zont-diagnostics"]').evaluate(el=>el.open));
   await floors[1].click();
@@ -96,6 +105,25 @@ async function assertFits(locator,label) {
    await view.locator('.ht-title').waitFor();
    await assertFits(view,tab);
    if(tab==='zones'){
+    const count=view.locator('.ht-count');
+    const heating=count.getByText('1 нагревает',{exact:true});
+    const offline=count.getByText('1 без связи',{exact:true});
+    const incomplete=count.getByText('0 с неполными данными',{exact:true});
+    assert.notEqual(await heating.evaluate(el=>getComputedStyle(el).color),await offline.evaluate(el=>getComputedStyle(el).color));
+    assert.equal(await incomplete.evaluate(el=>getComputedStyle(el).color),await count.evaluate(el=>getComputedStyle(el).color));
+    const card=view.locator('[data-zone="climate.a"]');
+    const windowIcon=card.locator('.ht-zone-foot .ht-window');
+    assert.equal(await windowIcon.getAttribute('aria-label'),'Окно закрыто');
+    assert.equal(await windowIcon.evaluate(el=>getComputedStyle(el).color),'rgb(3, 169, 207)');
+    await card.locator('summary').click();
+    await page.evaluate(()=>{
+     const panel=window.testPanel;
+     window.zoneBefore=panel.shadowRoot.querySelector('[data-zone="climate.a"]');
+     panel.hass={...panel.hass,states:{...panel.hass.states,'binary_sensor.room_window':{state:'on',attributes:{device_class:'window'}}}};
+    });
+    await card.getByRole('img',{name:'Окно открыто'}).waitFor();
+    assert.equal(await windowIcon.evaluate(el=>getComputedStyle(el).color),'rgb(255, 193, 7)');
+    assert.ok(await card.locator('details').evaluate(el=>el.open&&el.parentElement===window.zoneBefore));
     const tambour=view.getByText('13,2 °C',{exact:true});
     await tambour.waitFor();
     assert.equal(await tambour.count(),1);
