@@ -19,7 +19,7 @@
     "custom_components/zont_local/frontend/daily-overview.js",
     "custom_components/zont_local/frontend/heating-detail-tabs.js"
   ],
-  "ui_version": "0.11.0-beta006",
+  "ui_version": "0.11.0-beta007",
   "web_component": "zont-local-panel",
   "panel": {
     "id": "zont",
@@ -72,8 +72,7 @@
     "fixed_entity_ids": "none",
     "command_policy": "read_only",
     "forbidden_command_markers": [
-      ".callService(",
-      "hass-more-info"
+      ".callService("
     ]
   },
   "header_return": {

@@ -82,6 +82,7 @@ assert.match(climate,/Несколько.*датчик/);
 assert.doesNotMatch(climate,/24,0 °C|22,0 °C/);
 const zone={id:'climate.a',name:'technical device name',current:0,target:22,delta:-22,active:true,uncertain:false,missing:false,action:'Нагрев'};
 assert.ok(p._htZoneCard(zone).includes('Гардероб'));
+assert.match(p._htZoneCard(zone),/<button[^>]+data-ht-zone-entity="climate.a"[^>]*>Гардероб<\/button>/);
 assert.ok(!p._htZoneCard(zone).includes('technical device name'));
 assert.ok(p._htZoneCard(zone).includes('0,0'));
 assert.ok(p._htZones([{...zone,active:false,missing:true,current:null}]).includes('Нет связи'));
@@ -123,14 +124,12 @@ p._hass.states['binary_sensor.second_window']={state:'on'};
 assert.match(p._htZones([zone]),/aria-label="Есть открытое окно"/);
 p._hass.states['binary_sensor.second_window'].state='off';
 assert.match(p._htZones([zone]),/aria-label="Нет данных об окнах"/);
-// A measured room temperature has neither a thermostat setpoint nor an HVAC action.
+// A legacy panel registration can still contain standalone room sensors.
 p._config=()=>({zone_sensors:[{entity_id:'sensor.hall_temperature',label:'Тамбур'}]});
 p._hass.states['sensor.hall_temperature']={state:'13.2',attributes:{unit_of_measurement:'°C'}};
 const roomCard=p._htZones([]);
-assert.match(roomCard,/Тамбур.*13,2 °C/);
-assert.doesNotMatch(roomCard,/Уставка|Активность неизвестна|Термостаты не настроены/);
-p._hass.states['sensor.hall_temperature'].state='unavailable';
-assert.match(p._htZones([]),/Тамбур.*Нет связи/);
+assert.doesNotMatch(roomCard,/Датчики температуры|Тамбур|13,2 °C/);
+assert.match(roomCard,/Термостаты не настроены/);
 const range={start:100000,end:200000};
 const samples=[{state:'20',last_changed:new Date(100000).toISOString()},{state:'unavailable',last_changed:new Date(150000).toISOString()},{state:'21',last_changed:new Date(190000).toISOString()}];
 const chart=p._htChart(samples,range,'°C');

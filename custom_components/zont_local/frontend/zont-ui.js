@@ -1,5 +1,5 @@
 // GENERATED FILE. DO NOT EDIT DIRECTLY.
-// ZONT autonomous UI 0.11.0-beta006 production bundle.
+// ZONT autonomous UI 0.11.0-beta007 production bundle.
 // One active shell: zont-local-panel / NikaS shell kit v2.1.
 
 // BEGIN custom_components/zont_local/frontend/nikas-specialized-shell.js
@@ -808,8 +808,8 @@ function navigateNikasShell(path, { captureSource = false } = {}) {
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.11.0-beta006";
-const ASSET_VERSION = "0.11.0-beta006";
+const UI_VERSION = "0.11.0-beta007";
+const ASSET_VERSION = "0.11.0-beta007";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -2348,6 +2348,8 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     .ht{max-width:660px;margin:0 auto;color:var(--primary-text-color)}.ht-title{font-size:24px!important;margin:0 0 16px!important}.ht h3{font-size:14px;font-weight:500;color:var(--secondary-text-color);margin:17px 0 9px}.ht-card{background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:16px;overflow:hidden;margin:0 0 10px}.ht-pad{padding:15px}.ht-head{display:flex;justify-content:space-between;align-items:start;gap:10px;font-size:16px;font-weight:500}.ht small{font-size:12px;line-height:1.45;color:var(--secondary-text-color)}.ht-status{font-size:12px;color:var(--secondary-text-color);font-weight:400}.ht-heating{color:var(--warning-color,#d78c35)}.ht-values{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}.ht-values>div+div{border-left:1px solid var(--divider-color);padding-left:14px}.ht-values strong{font-size:27px;display:block;margin-top:4px;font-weight:500;font-variant-numeric:tabular-nums}.ht-values em{font-style:normal;font-size:15px}.ht-foot{border-top:1px solid var(--divider-color);padding-top:10px;margin-top:12px;font-size:12px;color:var(--secondary-text-color)}.ht-line{display:flex;justify-content:space-between;gap:14px;align-items:center;min-height:40px;padding:8px 0;border-bottom:1px solid var(--divider-color);font-size:13px;overflow-wrap:anywhere}.ht-line:last-child{border:0}.ht-line span{color:var(--secondary-text-color)}.ht-line strong{font-size:13px;font-weight:500;text-align:right;min-width:0}.ht summary{list-style:none;padding:13px 15px;min-height:48px;font-size:14px;display:flex;justify-content:space-between;gap:10px;align-items:center}.ht summary::-webkit-details-marker{display:none}.ht summary:after{content:'⌄';color:var(--secondary-text-color)}.ht details[open]>summary:after{content:'⌃'}.ht-detail{padding:0 15px 14px}.ht-warning{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--warning-color,#d78c35) 12%,var(--card-background-color));font-size:13px;margin-bottom:12px}.ht-count{font-size:13px;color:var(--secondary-text-color);margin-bottom:15px}.ht-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.ht-pills{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--secondary-background-color);margin-bottom:12px}.ht .ht-pills button{flex:1;min-width:0;border:0;background:transparent;color:var(--secondary-text-color);font-size:13px;padding:7px 5px;min-height:40px}.ht .ht-pills button[aria-pressed=true]{background:var(--card-background-color);color:var(--primary-color)}.ht-chart{display:block;width:100%;height:auto}.ht-chart text{fill:var(--secondary-text-color);font-size:12px}.ht-range{font-size:12px;color:var(--secondary-text-color);padding:8px 0}.ht-band{height:12px;background:var(--secondary-background-color);border-radius:4px;position:relative;overflow:hidden;margin:8px 0 14px}.ht-band i{position:absolute;top:0;height:100%;background:var(--primary-color);border-radius:2px}.ht-source-id{font-size:11px;overflow-wrap:anywhere;display:block;color:var(--secondary-text-color)}
     .ht-inline-diagnostics{border-top:1px solid var(--divider-color)}.ht > .ht-card,.ht-grid > .ht-card{min-width:0}
     .ht-count .ht-offline{color:var(--error-color,#d64545)}
+    .ht-zone-title{min-width:0;min-height:44px;margin:-12px 0;padding:12px 0;border:0;background:transparent;color:inherit;font:inherit;text-align:start;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--primary-color);overflow-wrap:anywhere;cursor:pointer}
+    .ht-zone-title:focus-visible{outline:2px solid var(--primary-color);outline-offset:3px;border-radius:3px}
     .ht-zone-foot{display:flex;justify-content:space-between;align-items:center;gap:8px}
     .ht-window{display:inline-flex;flex:none}.ht-window ha-icon{--mdc-icon-size:20px}
     .ht-window-open{color:var(--yellow-color,#ffc107)}.ht-window-closed{color:var(--primary-color,#03a9cf)}
@@ -2366,8 +2368,15 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     if(view.__htBound)return;
     view.__htBound=true;
     view.addEventListener('click',event=>{
-      const button=event.target.closest?.('button[data-ht-metric],button[data-ht-period],button[data-climate-room]');
+      const button=event.target.closest?.('button[data-ht-metric],button[data-ht-period],button[data-climate-room],button[data-ht-zone-entity]');
       if(!button || !view.contains(button))return;
+      const entityId=button.dataset.htZoneEntity;
+      if(entityId){
+        if(entityId.startsWith('climate.')&&this._config().zone_entities?.includes(entityId)){
+          button.dispatchEvent(new CustomEvent('hass-more-info',{detail:{entityId},bubbles:true,composed:true}));
+        }
+        return;
+      }
       if(button.dataset.climateRoom){
         this._climateTarget=button.dataset.climateRoom;
         this._selectTab('climate');
@@ -2502,8 +2511,10 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     const source=zone.sourceNote?`<small${zone.sourceWarning?' class="ht-heating"':''}>${esc(zone.sourceNote)}</small>`:'';
     const diagnostic=line('Статус термоголовки',esc(zone.missing?'Нет связи':zone.action))+
       line('Источник температуры',esc(zone.sourceNote||'Термоголовка'))+line('Сущность',esc(zone.id));
-    return '<div class="ht-card" data-zone="'+esc(zone.id)+'"><div class="ht-pad"><div class="ht-head"><span>'+esc(this._htZoneName(zone))+
-      '</span><span class="ht-status '+(zone.active?'ht-heating':'')+'">'+esc(zone.action)+'</span></div><div class="ht-values"><div><small>Сейчас</small><strong>'+
+    const entityId=esc(zone.id);
+    return '<div class="ht-card" data-zone="'+entityId+'"><div class="ht-pad"><div class="ht-head">'+
+      '<button type="button" class="ht-zone-title" data-ht-zone-entity="'+entityId+'">'+esc(this._htZoneName(zone))+
+      '</button><span class="ht-status '+(zone.active?'ht-heating':'')+'">'+esc(zone.action)+'</span></div><div class="ht-values"><div><small>Сейчас</small><strong>'+
       fmt(zone.current)+(zone.current===null?'':' <em>°C</em>')+'</strong>'+source+'</div><div><small>Цель</small><strong>'+
       fmt(zone.target)+(zone.target===null?'':' <em>°C</em>')+'</strong></div></div><div class="ht-foot ht-zone-foot"><span>'+
       esc(zone.uncertain?'Часть данных не передаётся · '+delta:delta)+'</span>'+windowIcon(windowStates)+'</div></div>'+inlineDetail('zone-'+zone.id,diagnostic)+'</div>';
@@ -2520,19 +2531,12 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     const count=(total,label,tone)=>`<span${total ? ` class="${tone}"` : ''}>${total} ${label}</span>`;
     const summary=[count(active.length,'нагревает','ht-heating'),count(absent.length,'без связи','ht-offline'),
       count(incomplete,'с неполными данными','ht-heating')].join(' · ');
-    const roomSensors=(this._config().zone_sensors||[]).map(sensor=>{
-      const state=this._hass?.states?.[sensor.entity_id];
-      const current=num(state?.state);
-      const reading=state?.state==='unavailable'?'Нет связи':current===null?'Нет данных':`${fmt(current)} ${esc(state.attributes?.unit_of_measurement||'°C')}`;
-      return line(sensor.label,reading);
-    }).join('');
     return title('Зоны')+(zones.length?`<div class="ht-count">${summary}</div>`:'')+
       (active.length?'<h3>Сейчас нагревается</h3>'+active.map(card).join(''):'')+
       (check.length?'<h3>Требуют проверки</h3>'+check.map(card).join(''):'')+
       (absent.length?detail('absent',`Нет связи · ${absent.length} термостата`,absent.map(z=>line(this._htZoneName(z),z.current===null?'Нет данных':`${fmt(z.current)} °C · датчик комнаты`)+inlineDetail('zone-'+z.id,line('Статус термоголовки','Недоступна')+line('Сущность',esc(z.id)))).join('')):'')+
       (rest.length?detail('rest',`Не нагреваются · ${rest.length}`,rest.map(card).join('')):'')+
-      (roomSensors?`<h3>Датчики температуры</h3><div class="ht-card ht-pad">${roomSensors}</div>`:'')+
-      (!zones.length&&!roomSensors?warning('Термостаты не настроены'):'')+
+      (!zones.length?warning('Термостаты не настроены'):'')+
       (zones.length?'<small>Отклонение от уставки не означает аварию. Режим auto не подтверждает нагрев.</small>':'');
   };
   p._htEquipmentModel=function(items){

@@ -71,7 +71,7 @@ def main() -> None:
     assert removed == ["dashboard-zont"]
     assert panel["frontend_url_path"] == "dashboard-zont"
     assert panel["webcomponent_name"] == "zont-local-panel"
-    assert panel["module_url"].endswith("?v=0.11.0-beta006&build=b034")
+    assert panel["module_url"].endswith("?v=0.11.0-beta007&build=b035")
     assert panel["sidebar_title"] == "Отопление"
     assert panel["config"]["title"] == "Отопление"
     assert panel["config"]["parent"]["path"] == "/home/overview"
@@ -92,9 +92,7 @@ def main() -> None:
         "climate.thermostat_zb_sn_02": "sensor.sensor_th_zb_02_temperature",
         "climate.thermostat_zb_sn_03": "sensor.sensor_th_zb_03_temperature",
     }
-    assert panel["config"]["zone_sensors"] == [
-        {"entity_id": "sensor.sensor_th_zb_13_temperature", "label": "Тамбур"}
-    ]
+    assert "zone_sensors" not in panel["config"]
     assert [
         (outlet["entity_id"], outlet["on_below"], outlet["off_above"])
         for outlet in panel["config"]["heating_outlets"]
