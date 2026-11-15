@@ -69,8 +69,8 @@
     .overview-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
     .daily button.overview-floor{display:block;text-align:start;width:100%;border:1px solid var(--divider-color);border-radius:16px;color:var(--primary-text-color);padding:14px}.overview-floor small{overflow-wrap:anywhere}
     .overview-metrics .overview-value{font-size:21px}.overview-metrics .overview-value span{font-size:13px}.overview-metric{min-width:0;padding:14px;border-radius:16px;border:1px solid var(--divider-color);background:var(--card-background-color)}.overview-label{display:flex;align-items:center;gap:7px;color:var(--secondary-text-color);font-size:13px}.overview-label ha-icon{--mdc-icon-size:18px;color:var(--primary-color)}.overview-value{display:flex;align-items:baseline;flex-wrap:wrap;gap:5px;font-size:27px;font-weight:600;margin:8px 0 5px;font-variant-numeric:tabular-nums}.overview-value span{font-size:17px;font-weight:400;white-space:nowrap}.overview-metric small{font-size:12px;line-height:1.3;overflow-wrap:anywhere}.overview-section-title{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 8px}.overview-section-title h2{font-size:16px;margin:0}.overview-nodes{overflow:hidden;border:1px solid var(--divider-color);border-radius:16px;background:var(--card-background-color)}.overview-node{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:10px;padding:13px;border-bottom:1px solid var(--divider-color);min-height:54px}.overview-node:last-child{border:0}.overview-node > ha-icon{--mdc-icon-size:22px;color:var(--node-color,var(--primary-color))}.overview-node strong{font-size:14px;font-weight:500}.overview-node > span{font-size:12px;color:var(--node-color,var(--secondary-text-color))}.overview-empty{padding:14px;color:var(--secondary-text-color);font-size:13px}
-    .overview-node.is-on{--node-color:var(--yellow-color,#ffc107)}
-    .overview-node.is-off{--node-color:var(--primary-color,#03a9cf)}
+    .overview-node.is-on{--node-color:color-mix(in srgb,#ec7b2f 60%,var(--primary-text-color))}
+    .overview-node.is-off{--node-color:color-mix(in srgb,var(--primary-color,#03a9cf) 60%,var(--primary-text-color))}
     .overview-node.is-unavailable{--node-color:var(--secondary-text-color)}
     @container nikas-panel (max-width:400px){.daily{padding:10px}.daily-row{padding:12px;gap:8px}.daily-row strong{font-size:14px}.overview-hero{padding:12px}.overview-metrics{gap:5px}.overview-metrics .overview-metric{padding:8px}.overview-metrics .overview-label{gap:3px;font-size:11px}.overview-metrics .overview-label ha-icon{--mdc-icon-size:15px}.overview-hero h1{font-size:21px}.overview-metric{padding:12px}.overview-value{font-size:25px}}
   </style>`;
@@ -189,12 +189,13 @@
     };
     const nodeRows = nodes.map(n=>`<div class="overview-node ${n.tone}"><ha-icon icon="${n.icon}" aria-hidden="true"></ha-icon><strong>${n.name}</strong><span>${n.label}</span></div>`).join("");
     const outlets = (this._config().heating_outlets || []).map(outlet => {
-      const state = this._hass?.states?.[outlet.entity_id];
-      const status = !state ? "Нет данных" : state.state === "on" ? "Включена" : state.state === "off" ? "Выключена" : state.state === "unavailable" ? "Нет связи" : "Нет данных";
+      const state = this._hass?.states?.[outlet.entity_id]?.state;
+      const tone = state === "on" ? "is-on" : state === "off" ? "is-off" : "is-unavailable";
+      const status = state === "on" ? "Включена" : state === "off" ? "Выключена" : state === "unavailable" ? "Нет связи" : "Нет данных";
       const range = Number.isFinite(outlet.on_below) && Number.isFinite(outlet.off_above)
         ? `<small>Вкл. ниже ${outlet.on_below.toLocaleString("ru")} °C · Выкл. выше ${outlet.off_above.toLocaleString("ru")} °C</small>`
         : "";
-      return `<div class="overview-node"><ha-icon icon="mdi:power-socket-eu"></ha-icon><div><strong>${escape(outlet.label)}</strong>${range}</div><span>${status}</span></div>`;
+      return `<div class="overview-node ${tone}"><ha-icon icon="mdi:power-socket-eu" aria-hidden="true"></ha-icon><div><strong>${escape(outlet.label)}</strong>${range}</div><span>${status}</span></div>`;
     }).join("");
     const heating = outlets ? `<div class="overview-section-title"><h2>Электрообогрев</h2></div><div class="overview-nodes">${outlets}</div>` : "";
     return '<div class="overview"><div class="overview-hero"><div class="overview-heading"><h1>Состояние дома</h1><div class="overview-lamps">'+
