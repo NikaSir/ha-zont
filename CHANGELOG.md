@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0-beta008
+
+- Overview shows on, off and unavailable ZONT nodes in «Отопление и циркуляция», with yellow, blue and gray indicators respectively.
+- Controller connectivity and HA receipt freshness use independent cloud and check-circle indicators.
+- Frontend cache build b036.
+
 ## 0.11.0-beta007
 
 - Opens the native Home Assistant thermostat dialog from the zone card title.

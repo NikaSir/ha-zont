@@ -57,7 +57,9 @@
     .overview{max-width:660px;margin:auto}.overview-hero{padding:14px;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:18px;margin-bottom:12px}.overview-eyebrow{font-size:12px;color:var(--secondary-text-color);margin:0 0 6px}.overview-hero h1{font-size:22px;margin:0;line-height:1.2}.overview-hero small{font-size:12px;line-height:1.4}
     .overview-heading,.overview-lamps,.overview-status{display:flex;align-items:center;gap:7px}
     .overview-heading{flex-wrap:wrap}.overview-lamp{display:inline-flex;color:var(--secondary-text-color)}
-    .overview-lamp ha-icon{--mdc-icon-size:20px}.overview-lamp.online{color:var(--primary-color)}.overview-lamp.offline{color:var(--error-color,#d64545)}.overview-lamp.stale{color:var(--warning-color,#b36b00)}
+    .overview-lamp ha-icon{--mdc-icon-size:20px}
+    .overview-lamp.online,.overview-lamp.current{color:var(--success-color,#43a047)}
+    .overview-lamp.offline,.overview-lamp.stale{color:var(--warning-color,#ff9800)}
     .overview-hero:has(>.overview-diagnostics:not([open])){padding-bottom:4px}
     .daily .overview-diagnostics{border-top:1px solid var(--divider-color);margin:10px 0 0}
     .overview-diagnostics > summary{min-height:44px;padding:0;align-content:center;font-size:13px}
@@ -66,7 +68,10 @@
     .overview-floors{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:8px}
     .overview-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
     .daily button.overview-floor{display:block;text-align:start;width:100%;border:1px solid var(--divider-color);border-radius:16px;color:var(--primary-text-color);padding:14px}.overview-floor small{overflow-wrap:anywhere}
-    .overview-metrics .overview-value{font-size:21px}.overview-metrics .overview-value span{font-size:13px}.overview-metric{min-width:0;padding:14px;border-radius:16px;border:1px solid var(--divider-color);background:var(--card-background-color)}.overview-label{display:flex;align-items:center;gap:7px;color:var(--secondary-text-color);font-size:13px}.overview-label ha-icon{--mdc-icon-size:18px;color:var(--primary-color)}.overview-value{display:flex;align-items:baseline;flex-wrap:wrap;gap:5px;font-size:27px;font-weight:600;margin:8px 0 5px;font-variant-numeric:tabular-nums}.overview-value span{font-size:17px;font-weight:400;white-space:nowrap}.overview-metric small{font-size:12px;line-height:1.3;overflow-wrap:anywhere}.overview-section-title{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 8px}.overview-section-title h2{font-size:16px;margin:0}.overview-nodes{overflow:hidden;border:1px solid var(--divider-color);border-radius:16px;background:var(--card-background-color)}.overview-node{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:10px;padding:13px;border-bottom:1px solid var(--divider-color);min-height:54px}.overview-node:last-child{border:0}.overview-node ha-icon{--mdc-icon-size:22px;color:var(--primary-color)}.overview-node strong{font-size:14px;font-weight:500}.overview-node span{font-size:12px;color:var(--secondary-text-color)}.overview-empty{padding:14px;color:var(--secondary-text-color);font-size:13px}
+    .overview-metrics .overview-value{font-size:21px}.overview-metrics .overview-value span{font-size:13px}.overview-metric{min-width:0;padding:14px;border-radius:16px;border:1px solid var(--divider-color);background:var(--card-background-color)}.overview-label{display:flex;align-items:center;gap:7px;color:var(--secondary-text-color);font-size:13px}.overview-label ha-icon{--mdc-icon-size:18px;color:var(--primary-color)}.overview-value{display:flex;align-items:baseline;flex-wrap:wrap;gap:5px;font-size:27px;font-weight:600;margin:8px 0 5px;font-variant-numeric:tabular-nums}.overview-value span{font-size:17px;font-weight:400;white-space:nowrap}.overview-metric small{font-size:12px;line-height:1.3;overflow-wrap:anywhere}.overview-section-title{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 8px}.overview-section-title h2{font-size:16px;margin:0}.overview-nodes{overflow:hidden;border:1px solid var(--divider-color);border-radius:16px;background:var(--card-background-color)}.overview-node{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:10px;padding:13px;border-bottom:1px solid var(--divider-color);min-height:54px}.overview-node:last-child{border:0}.overview-node > ha-icon{--mdc-icon-size:22px;color:var(--node-color,var(--primary-color))}.overview-node strong{font-size:14px;font-weight:500}.overview-node > span{font-size:12px;color:var(--node-color,var(--secondary-text-color))}.overview-empty{padding:14px;color:var(--secondary-text-color);font-size:13px}
+    .overview-node.is-on{--node-color:var(--yellow-color,#ffc107)}
+    .overview-node.is-off{--node-color:var(--primary-color,#03a9cf)}
+    .overview-node.is-unavailable{--node-color:var(--secondary-text-color)}
     @container nikas-panel (max-width:400px){.daily{padding:10px}.daily-row{padding:12px;gap:8px}.daily-row strong{font-size:14px}.overview-hero{padding:12px}.overview-metrics{gap:5px}.overview-metrics .overview-metric{padding:8px}.overview-metrics .overview-label{gap:3px;font-size:11px}.overview-metrics .overview-label ha-icon{--mdc-icon-size:15px}.overview-hero h1{font-size:21px}.overview-metric{padding:12px}.overview-value{font-size:25px}}
   </style>`;
   p._dailyZoneRow = function(z) {
@@ -94,12 +99,21 @@
       {...metric("2 этаж",child,"mdi:thermometer","Детская Ильи · ZONT"),room:"ilya"},
     ];
     const metrics = [metric("На улице",outdoor,"mdi:weather-partly-cloudy","Уличный датчик"),metric("ГВС",dhw,"mdi:water-thermometer-outline","Температура воды"),metric("Давление",pressure,"mdi:gauge","Теплоноситель")];
-    const active = [];
+    const nodes = [];
     for (const [name,pattern,icon] of [["Основной котёл",/горелк|burner/,"mdi:fire"],["Радиаторы",/радиатор|radiator/,"mdi:radiator"],["Тёплый пол",/т[её]пл.*пол|floor/,"mdi:heating-coil"],["Циркуляция",/циркуляц|circulation/,"mdi:pump"]]) {
       const signal = unique(items.filter(i=>i.entry.entity_id.startsWith("binary_sensor.") && pattern.test(text(i)) && !/разреш|enable/.test(text(i))));
-      if(signal && ["on","active","running","heating"].includes(signal.state?.state))active.push({name,icon,state:name === "Основной котёл" ? "Горелка активна" : "Включено"});
+      if (!signal) continue;
+      const state = signal.state?.state;
+      const isBurner = name === "Основной котёл";
+      if (["on","active","running","heating"].includes(state)) {
+        nodes.push({name,icon,tone:"is-on",label:isBurner ? "Горелка активна" : "Включено"});
+      } else if (state === "off") {
+        nodes.push({name,icon,tone:"is-off",label:isBurner ? "Горелка неактивна" : "Выключено"});
+      } else {
+        nodes.push({name,icon,tone:"is-unavailable",label:isBurner ? "Данные горелки недоступны" : "Недоступно"});
+      }
     }
-    return {floors,metrics,active};
+    return {floors,metrics,nodes};
   };
   const freshnessLimit = 15 * 60 * 1000;
   const reportPollInterval = 60 * 1000;
@@ -130,7 +144,7 @@
     const connections = items.filter(i=>i.entry.entity_id.startsWith("binary_sensor.") && i.state?.attributes?.device_class==="connectivity");
     const online = connections.length===1 ? connections[0] : null;
     const state = online?.state?.state;
-    const connection = state==="on" ? ["mdi:cloud-outline","online","ZONT на связи"]
+    const connection = state==="on" ? ["mdi:cloud","online","ZONT на связи"]
       : state==="off" ? ["mdi:cloud-off-outline","offline","Нет связи с ZONT"]
       : ["mdi:cloud-question-outline","unknown","Нет данных о связи"];
     const transport = state==="on" ? this._connectionStatusV096(items,online) : null;
@@ -140,10 +154,10 @@
     const reports = readings.map(m=>m.value===null ? NaN : Date.parse(m.item.state.last_reported ||
       this._overviewReports?.get(m.item.entry.entity_id)));
     const age = reports.every(Number.isFinite) ? Date.now()-Math.min(...reports) : NaN;
-    const freshness = !Number.isFinite(age) || age<0
-      ? ["mdi:clock-question-outline","unknown","Нет данных о свежести"]
-      : age>freshnessLimit ? ["mdi:clock-alert-outline","stale","Данные в HA устарели"]
-      : ["mdi:check-circle-outline","current","Данные в HA актуальны"];
+    const freshness = ["mdi:check-circle-outline", ...(!Number.isFinite(age) || age<0
+      ? ["unknown","Нет данных о свежести"]
+      : age>freshnessLimit ? ["stale","Данные в HA устарели"]
+      : ["current","Данные в HA актуальны"])];
     const detail = status => '<div class="overview-status">'+lamp(...status)+escape(status[2])+'</div>';
     const suffix = Number.isFinite(age) && age>=0 ? ' · до '+Math.floor(age/60000)+' мин назад' : '';
     return {
@@ -155,7 +169,7 @@
     };
   };
   p._dailyOverview = function(items, zones) {
-    const {floors,metrics,active} = this._dailyOverviewModel(items);
+    const {floors,metrics,nodes} = this._dailyOverviewModel(items);
     const readings = [...floors,...metrics];
     const missing = readings.filter(m=>m.value===null).length;
     const unavailableZones = zones.filter(z=>z.missing).length;
@@ -173,7 +187,7 @@
       return m.room ? '<button type="button" data-climate-room="'+m.room+'" class="overview-floor">'+body+'</button>'
         : '<div class="overview-metric">'+body+'</div>';
     };
-    const nodes = active.map(n=>`<div class="overview-node"><ha-icon icon="${n.icon}"></ha-icon><strong>${n.name}</strong><span>${n.state}</span></div>`).join("");
+    const nodeRows = nodes.map(n=>`<div class="overview-node ${n.tone}"><ha-icon icon="${n.icon}" aria-hidden="true"></ha-icon><strong>${n.name}</strong><span>${n.label}</span></div>`).join("");
     const outlets = (this._config().heating_outlets || []).map(outlet => {
       const state = this._hass?.states?.[outlet.entity_id];
       const status = !state ? "Нет данных" : state.state === "on" ? "Включена" : state.state === "off" ? "Выключена" : state.state === "unavailable" ? "Нет связи" : "Нет данных";
@@ -186,8 +200,8 @@
     return '<div class="overview"><div class="overview-hero"><div class="overview-heading"><h1>Состояние дома</h1><div class="overview-lamps">'+
       status.lamps+'</div></div><small>'+escape((hasIssue?title+' · ':'')+(notes.join(" · ") || "Температуры и давление доступны"))+'</small>'+
       status.diagnostics+'</div><div class="overview-floors">'+floors.map(renderMetric).join('')+'</div><div class="overview-metrics">'+metrics.map(renderMetric).join('')+
-      '</div><div class="overview-section-title"><h2>Работает сейчас</h2><small>'+active.length+' узл.</small></div><div class="overview-nodes">'+
-      (nodes || '<div class="overview-empty">Нет подтверждённых активных узлов</div>')+'</div>'+heating+'</div>';
+      '</div><div class="overview-section-title"><h2>Отопление и циркуляция</h2><small>'+nodes.length+' узл.</small></div><div class="overview-nodes">'+
+      (nodeRows || '<div class="overview-empty">Источники состояния узлов не найдены</div>')+'</div>'+heating+'</div>';
   };
   p._dailyHistory = function(items) {
     if (!this.__dailyHistory && !this.__dailyHistoryLoading) {

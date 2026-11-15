@@ -42,9 +42,12 @@ async function assertFits(locator,label) {
     }
    });
    const panel=document.createElement('zont-local-panel');
-   const data=[['sensor.room','Гостиная (t°)','23.2','°C'],['sensor.child','Детская 2 (t°)','22.6','°C'],['sensor.out','Уличный датчик','4.5','°C'],['sensor.kontroller_otopleniia_sample_h2000_pro_ebus_osnovnoi_no2_tdeg_gvs','t° ГВС','45','°C'],['sensor.p','Теплоноситель','1.9','bar'],['binary_sensor.floor','Тёплый пол','on','']];
+   const data=[['sensor.room','Гостиная (t°)','23.2','°C'],['sensor.child','Детская 2 (t°)','22.6','°C'],['sensor.out','Уличный датчик','4.5','°C'],['sensor.kontroller_otopleniia_sample_h2000_pro_ebus_osnovnoi_no2_tdeg_gvs','t° ГВС','45','°C'],['sensor.p','Теплоноситель','1.9','bar'],['binary_sensor.floor','Тёплый пол','on',''],
+    ['binary_sensor.radiators','Радиаторы','off',''],['binary_sensor.circulation','Циркуляция','unavailable',''],
+    ['binary_sensor.online','Controller online','on','']];
    panel._registry=data.map(([entity_id,name])=>({entity_id,original_name:name,platform:'zont'}));
    panel._hass={states:Object.fromEntries(data.map(([entity_id,friendly_name,state,unit_of_measurement])=>[entity_id,{entity_id,state,attributes:{friendly_name,unit_of_measurement},last_updated:new Date().toISOString()}]))};
+   panel._hass.states['binary_sensor.online'].attributes.device_class='connectivity';
    panel._areas=new Map([['child',{area_id:'child',name:'05 - Детская Ильи'}]]);
    panel._devices=new Map([['child',{id:'child',area_id:'child',labels:['datchik_klimata_pomeshcheniia'],name:'Zigbee Илья'}]]);
    panel._registry.push({entity_id:'sensor.child_ha',device_id:'child',original_device_class:'temperature',platform:'mqtt'});
@@ -69,7 +72,46 @@ async function assertFits(locator,label) {
   });
   await page.locator('zont-local-panel .overview-metric').first().waitFor();
   await page.locator('zont-local-panel .overview-lamps .current').waitFor();
-  assert.ok((await page.locator('zont-local-panel .overview').innerText()).includes('Веранда · WF3'));
+  const overview=page.locator('zont-local-panel .overview');
+  const indicatorColor=el=>el.evaluate(node=>getComputedStyle(node).color);
+  for(const [name,status,color] of [
+   ['Тёплый пол','Включено','rgb(255, 193, 7)'],
+   ['Радиаторы','Выключено','rgb(3, 169, 207)'],
+   ['Циркуляция','Недоступно','rgb(170, 170, 170)'],
+  ]){
+   const node=overview.locator('.overview-node').filter({has:page.getByText(name,{exact:true})});
+   assert.equal(await indicatorColor(node.locator('ha-icon')),color);
+   assert.equal(await indicatorColor(node.getByText(status,{exact:true})),color);
+  }
+  const lamps=overview.locator('.overview-lamps');
+  const connection=lamps.getByRole('img',{name:/^Связь/});
+  const freshness=lamps.getByRole('img',{name:/^Свежесть/});
+  assert.equal(await indicatorColor(connection),'rgb(67, 160, 71)');
+  assert.equal(await indicatorColor(freshness),'rgb(67, 160, 71)');
+  if(width===390){
+   await page.evaluate(()=>{
+    const panel=window.testPanel;
+    const states=panel.hass.states;
+    panel.hass={...panel.hass,states:{...states,
+     'binary_sensor.online':{...states['binary_sensor.online'],state:'off'},
+     'sensor.room':{...states['sensor.room'],last_reported:new Date(Date.now()-16*60000).toISOString()},
+    }};
+   });
+   await lamps.getByRole('img',{name:'Свежесть · Данные в HA устарели'}).waitFor();
+   assert.equal(await indicatorColor(connection),'rgb(255, 152, 0)');
+   assert.equal(await indicatorColor(freshness),'rgb(255, 152, 0)');
+   await page.evaluate(()=>{
+    const panel=window.testPanel, states=panel.hass.states;
+    panel.hass={...panel.hass,states:{...states,'sensor.room':{...states['sensor.room'],state:'unavailable'}}};
+   });
+   await lamps.getByRole('img',{name:'Свежесть · Нет данных о свежести'}).waitFor();
+   assert.equal(await indicatorColor(freshness),'rgb(170, 170, 170)');
+   await page.evaluate(()=>{
+    const panel=window.testPanel, states=panel.hass.states;
+    panel.hass={...panel.hass,states:{...states,'sensor.room':{...states['sensor.room'],state:'23.2',last_reported:new Date().toISOString()}}};
+   });
+  }
+  assert.ok((await overview.innerText()).includes('Веранда · WF3'));
   assert.ok((await page.locator('zont-local-panel .overview').innerText()).includes('Нет связи'));
   assert.equal(await page.getByText('Вкл. ниже 8 °C · Выкл. выше 10 °C',{exact:true}).count(),3);
   const floors=await page.locator('zont-local-panel .overview-floor').all();
