@@ -92,11 +92,13 @@ async function assertFits(locator,label) {
   await assertFits(page.locator('zont-local-panel .overview'),'overview');
   for(const tab of ['climate','zones','equipment','history']) {
    await page.locator(`zont-local-panel #zont-tabs button[data-tab="${tab}"]`).click();
-   const view=page.locator('zont-local-panel .zont-work-view:not([hidden])');
+   const view=page.locator(`zont-local-panel .zont-work-view[data-view="${tab}"]:not([hidden])`);
    await view.locator('.ht-title').waitFor();
    await assertFits(view,tab);
    if(tab==='zones'){
-    assert.equal(await view.getByText('13,2 °C',{exact:true}).count(),1);
+    const tambour=view.getByText('13,2 °C',{exact:true});
+    await tambour.waitFor();
+    assert.equal(await tambour.count(),1);
     await view.locator('details[data-detail="absent"] > summary').click();
     await page.evaluate(()=>window.testPanel._render());
     assert.ok(await view.locator('details[data-detail="absent"]').evaluate(el=>el.open),'telemetry preserves expanded details');
