@@ -1,6 +1,23 @@
 const {chromium}=require('playwright');
 const fs=require('node:fs');
 const assert=require('node:assert/strict');
+async function assertFits(locator,label) {
+ const layout=await locator.evaluate(root=>{
+  const bounds=root.getBoundingClientRect();
+  const elements=[...root.querySelectorAll('*')];
+  const position=(node)=>{
+   const range=document.createRange();
+   range.selectNodeContents(node);
+   const r=node.nodeType===Node.TEXT_NODE?range.getBoundingClientRect():node.getBoundingClientRect();
+   return [Math.round(r.left),Math.round(r.right)];
+  };
+  const overflow=elements.flatMap(el=>[el,...[...el.childNodes].filter(node=>node.nodeType===Node.TEXT_NODE)])
+   .map(node=>({tag:node.parentElement?.tagName,name:node.className||node.textContent?.trim().slice(0,90),edges:position(node)}))
+   .filter(({edges:[left,right]})=>right>bounds.right+1 || (right>left && left<bounds.left-1)).slice(-12);
+  return {width:root.clientWidth,scroll:root.scrollWidth,viewport:innerWidth,overflow};
+ });
+ assert.ok(layout.scroll<=layout.width+1,label+': '+JSON.stringify(layout));
+}
 (async()=>{
  const browser=await chromium.launch({headless:true});
  try {
@@ -72,12 +89,12 @@ const assert=require('node:assert/strict');
   await page.locator('zont-local-panel #zont-tabs button[data-tab="overview"]').click();
   await page.evaluate(()=>{window.shellBefore=window.testPanel.shadowRoot.querySelector('.nikas-shell');window.testPanel._render();});
   assert.ok(await page.evaluate(()=>window.shellBefore===window.testPanel.shadowRoot.querySelector('.nikas-shell')),'telemetry retains shell');
-  assert.ok(await page.locator('zont-local-panel .overview').evaluate(el=>el.scrollWidth<=el.clientWidth+1),'overview has no horizontal overflow');
+  await assertFits(page.locator('zont-local-panel .overview'),'overview');
   for(const tab of ['climate','zones','equipment','history']) {
    await page.locator(`zont-local-panel #zont-tabs button[data-tab="${tab}"]`).click();
    const view=page.locator('zont-local-panel .zont-work-view:not([hidden])');
    await view.locator('.ht-title').waitFor();
-   assert.ok(await view.evaluate(el=>el.scrollWidth<=el.clientWidth+1),tab+' must fit');
+   await assertFits(view,tab);
    if(tab==='zones'){
     assert.equal(await view.getByText('13,2 °C',{exact:true}).count(),1);
     await view.locator('details[data-detail="absent"] summary').click();
