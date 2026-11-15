@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0-beta006
+
+- Removes excess space under the collapsed ZONT diagnostics on Overview.
+- Highlights the Zones summary by status and groups idle zones with complete telemetry under «Не нагреваются».
+- Frontend cache build b034.
+
 ## 0.11.0-beta005
 
 - Shows separate ZONT temperatures for both floors on Overview and in Recorder history.

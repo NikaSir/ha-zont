@@ -58,7 +58,10 @@
     .overview-heading,.overview-lamps,.overview-status{display:flex;align-items:center;gap:7px}
     .overview-heading{flex-wrap:wrap}.overview-lamp{display:inline-flex;color:var(--secondary-text-color)}
     .overview-lamp ha-icon{--mdc-icon-size:20px}.overview-lamp.online{color:var(--primary-color)}.overview-lamp.offline{color:var(--error-color,#d64545)}.overview-lamp.stale{color:var(--warning-color,#b36b00)}
-    .overview-diagnostics small{overflow-wrap:anywhere}.overview-diagnostics{border-top:1px solid var(--divider-color);margin-top:10px}.overview-diagnostics summary{min-height:44px;padding:10px 0;box-sizing:border-box;font-size:13px}.overview-status{font-size:13px;margin-bottom:6px}
+    .overview-hero:has(>.overview-diagnostics:not([open])){padding-bottom:4px}
+    .daily .overview-diagnostics{border-top:1px solid var(--divider-color);margin:10px 0 0}
+    .overview-diagnostics > summary{min-height:44px;padding:0;align-content:center;font-size:13px}
+    .overview-diagnostics small{overflow-wrap:anywhere}.overview-status{font-size:13px;margin-bottom:6px}
     .overview-floors,.overview-metrics{display:grid;gap:8px}
     .overview-floors{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:8px}
     .overview-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}

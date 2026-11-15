@@ -1,5 +1,5 @@
 // GENERATED FILE. DO NOT EDIT DIRECTLY.
-// ZONT autonomous UI 0.11.0-beta005 production bundle.
+// ZONT autonomous UI 0.11.0-beta006 production bundle.
 // One active shell: zont-local-panel / NikaS shell kit v2.1.
 
 // BEGIN custom_components/zont_local/frontend/nikas-specialized-shell.js
@@ -808,8 +808,8 @@ function navigateNikasShell(path, { captureSource = false } = {}) {
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.11.0-beta005";
-const ASSET_VERSION = "0.11.0-beta005";
+const UI_VERSION = "0.11.0-beta006";
+const ASSET_VERSION = "0.11.0-beta006";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -2130,7 +2130,10 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     .overview-heading,.overview-lamps,.overview-status{display:flex;align-items:center;gap:7px}
     .overview-heading{flex-wrap:wrap}.overview-lamp{display:inline-flex;color:var(--secondary-text-color)}
     .overview-lamp ha-icon{--mdc-icon-size:20px}.overview-lamp.online{color:var(--primary-color)}.overview-lamp.offline{color:var(--error-color,#d64545)}.overview-lamp.stale{color:var(--warning-color,#b36b00)}
-    .overview-diagnostics small{overflow-wrap:anywhere}.overview-diagnostics{border-top:1px solid var(--divider-color);margin-top:10px}.overview-diagnostics summary{min-height:44px;padding:10px 0;box-sizing:border-box;font-size:13px}.overview-status{font-size:13px;margin-bottom:6px}
+    .overview-hero:has(>.overview-diagnostics:not([open])){padding-bottom:4px}
+    .daily .overview-diagnostics{border-top:1px solid var(--divider-color);margin:10px 0 0}
+    .overview-diagnostics > summary{min-height:44px;padding:0;align-content:center;font-size:13px}
+    .overview-diagnostics small{overflow-wrap:anywhere}.overview-status{font-size:13px;margin-bottom:6px}
     .overview-floors,.overview-metrics{display:grid;gap:8px}
     .overview-floors{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:8px}
     .overview-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -2344,6 +2347,7 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
   const styles = `<style>
     .ht{max-width:660px;margin:0 auto;color:var(--primary-text-color)}.ht-title{font-size:24px!important;margin:0 0 16px!important}.ht h3{font-size:14px;font-weight:500;color:var(--secondary-text-color);margin:17px 0 9px}.ht-card{background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:16px;overflow:hidden;margin:0 0 10px}.ht-pad{padding:15px}.ht-head{display:flex;justify-content:space-between;align-items:start;gap:10px;font-size:16px;font-weight:500}.ht small{font-size:12px;line-height:1.45;color:var(--secondary-text-color)}.ht-status{font-size:12px;color:var(--secondary-text-color);font-weight:400}.ht-heating{color:var(--warning-color,#d78c35)}.ht-values{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}.ht-values>div+div{border-left:1px solid var(--divider-color);padding-left:14px}.ht-values strong{font-size:27px;display:block;margin-top:4px;font-weight:500;font-variant-numeric:tabular-nums}.ht-values em{font-style:normal;font-size:15px}.ht-foot{border-top:1px solid var(--divider-color);padding-top:10px;margin-top:12px;font-size:12px;color:var(--secondary-text-color)}.ht-line{display:flex;justify-content:space-between;gap:14px;align-items:center;min-height:40px;padding:8px 0;border-bottom:1px solid var(--divider-color);font-size:13px;overflow-wrap:anywhere}.ht-line:last-child{border:0}.ht-line span{color:var(--secondary-text-color)}.ht-line strong{font-size:13px;font-weight:500;text-align:right;min-width:0}.ht summary{list-style:none;padding:13px 15px;min-height:48px;font-size:14px;display:flex;justify-content:space-between;gap:10px;align-items:center}.ht summary::-webkit-details-marker{display:none}.ht summary:after{content:'⌄';color:var(--secondary-text-color)}.ht details[open]>summary:after{content:'⌃'}.ht-detail{padding:0 15px 14px}.ht-warning{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--warning-color,#d78c35) 12%,var(--card-background-color));font-size:13px;margin-bottom:12px}.ht-count{font-size:13px;color:var(--secondary-text-color);margin-bottom:15px}.ht-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.ht-pills{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--secondary-background-color);margin-bottom:12px}.ht .ht-pills button{flex:1;min-width:0;border:0;background:transparent;color:var(--secondary-text-color);font-size:13px;padding:7px 5px;min-height:40px}.ht .ht-pills button[aria-pressed=true]{background:var(--card-background-color);color:var(--primary-color)}.ht-chart{display:block;width:100%;height:auto}.ht-chart text{fill:var(--secondary-text-color);font-size:12px}.ht-range{font-size:12px;color:var(--secondary-text-color);padding:8px 0}.ht-band{height:12px;background:var(--secondary-background-color);border-radius:4px;position:relative;overflow:hidden;margin:8px 0 14px}.ht-band i{position:absolute;top:0;height:100%;background:var(--primary-color);border-radius:2px}.ht-source-id{font-size:11px;overflow-wrap:anywhere;display:block;color:var(--secondary-text-color)}
     .ht-inline-diagnostics{border-top:1px solid var(--divider-color)}.ht > .ht-card,.ht-grid > .ht-card{min-width:0}
+    .ht-count .ht-offline{color:var(--error-color,#d64545)}
     .ht-climate-head,.ht .ht-climate-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(57px,75px) minmax(49px,64px) 12px;align-items:center;gap:7px}
     .ht-climate-head{padding:6px 15px;color:var(--secondary-text-color);font-size:12px}
     .ht-climate-head span:not(:first-child),.ht-climate-row .ht-reading{text-align:end}
@@ -2477,18 +2481,26 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
       esc(zone.uncertain?'Часть данных не передаётся · '+delta:delta)+'</div></div>'+inlineDetail('zone-'+zone.id,diagnostic)+'</div>';
   };
   p._htZones=function(zones){
-    const active=zones.filter(z=>z.active&&!z.missing), absent=zones.filter(z=>z.missing), check=zones.filter(z=>!z.missing&&!z.active&&(z.sourceWarning||z.uncertain||(z.delta!==null&&z.delta!==0))), rest=zones.filter(z=>!active.includes(z)&&!absent.includes(z)&&!check.includes(z));
+    const active=zones.filter(z=>z.active&&!z.missing);
+    const absent=zones.filter(z=>z.missing);
+    const idle=zones.filter(z=>!z.missing&&!z.active);
+    const check=idle.filter(z=>z.sourceWarning||z.uncertain);
+    const rest=idle.filter(z=>!z.sourceWarning&&!z.uncertain);
+    const incomplete=zones.filter(z=>!z.missing&&z.uncertain).length;
+    const count=(total,label,tone)=>`<span${total ? ` class="${tone}"` : ''}>${total} ${label}</span>`;
+    const summary=[count(active.length,'нагревает','ht-heating'),count(absent.length,'без связи','ht-offline'),
+      count(incomplete,'с неполными данными','ht-heating')].join(' · ');
     const roomSensors=(this._config().zone_sensors||[]).map(sensor=>{
       const state=this._hass?.states?.[sensor.entity_id];
       const current=num(state?.state);
       const reading=state?.state==='unavailable'?'Нет связи':current===null?'Нет данных':`${fmt(current)} ${esc(state.attributes?.unit_of_measurement||'°C')}`;
       return line(sensor.label,reading);
     }).join('');
-    return title('Зоны')+(zones.length?`<div class="ht-count">${active.length} нагревает · ${absent.length} без связи · ${zones.filter(z=>!z.missing&&z.uncertain).length} с неполными данными</div>`:'')+
+    return title('Зоны')+(zones.length?`<div class="ht-count">${summary}</div>`:'')+
       (active.length?'<h3>Сейчас нагревается</h3>'+active.map(z=>this._htZoneCard(z)).join(''):'')+
       (check.length?'<h3>Требуют проверки</h3>'+check.map(z=>this._htZoneCard(z)).join(''):'')+
       (absent.length?detail('absent',`Нет связи · ${absent.length} термостата`,absent.map(z=>line(this._htZoneName(z),z.current===null?'Нет данных':`${fmt(z.current)} °C · датчик комнаты`)+inlineDetail('zone-'+z.id,line('Статус термоголовки','Недоступна')+line('Сущность',esc(z.id)))).join('')):'')+
-      (rest.length?detail('rest',`Остальные зоны · ${rest.length}`,rest.map(z=>this._htZoneCard(z)).join('')):'')+
+      (rest.length?detail('rest',`Не нагреваются · ${rest.length}`,rest.map(z=>this._htZoneCard(z)).join('')):'')+
       (roomSensors?`<h3>Датчики температуры</h3><div class="ht-card ht-pad">${roomSensors}</div>`:'')+
       (!zones.length&&!roomSensors?warning('Термостаты не настроены'):'')+
       (zones.length?'<small>Отклонение от уставки не означает аварию. Режим auto не подтверждает нагрев.</small>':'');

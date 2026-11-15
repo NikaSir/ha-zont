@@ -78,7 +78,14 @@ async function assertFits(locator,label) {
   const boxes=await Promise.all(cards.map(c=>c.boundingBox()));
   assert.ok(Math.abs(floorBoxes[0].y-floorBoxes[1].y)<2,'floor pair shares a row');
   assert.ok(boxes[0].y>floorBoxes[0].y && boxes.every(box=>Math.abs(box.y-boxes[0].y)<2),'three secondary measurements share a row');
-  await page.locator('zont-local-panel details[data-detail="zont-diagnostics"] summary').click();
+  const overviewDiagnostics=page.locator('zont-local-panel details[data-detail="zont-diagnostics"] > summary');
+  const collapsedLayout=await overviewDiagnostics.evaluate(summary=>{
+   const bounds=summary.getBoundingClientRect();
+   return {height:bounds.height,bottomGap:summary.closest('.overview-hero').getBoundingClientRect().bottom-bounds.bottom};
+  });
+  assert.ok(collapsedLayout.height>=44,'collapsed diagnostics keeps its touch target');
+  assert.ok(collapsedLayout.bottomGap<=5,'collapsed diagnostics leaves no extra bottom space: '+JSON.stringify(collapsedLayout));
+  await overviewDiagnostics.click();
   await page.evaluate(()=>window.testPanel._render());
   assert.ok(await page.locator('zont-local-panel details[data-detail="zont-diagnostics"]').evaluate(el=>el.open));
   await floors[1].click();
@@ -96,6 +103,12 @@ async function assertFits(locator,label) {
    await view.locator('.ht-title').waitFor();
    await assertFits(view,tab);
    if(tab==='zones'){
+    const count=view.locator('.ht-count');
+    const heating=count.getByText('1 нагревает',{exact:true});
+    const offline=count.getByText('1 без связи',{exact:true});
+    const incomplete=count.getByText('0 с неполными данными',{exact:true});
+    assert.notEqual(await heating.evaluate(el=>getComputedStyle(el).color),await offline.evaluate(el=>getComputedStyle(el).color));
+    assert.equal(await incomplete.evaluate(el=>getComputedStyle(el).color),await count.evaluate(el=>getComputedStyle(el).color));
     const tambour=view.getByText('13,2 °C',{exact:true});
     await tambour.waitFor();
     assert.equal(await tambour.count(),1);

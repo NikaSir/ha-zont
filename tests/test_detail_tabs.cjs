@@ -87,6 +87,13 @@ assert.ok(p._htZoneCard(zone).includes('0,0'));
 assert.ok(p._htZones([{...zone,active:false,missing:true,current:null}]).includes('Нет связи'));
 assert.match(p._htZones([{...zone,active:false,missing:true,current:24.1}]),/24,1 °C · датчик комнаты/);
 assert.match(p._htZoneCard({...zone,sourceNote:'Внешний датчик: термоголовка не получает данные',sourceWarning:true}), /Внешний датчик: термоголовка не получает данные/);
+const idle = {...zone,active:false,action:'Не нагревается',current:25,target:22,delta:3};
+const idleZones = p._htZones([idle,{...idle,id:'climate.b',current:21,delta:-1}]);
+assert.match(idleZones,/data-detail="rest"><summary>Не нагреваются · 2<\/summary>/);
+assert.doesNotMatch(idleZones,/Требуют проверки/);
+const warningZones = p._htZones([idle,{...idle,id:'climate.b',sourceWarning:true},{...idle,id:'climate.c',uncertain:true}]);
+assert.match(warningZones,/Требуют проверки<\/h3><div class="ht-card" data-zone="climate.b"/);
+assert.match(warningZones,/data-zone="climate.c".*data-detail="rest"><summary>Не нагреваются · 1/);
 // A measured room temperature has neither a thermostat setpoint nor an HVAC action.
 p._config=()=>({zone_sensors:[{entity_id:'sensor.hall_temperature',label:'Тамбур'}]});
 p._hass.states['sensor.hall_temperature']={state:'13.2',attributes:{unit_of_measurement:'°C'}};
