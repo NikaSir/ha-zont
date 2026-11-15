@@ -1,5 +1,5 @@
 // GENERATED FILE. DO NOT EDIT DIRECTLY.
-// ZONT autonomous UI 0.11.0-beta011 production bundle.
+// ZONT autonomous UI 0.11.0-beta012 production bundle.
 // One active shell: zont-local-panel / NikaS shell kit v2.1.
 
 // BEGIN custom_components/zont_local/frontend/nikas-specialized-shell.js
@@ -74,6 +74,7 @@ function nikasShellV2Styles() {
     }
     .nikas-shell__side-action--right{justify-self:end;color:var(--primary-color,#03a9d9)}
     .nikas-shell__side-action--refresh{color:#fff;background:#1c1c1c;background:color-mix(in srgb,var(--card-background-color,#fff) 8%,#1c1c1c)}
+    .nikas-shell__side-action--refresh[data-nikas-color-mode="light"]{color:#000;background:#fff}
     .nikas-shell__side-action:disabled{opacity:.55;cursor:wait}
     .nikas-shell__side-action ha-icon{--mdc-icon-size:25px}
     .nikas-shell__title{
@@ -811,8 +812,8 @@ function navigateNikasShell(path, { captureSource = false } = {}) {
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.11.0-beta011";
-const ASSET_VERSION = "0.11.0-beta011";
+const UI_VERSION = "0.11.0-beta012";
+const ASSET_VERSION = "0.11.0-beta012";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -1894,6 +1895,9 @@ function installV095() {
     const integrationVersion = this._config().integration_version;
     const versions = `UI v${UI_VERSION} / ${integrationVersion || "—"}`;
     if (shell.versionCaption.textContent !== versions) shell.versionCaption.textContent = versions;
+    const darkMode = this._hass?.themes?.darkMode ?? window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const colorMode = darkMode ? "dark" : "light";
+    if (shell.refresh.dataset.nikasColorMode !== colorMode) shell.refresh.dataset.nikasColorMode = colorMode;
     const active = this._activeTab();
     if (!active) return;
     const items = this._entries();

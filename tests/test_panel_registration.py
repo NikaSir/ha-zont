@@ -71,10 +71,10 @@ def main() -> None:
     assert removed == ["dashboard-zont"]
     assert panel["frontend_url_path"] == "dashboard-zont"
     assert panel["webcomponent_name"] == "zont-local-panel"
-    assert panel["module_url"].endswith("?v=0.11.0-beta011&build=b039")
+    assert panel["module_url"].endswith("?v=0.11.0-beta012&build=b040")
     assert panel["sidebar_title"] == "Отопление"
     assert panel["config"]["title"] == "Отопление"
-    assert panel["config"]["integration_version"] == "0.11.0-beta011"
+    assert panel["config"]["integration_version"] == "0.11.0-beta012"
     assert panel["config"]["parent"]["path"] == "/home/overview"
     assert panel["config"]["source"]["transport"] == {
         "kind": "unknown",
