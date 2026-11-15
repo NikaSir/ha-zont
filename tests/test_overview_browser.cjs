@@ -27,7 +27,8 @@ async function assertFits(locator,label) {
   // HA navigation uses same-origin history. about:blank has no usable pathname.
   await page.route('http://zont.test/**',route=>route.fulfill({contentType:'text/html',body:'<html><body></body></html>'}));
   await page.goto('http://zont.test/');
-  await page.setContent(`<style>html,body{margin:0;width:100%;height:100%;--primary-text-color:#eee;--secondary-text-color:#aaa;--card-background-color:#202020;--primary-background-color:#111;--secondary-background-color:#282828;--divider-color:#444;--primary-color:#03a9cf}zont-local-panel{display:block;width:100%;height:100%}</style>`);
+  const light=width===320 || width===430;
+  await page.setContent(`<style>html,body{margin:0;width:100%;height:100%;--primary-text-color:${light?'#141414':'#eee'};--secondary-text-color:${light?'#5f5f5f':'#aaa'};--card-background-color:${light?'#fdfdfd':'#202020'};--primary-background-color:${light?'#f7f7f7':'#111'};--secondary-background-color:${light?'#efefef':'#282828'};--divider-color:${light?'#ddd':'#444'};--primary-color:#03a9cf}zont-local-panel{display:block;width:100%;height:100%}</style>`);
   await page.addScriptTag({path:'custom_components/zont_local/frontend/zont-ui.js'});
   await page.evaluate(()=>{
    // Home Assistant supplies this element in production. Give the fixture
@@ -74,14 +75,36 @@ async function assertFits(locator,label) {
   await page.locator('zont-local-panel .overview-lamps .current').waitFor();
   const overview=page.locator('zont-local-panel .overview');
   const indicatorColor=el=>el.evaluate(node=>getComputedStyle(node).color);
-  for(const [name,status,color] of [
-   ['Тёплый пол','Включено','rgb(255, 193, 7)'],
-   ['Радиаторы','Выключено','rgb(3, 169, 207)'],
-   ['Циркуляция','Недоступно','rgb(170, 170, 170)'],
+  for(const [equipment, equipmentStatus, outlet, outletStatus, expectedTone] of [
+   ['Тёплый пол','Включено','Тамбур · WF4','Включена','orange'],
+   ['Радиаторы','Выключено','Веранда · WF2','Выключена','blue'],
+   ['Циркуляция','Недоступно','Веранда · WF3','Нет связи','gray'],
   ]){
-   const node=overview.locator('.overview-node').filter({has:page.getByText(name,{exact:true})});
-   assert.equal(await indicatorColor(node.locator('ha-icon')),color);
-   assert.equal(await indicatorColor(node.getByText(status,{exact:true})),color);
+   const equipmentRow=overview.locator('.overview-node').filter({has:page.getByText(equipment,{exact:true})});
+   const outletRow=overview.locator('.overview-node').filter({has:page.getByText(outlet,{exact:true})});
+   const color=await indicatorColor(equipmentRow.getByText(equipmentStatus,{exact:true}));
+   assert.equal(await indicatorColor(equipmentRow.locator('ha-icon')),color);
+   assert.equal(await indicatorColor(outletRow.locator('ha-icon')),color);
+   assert.equal(await indicatorColor(outletRow.getByText(outletStatus,{exact:true})),color);
+   const {tone,contrast}=await equipmentRow.getByText(equipmentStatus,{exact:true}).evaluate(node=>{
+    const context=document.createElement('canvas').getContext('2d',{willReadFrequently:true});
+    const rgb=value=>{
+     context.fillStyle=value;
+     context.fillRect(0,0,1,1);
+     return [...context.getImageData(0,0,1,1).data].slice(0,3);
+    };
+    const luminance=values=>values.map(value=>value/255)
+     .map(value=>value<=0.04045?value/12.92:((value+0.055)/1.055)**2.4)
+     .reduce((sum,value,index)=>sum+value*[0.2126,0.7152,0.0722][index],0);
+    const foreground=rgb(getComputedStyle(node).color);
+    const background=rgb(getComputedStyle(node.closest('.overview-nodes')).backgroundColor);
+    const [r,g,b]=foreground;
+    const tone=r>g&&g>b?'orange':b>g&&g>r?'blue':r===g&&g===b?'gray':'other';
+    const levels=[luminance(foreground),luminance(background)];
+    return {tone,contrast:(Math.max(...levels)+0.05)/(Math.min(...levels)+0.05)};
+   });
+   assert.equal(tone,expectedTone);
+   assert.ok(contrast>=4.5,`${equipmentStatus} on ${light?'light':'dark'} theme: ${contrast.toFixed(2)}:1`);
   }
   const lamps=overview.locator('.overview-lamps');
   const connection=lamps.getByRole('img',{name:/^Связь/});

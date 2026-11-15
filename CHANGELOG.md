@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0-beta009
+
+- Use theme-aware orange for active equipment and outlets on the Overview.
+- Apply the same orange, blue and gray palette to equipment and electric heating outlets.
+- Frontend cache build b037.
+
 ## 0.11.0-beta008
 
 - Overview shows on, off and unavailable ZONT nodes in «Отопление и циркуляция», with yellow, blue and gray indicators respectively.
