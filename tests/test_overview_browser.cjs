@@ -14,34 +14,55 @@ const assert=require('node:assert/strict');
   await page.addScriptTag({path:'custom_components/zont_local/frontend/zont-ui.js'});
   await page.evaluate(()=>{
    const panel=document.createElement('zont-local-panel');
-   const data=[['sensor.room','Гостиная (t°)','23.2','°C'],['sensor.out','Уличный датчик','4.5','°C'],['sensor.dhw','t° ГВС','45','°C'],['sensor.p','Теплоноситель','1.9','bar'],['binary_sensor.floor','Тёплый пол','on','']];
+   const data=[['sensor.room','Гостиная (t°)','23.2','°C'],['sensor.child','Детская 2 (t°)','22.6','°C'],['sensor.out','Уличный датчик','4.5','°C'],['sensor.kontroller_otopleniia_sample_h2000_pro_ebus_osnovnoi_no2_tdeg_gvs','t° ГВС','45','°C'],['sensor.p','Теплоноситель','1.9','bar'],['binary_sensor.floor','Тёплый пол','on','']];
    panel._registry=data.map(([entity_id,name])=>({entity_id,original_name:name,platform:'zont'}));
    panel._hass={states:Object.fromEntries(data.map(([entity_id,friendly_name,state,unit_of_measurement])=>[entity_id,{entity_id,state,attributes:{friendly_name,unit_of_measurement},last_updated:new Date().toISOString()}]))};
+   panel._areas=new Map([['child',{area_id:'child',name:'05 - Детская Ильи'}]]);
+   panel._devices=new Map([['child',{id:'child',area_id:'child',labels:['datchik_klimata_pomeshcheniia'],name:'Zigbee Илья'}]]);
+   panel._registry.push({entity_id:'sensor.child_ha',device_id:'child',original_device_class:'temperature',platform:'mqtt'});
+   panel._hass.states['sensor.child_ha']={state:'24.4',attributes:{device_class:'temperature',unit_of_measurement:'°C'}};
    panel._hass.states['climate.a']={state:'auto',attributes:{friendly_name:'ТГ Гардероб',current_temperature:20,temperature:22,hvac_action:'heating'}};
    panel._hass.states['climate.b']={state:'unavailable',attributes:{friendly_name:'Гараж'}};
    panel._hass.states['sensor.hall_temperature']={state:'13.2',attributes:{unit_of_measurement:'°C'}};
    panel._hass.states['switch.socket_wf4']={state:'on',attributes:{}};
    panel._hass.states['switch.socket_wf2']={state:'off',attributes:{}};
    panel._hass.states['switch.socket_wf3']={state:'unavailable',attributes:{}};
-   panel._hass.callApi=async()=>[[{entity_id:'sensor.room',state:'22',last_changed:new Date(Date.now()-3600000).toISOString()},{entity_id:'sensor.room',state:'23',last_changed:new Date().toISOString()}]];
+   panel._hass.callApi=async(method,path)=>{
+    if(method==='GET' && path.startsWith('states/')){
+     return {last_reported:new Date().toISOString()};
+    }
+    return [[{entity_id:'sensor.room',state:'22',last_changed:new Date(Date.now()-3600000).toISOString()},{entity_id:'sensor.room',state:'23',last_changed:new Date().toISOString()}]];
+   };
    panel._panel={config:{source:{platforms:['zont']},zone_entities:['climate.a','climate.b'],zone_sensors:[{entity_id:'sensor.hall_temperature',label:'Тамбур'}],heating_outlets:[{entity_id:'switch.socket_wf4',label:'Тамбур · WF4',on_below:8,off_above:10},{entity_id:'switch.socket_wf2',label:'Веранда · WF2',on_below:8,off_above:10},{entity_id:'switch.socket_wf3',label:'Веранда · WF3',on_below:8,off_above:10}]}};
    document.body.append(panel);
    window.testPanel=panel;
   });
   await page.locator('zont-local-panel .overview-metric').first().waitFor();
+  await page.locator('zont-local-panel .overview-lamps .current').waitFor();
   assert.ok((await page.locator('zont-local-panel .overview').innerText()).includes('Веранда · WF3'));
   assert.ok((await page.locator('zont-local-panel .overview').innerText()).includes('Нет связи'));
   assert.equal(await page.getByText('Вкл. ниже 8 °C · Выкл. выше 10 °C',{exact:true}).count(),3);
+  const floors=await page.locator('zont-local-panel .overview-floor').all();
   const cards=await page.locator('zont-local-panel .overview-metric').all();
-  assert.equal(cards.length,4);
+  assert.equal(floors.length,2);
+  assert.equal(cards.length,3);
+  const floorBoxes=await Promise.all(floors.map(c=>c.boundingBox()));
   const boxes=await Promise.all(cards.map(c=>c.boundingBox()));
-  assert.ok(Math.abs(boxes[0].y-boxes[1].y)<2,'first pair shares a row');
-  assert.ok(boxes[2].y>boxes[0].y && Math.abs(boxes[2].y-boxes[3].y)<2,'second pair shares a row');
-  const old=await page.evaluate(()=>window.testPanel.shadowRoot.querySelector('.nikas-shell'));
+  assert.ok(Math.abs(floorBoxes[0].y-floorBoxes[1].y)<2,'floor pair shares a row');
+  assert.ok(boxes[0].y>floorBoxes[0].y && boxes.every(box=>Math.abs(box.y-boxes[0].y)<2),'three secondary measurements share a row');
+  await page.locator('zont-local-panel details[data-detail="zont-diagnostics"] summary').click();
+  await page.evaluate(()=>window.testPanel._render());
+  assert.ok(await page.locator('zont-local-panel details[data-detail="zont-diagnostics"]').evaluate(el=>el.open));
+  await floors[1].click();
+  const child=page.locator('zont-local-panel details[data-climate-room="ilya"]');
+  await child.waitFor();
+  assert.match(await child.innerText(),/24,4 °C/);
+  assert.ok(await child.evaluate(el=>el.open));
+  await page.locator('zont-local-panel #zont-tabs button[data-tab="overview"]').click();
   await page.evaluate(()=>{window.shellBefore=window.testPanel.shadowRoot.querySelector('.nikas-shell');window.testPanel._render();});
   assert.ok(await page.evaluate(()=>window.shellBefore===window.testPanel.shadowRoot.querySelector('.nikas-shell')),'telemetry retains shell');
   assert.ok(await page.locator('zont-local-panel .overview').evaluate(el=>el.scrollWidth<=el.clientWidth+1),'overview has no horizontal overflow');
-  for(const tab of ['zones','equipment','history','service']) {
+  for(const tab of ['climate','zones','equipment','history']) {
    await page.locator(`zont-local-panel #zont-tabs button[data-tab="${tab}"]`).click();
    const view=page.locator('zont-local-panel .zont-work-view:not([hidden])');
    await view.locator('.ht-title').waitFor();
@@ -56,6 +77,9 @@ const assert=require('node:assert/strict');
     await view.locator('[data-ht-period="7"]').click();
     await page.waitForFunction(()=>window.testPanel.__htPeriod===7 && window.testPanel.__htHistory?.key.startsWith('7:') && window.testPanel.__htHistory?.loading===false);
     assert.equal(await view.locator('[data-ht-period="7"]').getAttribute('aria-pressed'),'true');
+    await view.locator('[data-ht-metric="floor2"]').click();
+    await page.waitForFunction(()=>window.testPanel.__htMetric==='floor2');
+    assert.match(await view.innerText(),/Детская Ильи · ZONT/);
     await view.locator('[data-ht-metric="dhw"]').click();
     await page.waitForFunction(()=>window.testPanel.__htMetric==='dhw' && window.testPanel.shadowRoot.querySelector('.zont-work-view:not([hidden]) [data-ht-metric="dhw"]')?.getAttribute('aria-pressed')==='true');
     assert.equal(await view.locator('[data-ht-metric="dhw"]').getAttribute('aria-pressed'),'true');
@@ -64,6 +88,6 @@ const assert=require('node:assert/strict');
   assert.deepEqual(errors,[]);
   await page.close();
  }
- console.log('Browser overview: 320/390/430/768px, 2x2 cards, no overflow, stable shell passed');
+ console.log('Browser overview: 320/390/430/768px, floor & climate data, 2+3 cards, no overflow, stable shell passed');
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

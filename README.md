@@ -6,7 +6,7 @@
 
 ZONT Local & UI for Home Assistant.
 
-UI **0.11.0-beta004 / b032** provides five read-only tabs: Обзор, Зоны, Оборудование, История, Сервис. The four detail tabs follow the approved card designs; Overview retains its four-card layout. History supports temperature selection and 24-hour/7-day Recorder data with circuit-activity lanes. Unknown sources stay unknown. See [DAILY_OVERVIEW.md](docs/DAILY_OVERVIEW.md) for data limitations and acceptance status. Updates continue from main without GitHub Releases or tags.
+UI **0.11.0-beta005 / b033** provides five read-only tabs: Обзор, Климат, Зоны, Оборудование, История. Overview and Recorder history use ZONT for both floor temperatures. Climate uses Home Assistant room devices tagged «Датчик климата помещения». Overview shows connectivity and HA receipt freshness separately. Expand diagnostics under the controller, thermostats and equipment cards. Updates continue from main without GitHub Releases or tags.
 
 ## Project status
 
