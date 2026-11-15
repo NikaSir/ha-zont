@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.0-beta012
+
+- Use a white refresh button with a black arrow in the light Home Assistant theme.
+- Frontend cache build b040.
+
 ## 0.11.0-beta011
 
 - Apply the restrained NikaS Header style and show the complete UI and installed integration versions on one line.

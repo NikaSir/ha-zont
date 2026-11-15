@@ -74,11 +74,13 @@ async function assertFits(locator,label) {
   await page.locator('zont-local-panel .overview-metric').first().waitFor();
   await page.locator('zont-local-panel .overview-lamps .current').waitFor();
   const title=page.locator('zont-local-panel #zont-title');
-  await page.evaluate(()=>{
+  await page.emulateMedia({colorScheme:light?'dark':'light'});
+  await page.evaluate(darkMode=>{
    const panel=window.testPanel;
+   panel.hass={...panel.hass,themes:{darkMode}};
    panel.panel={...panel.panel,config:{...panel.panel.config,integration_version:'1.9.11-beta007'}};
-  });
-  await title.getByText('UI v0.11.0-beta011 / 1.9.11-beta007',{exact:true}).waitFor({timeout:3000});
+  },!light);
+  await title.getByText('UI v0.11.0-beta012 / 1.9.11-beta007',{exact:true}).waitFor({timeout:3000});
   const heading=await title.evaluate(el=>{
    const rail=el.parentElement.getBoundingClientRect(), box=el.getBoundingClientRect();
    const version=el.querySelector('small'), style=getComputedStyle(version);
@@ -90,13 +92,30 @@ async function assertFits(locator,label) {
    return {center:Math.abs(box.left+box.width/2-rail.left-rail.width/2),
      overflow:version.scrollWidth-version.clientWidth,wrap:style.whiteSpace,
      weight:getComputedStyle(el.querySelector('strong')).fontWeight,
-     arrow:getComputedStyle(button.querySelector('ha-icon')).color,contrast:1.05/(lightness+.05)};
+     arrow:getComputedStyle(button.querySelector('ha-icon')).color,
+     background:getComputedStyle(button).backgroundColor,contrast:1.05/(lightness+.05)};
   });
   assert.ok(heading.center<1&&heading.overflow<=1);
   assert.equal(heading.wrap,'nowrap');
   assert.equal(heading.weight,'700');
-  assert.equal(heading.arrow,'rgb(255, 255, 255)');
-  assert.ok(heading.contrast>=3);
+  assert.equal(heading.arrow,light?'rgb(0, 0, 0)':'rgb(255, 255, 255)');
+  if(light)assert.equal(heading.background,'rgb(255, 255, 255)');
+  else assert.ok(heading.contrast>=3);
+  if(width===430){
+   const refresh=page.locator('zont-local-panel #zont-refresh');
+   const before=await refresh.elementHandle();
+   for(const darkMode of [true,false]){
+    await page.evaluate(mode=>{
+     const panel=window.testPanel;
+     panel.hass={...panel.hass,themes:{darkMode:mode}};
+    },darkMode);
+    await page.waitForFunction(({button,mode})=>
+     getComputedStyle(button.querySelector('ha-icon')).color===(mode?'rgb(255, 255, 255)':'rgb(0, 0, 0)'),
+    {button:before,mode:darkMode});
+    assert.ok(await refresh.evaluate((button,old)=>button===old,before));
+   }
+   await before.dispose();
+  }
   const overview=page.locator('zont-local-panel .overview');
   const indicatorColor=el=>el.evaluate(node=>getComputedStyle(node).color);
   for(const [equipment, equipmentStatus, outlet, outletStatus, expectedTone] of [

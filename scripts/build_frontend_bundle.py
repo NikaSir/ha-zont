@@ -16,8 +16,8 @@ SHELL_SOURCE = FRONTEND / "nikas-specialized-shell.js"
 APP_SOURCE = FRONTEND / "zont-app.js"
 DAILY_SOURCE = FRONTEND / "daily-overview.js"
 DETAIL_SOURCE = FRONTEND / "heating-detail-tabs.js"
-SHELL_SHA256 = "ced4c2cc9b223c8d3765c28c34988384b63d7433ba2a7eb9c037a0ef97c6b909"
-UI_VERSION = "0.11.0-beta011"
+SHELL_SHA256 = "398d6ff9eb5b1fb11d771e174ae7b010908c276681b1ca14e9757073ee10bb1c"
+UI_VERSION = "0.11.0-beta012"
 
 
 def _read(path: Path) -> str:
@@ -74,7 +74,7 @@ def build() -> str:
         raise SystemExit("Generated bundle must register the ZONT component exactly once")
     for required in (
         'const NIKAS_SHELL_V2_VERSION = "2.1"',
-        'const UI_VERSION = "0.11.0-beta011"',
+        'const UI_VERSION = "0.11.0-beta012"',
         'shell.className = "nikas-shell"',
         "createNikasShellScrollBoundaryGuard",
         "captureNikasShellReturnRoute",
