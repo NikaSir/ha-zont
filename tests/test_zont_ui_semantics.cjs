@@ -92,7 +92,7 @@ assert.match(source, /class="z82-loop-pump/, "DHW circulation pump must be a phy
 assert.match(source, /z82-pump-art[\s\S]{0,160}<ha-icon icon="mdi:pump"/, "heating circuit status rows must use a pump symbol");
 
 const panelManifest = JSON.parse(fs.readFileSync("custom_components/zont_local/frontend/panel_manifest.json", "utf8"));
-assert.equal(panelManifest.ui_version, "0.11.0-beta009");
+assert.equal(panelManifest.ui_version, "0.11.0-beta010");
 assert.equal(panelManifest.shell_version, "2.1");
 assert.equal(panelManifest.title, "Отопление");
 assert.equal(panelManifest.path, "/dashboard-zont");
@@ -140,7 +140,6 @@ assert.match(fullSource, /morph\(view, fresh\)/, "telemetry must patch the activ
 assert.match(fullSource, /:host\{\s*display:block;position:relative;inline-size:100%;block-size:100%/, "the application shell must bind to the Home Assistant host");
 assert.doesNotMatch(fullSource, /position:fixed|100vh|100vw/, "browser-window shell geometry is prohibited");
 assert.match(fullSource, /overflow-anchor:none/, "telemetry must not move the native scroll anchor");
-assert.match(fullSource, /refresh\.onclick = \(\) => this\._load\(true\)/, "refresh must preserve the last accepted telemetry while polling");
 assert.doesNotMatch(fullSource, /refresh\.onclick = \(\) => \{ this\._registry = null/, "refresh must not blank the work view");
 assert.match(fullSource, /if \(!Array\.isArray\(this\._registry\)\) \{[\s\S]{0,180}this\._registry = \[\]/, "initial registry failure must stay explicit");
 assert.match(fullSource, /Показаны последние принятые данные/, "refresh failure must retain and label the previous registry snapshot");
@@ -155,7 +154,8 @@ assert.match(fullSource, /"Данные актуальны"/, "connection indica
 assert.match(fullSource, /min-block-size:58px!important/, "connection indicator must keep canonical height");
 assert.match(fullSource, /grid-template-columns:10px minmax\(0,1fr\)/, "connection indicator must keep its lamp inside the plaque");
 assert.match(fullSource, /device\.sw_version/, "device facts must be registry-backed");
-assert.doesNotMatch(fullSource, /\.callService\(/, "read-only panel must not call services");
+assert.equal((fullSource.match(/\.callService\(/g)||[]).length,1, "manual telemetry refresh is the only direct service call");
+assert.match(fullSource, /hass\.callService\("homeassistant", "update_entity",/, "the only direct service refreshes telemetry");
 assert.equal((fullSource.match(/['"]hass-more-info['"]/g)||[]).length,1,"only the thermostat title opens native entity details");
 
 const equipmentMarkup = source.indexOf('<div class="z82-equipment-grid">');

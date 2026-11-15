@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0-beta010
+
+- The Header refresh requests a ZONT coordinator poll through one telemetry sensor per config entry.
+- The existing button shows progress and success or error without interrupting the work view.
+- Frontend cache build b038.
+
 ## 0.11.0-beta009
 
 - Use theme-aware orange for active equipment and outlets on the Overview.

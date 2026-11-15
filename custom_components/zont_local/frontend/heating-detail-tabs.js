@@ -59,7 +59,13 @@
     });
   };
   const originalLoad=p._load;
-  p._load=function(force=false){if(force){this.__htRequest=(this.__htRequest||0)+1;this.__htHistory=null;}return originalLoad.call(this,force);};
+  p._load=function(force=false){
+    if(force){
+      this.__htRequest=(this.__htRequest||0)+1;
+      this.__htHistoryDirty=true;
+    }
+    return originalLoad.call(this,force);
+  };
   const render = p._render;
   p._render = function() {
     render.call(this);
@@ -276,13 +282,17 @@
     const days=this.__htPeriod===7?7:1, m=this._htEquipmentModel(items), {floors,metrics}=this._dailyOverviewModel(items);
     const ids=[...new Set([...floors.map(floor=>floor.item),metrics[0].item,m.dhw,m.radiators,m.floor].filter(Boolean).map(i=>i.entry.entity_id))];
     const key=days+':'+ids.join(',');
-    if(this.__htHistory?.key!==key){
+    const current=this.__htHistory;
+    if(current?.key!==key || this.__htHistoryDirty){
+      this.__htHistoryDirty=false;
+      const previous=current?.key===key && current.data.length ? current : null;
       const request=(this.__htRequest||0)+1;this.__htRequest=request;
-      const end=Date.now(),start=end-days*86400000;this.__htHistory={key,start,end,loading:true,data:[],error:null};
+      const end=Date.now(),start=end-days*86400000;
+      this.__htHistory={...(previous || {key,start,end,data:[]}),loading:true,error:null};
       if(!ids.length){this.__htHistory.loading=false;return this.__htHistory;}
       Promise.resolve().then(()=>this._hass.callApi('GET',`history/period/${new Date(start).toISOString()}?filter_entity_id=${encodeURIComponent(ids.join(','))}&end_time=${encodeURIComponent(new Date(end).toISOString())}`))
         .then(data=>{if(this.__htRequest===request)this.__htHistory={key,start,end,loading:false,data:Array.isArray(data)?data:[],error:null};})
-        .catch(error=>{if(this.__htRequest===request)this.__htHistory={key,start,end,loading:false,data:[],error:String(error?.message||error)};})
+        .catch(error=>{if(this.__htRequest===request)this.__htHistory={...(previous || {key,start,end,data:[]}),loading:false,error:String(error?.message||error)};})
         .finally(()=>{if(this.__htRequest===request)this._queue();});
     }
     return this.__htHistory;
@@ -308,13 +318,14 @@
     const button=(key,name,attr,on)=>`<button type="button" ${attr}="${key}" aria-pressed="${on}">${name}</button>`;
     const controls=`<div class="ht-pills">${[['floor1','1 этаж'],['floor2','2 этаж'],['outside','На улице'],['dhw','ГВС']].map(([key,name])=>button(key,name,'data-ht-metric',selected===key)).join('')}</div><div class="ht-pills">${button(1,'24 ч','data-ht-period',days===1)}${button(7,'7 дн','data-ht-period',days===7)}</div>`;
     const history=this._htHistoryData(items),m=this._htEquipmentModel(items),{floors,metrics}=this._dailyOverviewModel(items);
-    if(history.loading)return title('История')+controls+warning('Загружаю историю…');
-    if(history.error)return title('История')+controls+warning('История недоступна: '+history.error);
+    if(history.loading && !history.data.length)return title('История')+controls+warning('Загружаю историю…');
+    if(history.error && !history.data.length)return title('История')+controls+warning('История недоступна: '+history.error);
     const item={floor1:floors[0].item,floor2:floors[1].item,outside:metrics[0].item,dhw:m.dhw}[selected];
     const series=id=>history.data.find(s=>s[0]?.entity_id===id)||[];
     const name={floor1:floors[0].note,floor2:floors[1].note,outside:'Уличный датчик',dhw:'Горячая вода'}[selected];
     return title('История')+controls+`<div class="ht-card ht-pad"><div class="ht-head"><span>${name}</span><span>${value(item)}</span></div>${this._htChart(series(item?.entry.entity_id),history,item?.state?.attributes?.unit_of_measurement||'°C')}</div><h3>Активность контуров</h3><div class="ht-card ht-pad">`+
-      [['Радиаторы',m.radiators],['Тёплый пол',m.floor]].map(([name,item])=>`<small>${name}</small>${this._htActivity(series(item?.entry.entity_id),history)}`).join('')+'</div>'+line('Циклы котла','Нет подтверждённого источника')+'<small>Полосы означают включение контура. Пропуски не считаются нормальной работой.</small>';
+      [['Радиаторы',m.radiators],['Тёплый пол',m.floor]].map(([name,item])=>`<small>${name}</small>${this._htActivity(series(item?.entry.entity_id),history)}`).join('')+'</div>'+line('Циклы котла','Нет подтверждённого источника')+'<small>Полосы означают включение контура. Пропуски не считаются нормальной работой.</small>'+
+      (history.error ? warning('Не удалось обновить историю. Показаны последние данные.') : '');
   };
   p._content=function(active,items){
     if(active.id==='overview')return baseContent.call(this,active,items);

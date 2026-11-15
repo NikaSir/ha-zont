@@ -19,7 +19,7 @@
     "custom_components/zont_local/frontend/daily-overview.js",
     "custom_components/zont_local/frontend/heating-detail-tabs.js"
   ],
-  "ui_version": "0.11.0-beta009",
+  "ui_version": "0.11.0-beta010",
   "web_component": "zont-local-panel",
   "panel": {
     "id": "zont",
@@ -70,9 +70,9 @@
     "transport_confirmation": "explicit_kind_confirmed_and_evidence",
     "invented_entity_ids": false,
     "fixed_entity_ids": "none",
-    "command_policy": "read_only",
-    "forbidden_command_markers": [
-      ".callService("
+    "command_policy": "refresh_only",
+    "command_markers": [
+      "hass.callService(\"homeassistant\", \"update_entity\","
     ]
   },
   "header_return": {

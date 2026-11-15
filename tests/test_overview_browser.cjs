@@ -155,6 +155,61 @@ async function assertFits(locator,label) {
   await overviewDiagnostics.click();
   await page.evaluate(()=>window.testPanel._render());
   assert.ok(await page.locator('zont-local-panel details[data-detail="zont-diagnostics"]').evaluate(el=>el.open));
+  if(width===390){
+   const refresh=page.locator('zont-local-panel #zont-refresh');
+   await page.evaluate(()=>{
+    const panel=window.testPanel;
+    const registry=panel._registry.map(entry=>entry.platform==='zont'
+     ? {...entry,platform:'zont_ha',config_entry_id:'zont-test-entry'} : entry);
+    panel._panel.config.source.platforms.push('zont_ha');
+    panel._registry=registry;
+    window.refreshButton=panel.shadowRoot.querySelector('#zont-refresh');
+    window.refreshCalls=[];
+    window.refreshReply=new Promise(resolve=>{window.finishRefresh=resolve;});
+    panel.hass={...panel.hass,services:{homeassistant:{update_entity:{}}},callService:(...args)=>{
+     window.refreshCalls.push(args);
+     return window.refreshReply;
+    },callWS:({type})=>Promise.resolve({
+     'config/entity_registry/list':registry,
+     'config/device_registry/list':[...panel._devices.values()],
+     'config/area_registry/list':[...panel._areas.values()],
+    }[type])};
+   });
+   await refresh.click();
+   assert.equal(await refresh.getAttribute('aria-busy'),'true');
+   assert.ok(await refresh.isDisabled());
+   assert.equal(await refresh.locator('ha-icon').evaluate(el=>getComputedStyle(el).animationDuration),'0.9s');
+   assert.deepEqual(await page.evaluate(()=>window.refreshCalls),[['homeassistant','update_entity',{entity_id:['sensor.room']}]]);
+   await page.evaluate(()=>{
+    const panel=window.testPanel;
+    window.refreshButton.click();
+    panel.hass={...panel.hass};
+   });
+   await page.waitForTimeout(950);
+   assert.ok(await refresh.isDisabled(),'slow request remains busy beyond the minimum');
+   assert.equal(await page.evaluate(()=>window.refreshCalls.length),1);
+   await page.evaluate(()=>window.finishRefresh({}));
+   const success=page.getByRole('button',{name:'Запрос обновления выполнен'});
+   await success.waitFor();
+   assert.equal(await refresh.locator('ha-icon').getAttribute('icon'),'mdi:check');
+   assert.ok(await page.evaluate(()=>window.refreshButton===window.testPanel.shadowRoot.querySelector('#zont-refresh')));
+   assert.ok(await page.locator('zont-local-panel details[data-detail="zont-diagnostics"]').evaluate(el=>el.open));
+   await page.emulateMedia({reducedMotion:'reduce'});
+   await page.evaluate(()=>{window.refreshReply=Promise.resolve(false);});
+   await success.press('Enter');
+   assert.equal(await refresh.getAttribute('aria-busy'),'true');
+   assert.equal(await refresh.locator('ha-icon').evaluate(el=>getComputedStyle(el).animationName),'none');
+   const failure=page.getByRole('button',{name:'Не удалось обновить данные'});
+   await failure.waitFor();
+   assert.equal(await refresh.locator('ha-icon').getAttribute('icon'),'mdi:alert-circle-outline');
+   await page.getByRole('status').filter({hasText:'Не удалось обновить данные'}).waitFor();
+   assert.ok(await refresh.isEnabled());
+   await page.getByRole('button',{name:'Обновить',exact:true}).waitFor();
+   await page.evaluate(()=>{const panel=window.testPanel;panel.hass={...panel.hass,services:{}};});
+   await refresh.click();
+   await failure.waitFor();
+   assert.equal(await page.evaluate(()=>window.refreshCalls.length),2,'missing service dispatches no request');
+  }
   await floors[1].click();
   const child=page.locator('zont-local-panel details[data-climate-room="ilya"]');
   await child.waitFor();
@@ -214,6 +269,26 @@ async function assertFits(locator,label) {
     await view.locator('[data-ht-metric="dhw"]').click();
     await page.waitForFunction(()=>window.testPanel.__htMetric==='dhw' && window.testPanel.shadowRoot.querySelector('.zont-work-view:not([hidden]) [data-ht-metric="dhw"]')?.getAttribute('aria-pressed')==='true');
     assert.equal(await view.locator('[data-ht-metric="dhw"]').getAttribute('aria-pressed'),'true');
+    if(width===390){
+     await view.locator('[data-ht-metric="floor1"]').click();
+     await view.locator('.ht-chart').waitFor();
+     await page.evaluate(()=>{
+      const panel=window.testPanel;
+      const previousApi=panel.hass.callApi;
+      const historyReply=new Promise(resolve=>{window.finishHistory=resolve;});
+      panel.hass={...panel.hass,services:{homeassistant:{update_entity:{}}},
+       callApi:(method,path)=>path.startsWith('history/')?historyReply:previousApi(method,path),
+       callService:()=>Promise.resolve({})};
+     });
+     await page.locator('zont-local-panel #zont-refresh').click();
+     await page.waitForFunction(()=>window.testPanel.__htHistory?.loading===true);
+     assert.ok(await view.locator('.ht-chart').isVisible(),'manual refresh keeps the accepted graph while Recorder is loading');
+     await page.evaluate(()=>{
+      window.finishHistory([[{entity_id:'sensor.room',state:'22',last_changed:new Date(Date.now()-3600000).toISOString()},
+       {entity_id:'sensor.room',state:'23',last_changed:new Date().toISOString()}]]);
+     });
+     await page.waitForFunction(()=>window.testPanel.__htHistory?.loading===false);
+    }
    }
   }
   assert.deepEqual(errors,[]);
