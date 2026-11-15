@@ -13,6 +13,15 @@ const assert=require('node:assert/strict');
   await page.setContent(`<style>html,body{margin:0;width:100%;height:100%;--primary-text-color:#eee;--secondary-text-color:#aaa;--card-background-color:#202020;--primary-background-color:#111;--secondary-background-color:#282828;--divider-color:#444;--primary-color:#03a9cf}zont-local-panel{display:block;width:100%;height:100%}</style>`);
   await page.addScriptTag({path:'custom_components/zont_local/frontend/zont-ui.js'});
   await page.evaluate(()=>{
+   // Home Assistant supplies this element in production. Give the fixture
+   // the same icon footprint so visibility and layout assertions are meaningful.
+   customElements.define('ha-icon',class extends HTMLElement {
+    connectedCallback(){
+     this.style.display='inline-block';
+     this.style.width='var(--mdc-icon-size, 24px)';
+     this.style.height='var(--mdc-icon-size, 24px)';
+    }
+   });
    const panel=document.createElement('zont-local-panel');
    const data=[['sensor.room','Гостиная (t°)','23.2','°C'],['sensor.child','Детская 2 (t°)','22.6','°C'],['sensor.out','Уличный датчик','4.5','°C'],['sensor.kontroller_otopleniia_sample_h2000_pro_ebus_osnovnoi_no2_tdeg_gvs','t° ГВС','45','°C'],['sensor.p','Теплоноситель','1.9','bar'],['binary_sensor.floor','Тёплый пол','on','']];
    panel._registry=data.map(([entity_id,name])=>({entity_id,original_name:name,platform:'zont'}));
@@ -78,7 +87,7 @@ const assert=require('node:assert/strict');
     await page.waitForFunction(()=>window.testPanel.__htPeriod===7 && window.testPanel.__htHistory?.key.startsWith('7:') && window.testPanel.__htHistory?.loading===false);
     assert.equal(await view.locator('[data-ht-period="7"]').getAttribute('aria-pressed'),'true');
     await view.locator('[data-ht-metric="floor2"]').click();
-    await page.waitForFunction(()=>window.testPanel.__htMetric==='floor2');
+    await view.locator('[data-ht-metric="floor2"][aria-pressed="true"]').waitFor();
     assert.match(await view.innerText(),/Детская Ильи · ZONT/);
     await view.locator('[data-ht-metric="dhw"]').click();
     await page.waitForFunction(()=>window.testPanel.__htMetric==='dhw' && window.testPanel.shadowRoot.querySelector('.zont-work-view:not([hidden]) [data-ht-metric="dhw"]')?.getAttribute('aria-pressed')==='true');
