@@ -97,7 +97,7 @@ async function assertFits(locator,label) {
    await assertFits(view,tab);
    if(tab==='zones'){
     assert.equal(await view.getByText('13,2 °C',{exact:true}).count(),1);
-    await view.locator('details[data-detail="absent"] summary').click();
+    await view.locator('details[data-detail="absent"] > summary').click();
     await page.evaluate(()=>window.testPanel._render());
     assert.ok(await view.locator('details[data-detail="absent"]').evaluate(el=>el.open),'telemetry preserves expanded details');
    }
