@@ -105,6 +105,10 @@ async function assertFits(locator,label) {
    await view.locator('.ht-title').waitFor();
    await assertFits(view,tab);
    if(tab==='zones'){
+    await page.evaluate(()=>{
+     window.zoneTargets=[];
+     window.addEventListener('hass-more-info',event=>window.zoneTargets.push(event.detail.entityId));
+    });
     const count=view.locator('.ht-count');
     const heating=count.getByText('1 нагревает',{exact:true});
     const offline=count.getByText('1 без связи',{exact:true});
@@ -124,9 +128,13 @@ async function assertFits(locator,label) {
     await card.getByRole('img',{name:'Окно открыто'}).waitFor();
     assert.equal(await windowIcon.evaluate(el=>getComputedStyle(el).color),'rgb(255, 193, 7)');
     assert.ok(await card.locator('details').evaluate(el=>el.open&&el.parentElement===window.zoneBefore));
-    const tambour=view.getByText('13,2 °C',{exact:true});
-    await tambour.waitFor();
-    assert.equal(await tambour.count(),1);
+    assert.equal(await view.getByText('Тамбур',{exact:true}).count(),0);
+    assert.equal(await view.getByText('Датчики температуры',{exact:true}).count(),0);
+    assert.deepEqual(await page.evaluate(()=>window.zoneTargets),[],'diagnostics and telemetry do not open entity details');
+    const zoneTitle=card.getByRole('button',{name:'Гардероб',exact:true});
+    await zoneTitle.click();
+    await zoneTitle.press('Enter');
+    assert.deepEqual(await page.evaluate(()=>window.zoneTargets),['climate.a','climate.a']);
     await view.locator('details[data-detail="absent"] > summary').click();
     await page.evaluate(()=>window.testPanel._render());
     assert.ok(await view.locator('details[data-detail="absent"]').evaluate(el=>el.open),'telemetry preserves expanded details');

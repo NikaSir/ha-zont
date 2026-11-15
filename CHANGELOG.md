@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0-beta007
+
+- Opens the native Home Assistant thermostat dialog from the zone card title.
+- Removes standalone temperature sensor cards from Zones.
+- Frontend cache build b035.
+
 ## 0.11.0-beta006
 
 - Removes excess space under the collapsed ZONT diagnostics on Overview.

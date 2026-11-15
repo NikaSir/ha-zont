@@ -90,9 +90,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 {"entity_id": "switch.socket_wf2", "label": "Веранда · WF2", "on_below": 8, "off_above": 10},
                 {"entity_id": "switch.socket_wf3", "label": "Веранда · WF3", "on_below": 8, "off_above": 10},
             ],
-            "zone_sensors": [
-                {"entity_id": "sensor.sensor_th_zb_13_temperature", "label": "Тамбур"},
-            ],
             "zone_entities": [
                 "climate.thermostat_zb_sn_02",
                 "climate.thermostat_zb_sn_03",
