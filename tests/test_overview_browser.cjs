@@ -16,10 +16,12 @@ const assert=require('node:assert/strict');
    // Home Assistant supplies this element in production. Give the fixture
    // the same icon footprint so visibility and layout assertions are meaningful.
    customElements.define('ha-icon',class extends HTMLElement {
-    connectedCallback(){
-     this.style.display='inline-block';
-     this.style.width='var(--mdc-icon-size, 24px)';
-     this.style.height='var(--mdc-icon-size, 24px)';
+    constructor(){
+     super();
+     // The panel patches host attributes on updates. Keep size inside the
+     // custom element, like the Home Assistant implementation does.
+     const root=this.attachShadow({mode:'open'});
+     root.innerHTML='<style>:host{display:inline-block;width:var(--mdc-icon-size,24px);height:var(--mdc-icon-size,24px)}</style>';
     }
    });
    const panel=document.createElement('zont-local-panel');
