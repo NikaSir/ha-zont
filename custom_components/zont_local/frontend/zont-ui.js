@@ -1,5 +1,5 @@
 // GENERATED FILE. DO NOT EDIT DIRECTLY.
-// ZONT autonomous UI 0.11.0-beta009 production bundle.
+// ZONT autonomous UI 0.11.0-beta010 production bundle.
 // One active shell: zont-local-panel / NikaS shell kit v2.1.
 
 // BEGIN custom_components/zont_local/frontend/nikas-specialized-shell.js
@@ -384,7 +384,8 @@ function navigateNikasShell(path, { captureSource = false } = {}) {
     }
 
     _load(force = false) {
-      if (!this._hass?.callWS || this._loading || (this._registry && !force)) return;
+      if (this._loading) return this._loading;
+      if (!this._hass?.callWS || (this._registry && !force)) return;
       this._error = null;
       this._loading = Promise.all([
         this._hass.callWS({ type: "config/entity_registry/list" }),
@@ -401,6 +402,7 @@ function navigateNikasShell(path, { captureSource = false } = {}) {
         }
         this._error = error instanceof Error ? error.message : String(error);
       }).finally(() => { this._loading = null; this._queue(); });
+      return this._loading;
     }
 
     _entries() {
@@ -808,8 +810,8 @@ function navigateNikasShell(path, { captureSource = false } = {}) {
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.11.0-beta009";
-const ASSET_VERSION = "0.11.0-beta009";
+const UI_VERSION = "0.11.0-beta010";
+const ASSET_VERSION = "0.11.0-beta010";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -1659,6 +1661,71 @@ function installV095() {
     while (current.childNodes.length > freshChildren.length) current.lastChild?.remove();
   };
 
+  const refreshPhases = {
+    idle: ["mdi:refresh", "Обновить"],
+    busy: ["mdi:refresh", "Обновление данных"],
+    success: ["mdi:check", "Запрос обновления выполнен"],
+    error: ["mdi:alert-circle-outline", "Не удалось обновить данные"],
+  };
+
+  ElementClass.prototype._setHeaderRefreshPhase = function (phase) {
+    const shell = this.__zontShellV095;
+    if (!shell) return;
+    const [glyph, label] = refreshPhases[phase];
+    shell.refresh.dataset.phase = phase;
+    shell.refresh.disabled = phase === "busy";
+    shell.refresh.setAttribute("aria-busy", String(phase === "busy"));
+    shell.refresh.setAttribute("aria-label", label);
+    shell.refresh.title = label;
+    shell.refresh.querySelector("ha-icon").setAttribute("icon", glyph);
+    shell.refreshStatus.dataset.phase = phase;
+    shell.refreshStatus.textContent = phase === "success" || phase === "error" ? label : "";
+  };
+
+  ElementClass.prototype._requestHeaderRefresh = async function () {
+    if (this._headerRefreshRun || !this.isConnected) return;
+    clearTimeout(this._headerRefreshResultTimer);
+    const request = {};
+    this._headerRefreshRun = request;
+    this._setHeaderRefreshPhase("busy");
+    const startedAt = performance.now();
+    let succeeded = false;
+
+    try {
+      if (!this._registry?.length) await this._load(true);
+      if (this._headerRefreshRun !== request) return;
+      // CoordinatorEntity refreshes all ZONT telemetry for its config entry.
+      // Use one telemetry sensor per coordinator, never a control entity.
+      const sensors = new Map();
+      for (const { entry } of this._entries()) {
+        if (entry.platform !== "zont_ha" || !entry.entity_id.startsWith("sensor.")) continue;
+        const key = entry.config_entry_id || entry.platform;
+        if (!sensors.has(key)) sensors.set(key, entry.entity_id);
+      }
+      const hass = this._hass;
+      if (sensors.size && hass?.services?.homeassistant?.update_entity && typeof hass.callService === "function") {
+        const result = await hass.callService("homeassistant", "update_entity", { entity_id: [...sensors.values()] });
+        if (this._headerRefreshRun !== request) return;
+        if (result !== false && result?.success !== false) {
+          await this._load(true);
+          succeeded = !this._error;
+        }
+      }
+    } catch (_error) {
+      succeeded = false;
+    }
+
+    const remaining = 900 - (performance.now() - startedAt);
+    if (remaining > 0) await new Promise(resolve => setTimeout(resolve, remaining));
+    if (this._headerRefreshRun !== request || !this.isConnected) return;
+    this._headerRefreshRun = null;
+    this._setHeaderRefreshPhase(succeeded ? "success" : "error");
+    this._headerRefreshResultTimer = setTimeout(() => {
+      this._headerRefreshResultTimer = null;
+      this._setHeaderRefreshPhase("idle");
+    }, 1400);
+  };
+
   ElementClass.prototype._mountNikasShellV095 = function mountNikasShellV095() {
     if (this.__zontShellV095?.shell?.isConnected) {
       if (!this.__zontBoundaryCleanupV095) {
@@ -1687,6 +1754,13 @@ function installV095() {
       .zont-work-view[hidden]{display:none!important}
       .zont-scale-status{position:absolute;z-index:90;inset-inline-start:50%;inset-block-end:calc(76px + env(safe-area-inset-bottom,0px));transform:translate(-50%,10px);opacity:0;pointer-events:none;padding:9px 14px;border-radius:999px;background:rgba(20,27,34,.88);color:#fff;font-size:13px;font-weight:720;white-space:nowrap;transition:opacity .14s ease,transform .14s ease}
       .zont-scale-status.visible{opacity:1;transform:translate(-50%,0)}
+      #zont-refresh[data-phase="busy"] ha-icon{animation:zont-refresh-spin 900ms linear infinite}
+      #zont-refresh[data-phase="success"] ha-icon{color:#43a047}
+      #zont-refresh[data-phase="error"] ha-icon{color:#e53935}
+      @keyframes zont-refresh-spin{to{transform:rotate(360deg)}}
+      .zont-refresh-status{position:absolute;inline-size:1px;block-size:1px;overflow:hidden;clip-path:inset(50%);pointer-events:none}
+      .zont-refresh-status[data-phase="error"]{inset-block-start:calc(100% + 6px);inset-inline-end:12px;inline-size:auto;block-size:auto;max-inline-size:calc(100% - 24px);clip-path:none;padding:7px 10px;border:1px solid var(--divider-color);border-radius:10px;background:var(--card-background-color);font-size:13px}
+      @media(prefers-reduced-motion:reduce){#zont-refresh[data-phase="busy"] ha-icon{animation:none}}
 
       .z82-head{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(168px,44%);gap:12px!important;align-items:start!important}
       .z82-statuses{min-inline-size:0}
@@ -1732,7 +1806,8 @@ function installV095() {
       <header class="nikas-shell__header">
         <button id="zont-menu" class="nikas-shell__side-action" type="button" aria-label="Открыть меню Home Assistant"><ha-icon icon="mdi:menu"></ha-icon></button>
         <button id="zont-title" class="nikas-shell__title" type="button" aria-label="Вернуться в исходную базовую панель NikaS"><strong>Отопление</strong><small>UI v${UI_VERSION}</small></button>
-        <button id="zont-refresh" class="nikas-shell__side-action nikas-shell__side-action--right" type="button" aria-label="Обновить"><ha-icon icon="mdi:refresh"></ha-icon></button>
+        <button id="zont-refresh" class="nikas-shell__side-action nikas-shell__side-action--right" type="button" aria-label="Обновить"><ha-icon icon="mdi:refresh" aria-hidden="true"></ha-icon></button>
+        <span class="zont-refresh-status" role="status" aria-live="polite" aria-atomic="true"></span>
       </header>
       <div id="zont-work" class="zont-viewport nikas-shell__viewport" role="main" aria-label="Рабочая область панели Отопление. Масштабирование двумя пальцами">
         <div id="zont-stage" class="zont-stage nikas-shell__canvas nikas-shell__content"></div>
@@ -1776,13 +1851,14 @@ function installV095() {
       "/home/overview",
     );
     const refresh = shell.querySelector("#zont-refresh");
-    refresh.onclick = () => this._load(true);
+    refresh.onclick = () => { void this._requestHeaderRefresh(); };
 
     this.__zontShellV095 = {
       shell,
       viewport,
       stage,
       refresh,
+      refreshStatus: shell.querySelector(".zont-refresh-status"),
       navButtons,
       views: new Map([[active.id, initialView]]),
       active: active.id,
@@ -1839,7 +1915,6 @@ function installV095() {
       if (selected) button.setAttribute("aria-current", "page");
       else button.removeAttribute("aria-current");
     }
-    shell.refresh.disabled = Boolean(this._loading);
     if (changed) this.__zontZoomV095?.onTabChange();
     else this.__zontZoomV095?.clamp();
   };
@@ -2061,6 +2136,9 @@ function installV095() {
     this.__zontBoundaryCleanupV095?.();
     this.__zontBoundaryCleanupV095 = null;
     clearTimeout(this.__zontScaleTimerV095);
+    clearTimeout(this._headerRefreshResultTimer);
+    this._headerRefreshRun = null;
+    this._setHeaderRefreshPhase("idle");
     return legacyDisconnected?.call(this);
   };
   ElementClass.prototype.__zontV095 = true;
@@ -2403,7 +2481,13 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     });
   };
   const originalLoad=p._load;
-  p._load=function(force=false){if(force){this.__htRequest=(this.__htRequest||0)+1;this.__htHistory=null;}return originalLoad.call(this,force);};
+  p._load=function(force=false){
+    if(force){
+      this.__htRequest=(this.__htRequest||0)+1;
+      this.__htHistoryDirty=true;
+    }
+    return originalLoad.call(this,force);
+  };
   const render = p._render;
   p._render = function() {
     render.call(this);
@@ -2620,13 +2704,17 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     const days=this.__htPeriod===7?7:1, m=this._htEquipmentModel(items), {floors,metrics}=this._dailyOverviewModel(items);
     const ids=[...new Set([...floors.map(floor=>floor.item),metrics[0].item,m.dhw,m.radiators,m.floor].filter(Boolean).map(i=>i.entry.entity_id))];
     const key=days+':'+ids.join(',');
-    if(this.__htHistory?.key!==key){
+    const current=this.__htHistory;
+    if(current?.key!==key || this.__htHistoryDirty){
+      this.__htHistoryDirty=false;
+      const previous=current?.key===key && current.data.length ? current : null;
       const request=(this.__htRequest||0)+1;this.__htRequest=request;
-      const end=Date.now(),start=end-days*86400000;this.__htHistory={key,start,end,loading:true,data:[],error:null};
+      const end=Date.now(),start=end-days*86400000;
+      this.__htHistory={...(previous || {key,start,end,data:[]}),loading:true,error:null};
       if(!ids.length){this.__htHistory.loading=false;return this.__htHistory;}
       Promise.resolve().then(()=>this._hass.callApi('GET',`history/period/${new Date(start).toISOString()}?filter_entity_id=${encodeURIComponent(ids.join(','))}&end_time=${encodeURIComponent(new Date(end).toISOString())}`))
         .then(data=>{if(this.__htRequest===request)this.__htHistory={key,start,end,loading:false,data:Array.isArray(data)?data:[],error:null};})
-        .catch(error=>{if(this.__htRequest===request)this.__htHistory={key,start,end,loading:false,data:[],error:String(error?.message||error)};})
+        .catch(error=>{if(this.__htRequest===request)this.__htHistory={...(previous || {key,start,end,data:[]}),loading:false,error:String(error?.message||error)};})
         .finally(()=>{if(this.__htRequest===request)this._queue();});
     }
     return this.__htHistory;
@@ -2652,13 +2740,14 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     const button=(key,name,attr,on)=>`<button type="button" ${attr}="${key}" aria-pressed="${on}">${name}</button>`;
     const controls=`<div class="ht-pills">${[['floor1','1 этаж'],['floor2','2 этаж'],['outside','На улице'],['dhw','ГВС']].map(([key,name])=>button(key,name,'data-ht-metric',selected===key)).join('')}</div><div class="ht-pills">${button(1,'24 ч','data-ht-period',days===1)}${button(7,'7 дн','data-ht-period',days===7)}</div>`;
     const history=this._htHistoryData(items),m=this._htEquipmentModel(items),{floors,metrics}=this._dailyOverviewModel(items);
-    if(history.loading)return title('История')+controls+warning('Загружаю историю…');
-    if(history.error)return title('История')+controls+warning('История недоступна: '+history.error);
+    if(history.loading && !history.data.length)return title('История')+controls+warning('Загружаю историю…');
+    if(history.error && !history.data.length)return title('История')+controls+warning('История недоступна: '+history.error);
     const item={floor1:floors[0].item,floor2:floors[1].item,outside:metrics[0].item,dhw:m.dhw}[selected];
     const series=id=>history.data.find(s=>s[0]?.entity_id===id)||[];
     const name={floor1:floors[0].note,floor2:floors[1].note,outside:'Уличный датчик',dhw:'Горячая вода'}[selected];
     return title('История')+controls+`<div class="ht-card ht-pad"><div class="ht-head"><span>${name}</span><span>${value(item)}</span></div>${this._htChart(series(item?.entry.entity_id),history,item?.state?.attributes?.unit_of_measurement||'°C')}</div><h3>Активность контуров</h3><div class="ht-card ht-pad">`+
-      [['Радиаторы',m.radiators],['Тёплый пол',m.floor]].map(([name,item])=>`<small>${name}</small>${this._htActivity(series(item?.entry.entity_id),history)}`).join('')+'</div>'+line('Циклы котла','Нет подтверждённого источника')+'<small>Полосы означают включение контура. Пропуски не считаются нормальной работой.</small>';
+      [['Радиаторы',m.radiators],['Тёплый пол',m.floor]].map(([name,item])=>`<small>${name}</small>${this._htActivity(series(item?.entry.entity_id),history)}`).join('')+'</div>'+line('Циклы котла','Нет подтверждённого источника')+'<small>Полосы означают включение контура. Пропуски не считаются нормальной работой.</small>'+
+      (history.error ? warning('Не удалось обновить историю. Показаны последние данные.') : '');
   };
   p._content=function(active,items){
     if(active.id==='overview')return baseContent.call(this,active,items);
