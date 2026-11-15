@@ -4,6 +4,7 @@
 
 - Removes excess space under the collapsed ZONT diagnostics on Overview.
 - Highlights the Zones summary by status and groups idle zones with complete telemetry under «Не нагреваются».
+- Shows open and closed room-window contacts on thermostat cards using the Home Assistant area registry.
 - Frontend cache build b034.
 
 ## 0.11.0-beta005

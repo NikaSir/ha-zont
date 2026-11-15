@@ -94,6 +94,35 @@ assert.doesNotMatch(idleZones,/Требуют проверки/);
 const warningZones = p._htZones([idle,{...idle,id:'climate.b',sourceWarning:true},{...idle,id:'climate.c',uncertain:true}]);
 assert.match(warningZones,/Требуют проверки<\/h3><div class="ht-card" data-zone="climate.b"/);
 assert.match(warningZones,/data-zone="climate.c".*data-detail="rest"><summary>Не нагреваются · 1/);
+// Use room contacts, including HA's window override on door-class hardware.
+p._devices.set('valve',{area_id:'garage'});
+p._devices.set('contact',{area_id:'garage'});
+p._registry.push(
+ {entity_id:'climate.a',device_id:'valve'},
+ {entity_id:'binary_sensor.valve_window',device_id:'valve',original_device_class:'window'},
+ {entity_id:'binary_sensor.room_window',device_id:'contact',device_class:'window',original_device_class:'door'},
+ {entity_id:'binary_sensor.garage_door',area_id:'garage',device_class:'garage_door'},
+ {entity_id:'binary_sensor.other_window',device_id:'contact',area_id:'living',device_class:'window'},
+ {entity_id:'binary_sensor.disabled_window',area_id:'garage',device_class:'window',disabled_by:'user'},
+);
+Object.assign(p._hass.states,{
+ 'binary_sensor.valve_window':{state:'on'},
+ 'binary_sensor.room_window':{state:'off'},
+ 'binary_sensor.garage_door':{state:'on'},
+ 'binary_sensor.other_window':{state:'on'},
+ 'binary_sensor.disabled_window':{state:'on'},
+});
+assert.match(p._htZones([zone]),/aria-label="Окно закрыто"[^>]*><ha-icon icon="mdi:window-closed"/);
+p._hass.states['binary_sensor.room_window'].state='on';
+assert.match(p._htZones([zone]),/aria-label="Окно открыто"[^>]*><ha-icon icon="mdi:window-open"/);
+p._hass.states['binary_sensor.room_window'].state='unavailable';
+assert.match(p._htZones([zone]),/aria-label="Нет данных об окне"/);
+assert.doesNotMatch(p._htZones([{...zone,id:'climate.no_room'}]),/class="ht-window /);
+p._registry.push({entity_id:'binary_sensor.second_window',area_id:'garage',device_class:'window'});
+p._hass.states['binary_sensor.second_window']={state:'on'};
+assert.match(p._htZones([zone]),/aria-label="Есть открытое окно"/);
+p._hass.states['binary_sensor.second_window'].state='off';
+assert.match(p._htZones([zone]),/aria-label="Нет данных об окнах"/);
 // A measured room temperature has neither a thermostat setpoint nor an HVAC action.
 p._config=()=>({zone_sensors:[{entity_id:'sensor.hall_temperature',label:'Тамбур'}]});
 p._hass.states['sensor.hall_temperature']={state:'13.2',attributes:{unit_of_measurement:'°C'}};
