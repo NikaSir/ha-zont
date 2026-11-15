@@ -125,17 +125,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             },
             "tabs": [
                 {"id": "overview", "label": "Обзор", "icon": "mdi:home-outline"},
+                {"id": "climate", "label": "Климат", "icon": "mdi:thermometer"},
                 {"id": "zones", "label": "Зоны", "icon": "mdi:home-thermometer-outline"},
                 {"id": "equipment", "label": "Оборуд.", "icon": "mdi:water-boiler"},
                 {
                     "id": "history",
                     "label": "История",
                     "icon": "mdi:chart-line",
-                },
-                {
-                    "id": "service",
-                    "label": "Сервис",
-                    "icon": "mdi:tools",
                 },
             ],
         },

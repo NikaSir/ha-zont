@@ -7,14 +7,15 @@
   const unavailable = (s) => !s || ["unknown", "unavailable"].includes(s.state);
   const tabs = [
     {id:"overview", label:"Обзор", icon:"mdi:home-outline"},
+    {id:"climate", label:"Климат", icon:"mdi:thermometer"},
     {id:"zones", label:"Зоны", icon:"mdi:home-thermometer-outline"},
     {id:"equipment", label:"Оборуд.", icon:"mdi:water-boiler"},
     {id:"history", label:"История", icon:"mdi:chart-line"},
-    {id:"service", label:"Сервис", icon:"mdi:tools"},
   ];
   p._tabs = () => tabs;
   const load = p._load;
   p._load = function(force = false) {
+    if (force) this._overviewReportRequest = null;
     if (force && !this.__dailyHistoryLoading) this.__dailyHistory = null;
     return load.call(this, force);
   };
@@ -53,9 +54,17 @@
     .daily-row strong{font-size:15px;font-weight:500;overflow-wrap:anywhere}.daily-row div{text-align:right;font-size:16px;font-variant-numeric:tabular-nums}
     .daily small{display:block;font-size:12px;color:var(--secondary-text-color);margin-top:4px}.daily details{margin:12px 0}.daily summary{padding:14px;min-height:44px}.daily-note{padding:14px;background:var(--secondary-background-color);margin-bottom:14px;border-radius:12px}
     .daily button{min-height:44px;padding:8px 16px;color:var(--primary-color);background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:10px}
-    .overview{max-width:660px;margin:auto}.overview-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:16px;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:18px;margin-bottom:12px}.overview-eyebrow{font-size:12px;color:var(--secondary-text-color);margin:0 0 6px}.overview-hero h1{font-size:22px;margin:0;line-height:1.2}.overview-hero small{font-size:12px;line-height:1.4}.overview-connection{text-align:right;max-width:155px}.overview-connection strong{font-size:13px;color:var(--secondary-text-color)}
-    .overview-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.overview-metric{min-width:0;padding:14px;border-radius:16px;border:1px solid var(--divider-color);background:var(--card-background-color)}.overview-label{display:flex;align-items:center;gap:7px;color:var(--secondary-text-color);font-size:13px}.overview-label ha-icon{--mdc-icon-size:18px;color:var(--primary-color)}.overview-value{display:flex;align-items:baseline;flex-wrap:wrap;gap:5px;font-size:27px;font-weight:600;margin:8px 0 5px;font-variant-numeric:tabular-nums}.overview-value span{font-size:17px;font-weight:400;white-space:nowrap}.overview-metric small{font-size:12px;line-height:1.3}.overview-section-title{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 8px}.overview-section-title h2{font-size:16px;margin:0}.overview-nodes{overflow:hidden;border:1px solid var(--divider-color);border-radius:16px;background:var(--card-background-color)}.overview-node{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:10px;padding:13px;border-bottom:1px solid var(--divider-color);min-height:54px}.overview-node:last-child{border:0}.overview-node ha-icon{--mdc-icon-size:22px;color:var(--primary-color)}.overview-node strong{font-size:14px;font-weight:500}.overview-node span{font-size:12px;color:var(--secondary-text-color)}.overview-empty{padding:14px;color:var(--secondary-text-color);font-size:13px}
-    @container nikas-panel (max-width:400px){.daily{padding:10px}.daily-row{padding:12px;gap:8px}.daily-row strong{font-size:14px}.overview-hero{padding:12px;gap:8px;grid-template-columns:minmax(0,1fr)}.overview-connection{text-align:left;max-width:none;display:flex;justify-content:space-between;gap:8px;align-items:baseline}.overview-hero h1{font-size:21px}.overview-metric{padding:12px}.overview-value{font-size:25px}}
+    .overview{max-width:660px;margin:auto}.overview-hero{padding:14px;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:18px;margin-bottom:12px}.overview-eyebrow{font-size:12px;color:var(--secondary-text-color);margin:0 0 6px}.overview-hero h1{font-size:22px;margin:0;line-height:1.2}.overview-hero small{font-size:12px;line-height:1.4}
+    .overview-heading,.overview-lamps,.overview-status{display:flex;align-items:center;gap:7px}
+    .overview-heading{flex-wrap:wrap}.overview-lamp{display:inline-flex;color:var(--secondary-text-color)}
+    .overview-lamp ha-icon{--mdc-icon-size:20px}.overview-lamp.online{color:var(--primary-color)}.overview-lamp.offline{color:var(--error-color,#d64545)}.overview-lamp.stale{color:var(--warning-color,#b36b00)}
+    .overview-diagnostics small{overflow-wrap:anywhere}.overview-diagnostics{border-top:1px solid var(--divider-color);margin-top:10px}.overview-diagnostics summary{min-height:44px;padding:10px 0;box-sizing:border-box;font-size:13px}.overview-status{font-size:13px;margin-bottom:6px}
+    .overview-floors,.overview-metrics{display:grid;gap:8px}
+    .overview-floors{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:8px}
+    .overview-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .daily button.overview-floor{display:block;text-align:start;width:100%;border:1px solid var(--divider-color);border-radius:16px;color:var(--primary-text-color);padding:14px}.overview-floor small{overflow-wrap:anywhere}
+    .overview-metrics .overview-value{font-size:21px}.overview-metrics .overview-value span{font-size:13px}.overview-metric{min-width:0;padding:14px;border-radius:16px;border:1px solid var(--divider-color);background:var(--card-background-color)}.overview-label{display:flex;align-items:center;gap:7px;color:var(--secondary-text-color);font-size:13px}.overview-label ha-icon{--mdc-icon-size:18px;color:var(--primary-color)}.overview-value{display:flex;align-items:baseline;flex-wrap:wrap;gap:5px;font-size:27px;font-weight:600;margin:8px 0 5px;font-variant-numeric:tabular-nums}.overview-value span{font-size:17px;font-weight:400;white-space:nowrap}.overview-metric small{font-size:12px;line-height:1.3;overflow-wrap:anywhere}.overview-section-title{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 8px}.overview-section-title h2{font-size:16px;margin:0}.overview-nodes{overflow:hidden;border:1px solid var(--divider-color);border-radius:16px;background:var(--card-background-color)}.overview-node{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:10px;padding:13px;border-bottom:1px solid var(--divider-color);min-height:54px}.overview-node:last-child{border:0}.overview-node ha-icon{--mdc-icon-size:22px;color:var(--primary-color)}.overview-node strong{font-size:14px;font-weight:500}.overview-node span{font-size:12px;color:var(--secondary-text-color)}.overview-empty{padding:14px;color:var(--secondary-text-color);font-size:13px}
+    @container nikas-panel (max-width:400px){.daily{padding:10px}.daily-row{padding:12px;gap:8px}.daily-row strong{font-size:14px}.overview-hero{padding:12px}.overview-metrics{gap:5px}.overview-metrics .overview-metric{padding:8px}.overview-metrics .overview-label{gap:3px;font-size:11px}.overview-metrics .overview-label ha-icon{--mdc-icon-size:15px}.overview-hero h1{font-size:21px}.overview-metric{padding:12px}.overview-value{font-size:25px}}
   </style>`;
   p._dailyZoneRow = function(z) {
     const value = z.current === null ? "Нет данных" : `${z.current.toLocaleString("ru")} °C`;
@@ -69,34 +78,98 @@
     const isTemp = i => i.entry.entity_id.startsWith("sensor.") && (i.state?.attributes?.device_class === "temperature" || ["°C","°F","K"].includes(i.state?.attributes?.unit_of_measurement));
     const unique = pool => pool.length === 1 ? pool[0] : null;
     const temperatures = items.filter(isTemp);
-    const indoor = unique(temperatures.filter(i=>/гостиная|indoor|в доме/.test(text(i)) && !/целев|уставк|target/.test(text(i))));
+    const measured = temperatures.filter(i=>!/целев|уставк|target/.test(text(i)));
+    const living = unique(measured.filter(i=>/гостиная/.test(text(i))));
+    const namedChild = measured.filter(i=>/детск[а-яё]*[ _-]+ильи/.test(text(i)));
+    const child = unique(namedChild.length ? namedChild : measured.filter(i=>/детск[а-яё]*[ _-]+2(?:[^\d]|$)/.test(text(i))));
     const outdoor = unique(temperatures.filter(i=>/уличн.*датчик|outdoor.*sensor/.test(text(i)))) || unique(temperatures.filter(i=>/улиц|outdoor/.test(text(i)) && !/интернет|internet|целев|target/.test(text(i))));
     const dhw = unique(temperatures.filter(i=>/гвс|dhw|горяч/.test(text(i)) && !/целев|уставк|target|циркуляц|обрат|return|расч[её]т/.test(text(i))));
     const pressure = unique(items.filter(i=>(i.state?.attributes?.device_class === "pressure" || ["bar","бар","kPa"].includes(i.state?.attributes?.unit_of_measurement)) && /теплонос|систем|system/.test(text(i)) && !/хвс|питьев|полив/.test(text(i))));
     const metric = (label, item, icon, note) => ({label,item,icon,note,value:!unavailable(item?.state) ? number(item.state.state?.replace?.(",",".") ?? item.state.state) : null});
-    const metrics = [metric("В доме",indoor,"mdi:home-thermometer-outline","Гостиная · датчик"),metric("На улице",outdoor,"mdi:weather-partly-cloudy","Уличный датчик"),metric("ГВС",dhw,"mdi:water-thermometer-outline","Температура воды"),metric("Давление",pressure,"mdi:gauge","Теплоноситель")];
+    const floors = [
+      {...metric("1 этаж",living,"mdi:thermometer","Гостиная · ZONT"),room:"living"},
+      {...metric("2 этаж",child,"mdi:thermometer","Детская Ильи · ZONT"),room:"ilya"},
+    ];
+    const metrics = [metric("На улице",outdoor,"mdi:weather-partly-cloudy","Уличный датчик"),metric("ГВС",dhw,"mdi:water-thermometer-outline","Температура воды"),metric("Давление",pressure,"mdi:gauge","Теплоноситель")];
     const active = [];
     for (const [name,pattern,icon] of [["Основной котёл",/горелк|burner/,"mdi:fire"],["Радиаторы",/радиатор|radiator/,"mdi:radiator"],["Тёплый пол",/т[её]пл.*пол|floor/,"mdi:heating-coil"],["Циркуляция",/циркуляц|circulation/,"mdi:pump"]]) {
       const signal = unique(items.filter(i=>i.entry.entity_id.startsWith("binary_sensor.") && pattern.test(text(i)) && !/разреш|enable/.test(text(i))));
       if(signal && ["on","active","running","heating"].includes(signal.state?.state))active.push({name,icon,state:name === "Основной котёл" ? "Горелка активна" : "Включено"});
     }
-    return {metrics,active};
+    return {floors,metrics,active};
+  };
+  const freshnessLimit = 15 * 60 * 1000;
+  const reportPollInterval = 60 * 1000;
+  p._refreshOverviewReports = function(readings) {
+    if(!this._hass?.callApi || readings.some(m=>m.value===null))return;
+    const ids=readings.filter(m=>!Number.isFinite(Date.parse(m.item.state.last_reported)))
+      .map(m=>m.item.entry.entity_id);
+    if(!ids.length)return;
+    const key=ids.join(',');
+    const last=this._overviewReportRequest;
+    if(last?.key===key && (last.pending || Date.now()-last.started<reportPollInterval))return;
+    const request={key,started:Date.now(),pending:true};
+    this._overviewReportRequest=request;
+    Promise.allSettled(ids.map(id=>Promise.resolve().then(()=>this._hass.callApi('GET','states/'+encodeURIComponent(id)))))
+      .then(results=>{
+        if(this._overviewReportRequest!==request)return;
+        request.pending=false;
+        this._overviewReports=new Map(results.flatMap((result,index)=>
+          result.status==='fulfilled' && Number.isFinite(Date.parse(result.value?.last_reported))
+            ? [[ids[index],result.value.last_reported]] : []));
+        if(this.__zontShellV095?.active==='overview')this._queue();
+      });
+  };
+  const lamp = (icon, tone, label, kind) => '<span class="overview-lamp '+tone+'"'+
+    (kind ? ' role="img" aria-label="'+escape(kind+' · '+label)+'" title="'+escape(label)+'"' : ' aria-hidden="true"')+
+    '><ha-icon icon="'+icon+'" aria-hidden="true"></ha-icon></span>';
+  p._overviewStatus = function(items, readings) {
+    const connections = items.filter(i=>i.entry.entity_id.startsWith("binary_sensor.") && i.state?.attributes?.device_class==="connectivity");
+    const online = connections.length===1 ? connections[0] : null;
+    const state = online?.state?.state;
+    const connection = state==="on" ? ["mdi:cloud-outline","online","ZONT на связи"]
+      : state==="off" ? ["mdi:cloud-off-outline","offline","Нет связи с ZONT"]
+      : ["mdi:cloud-question-outline","unknown","Нет данных о связи"];
+    const transport = state==="on" ? this._connectionStatusV096(items,online) : null;
+    this._refreshOverviewReports(readings);
+    // The compressed frontend stream may only include last_updated, which
+    // does not advance when an unchanged measurement is reported again.
+    const reports = readings.map(m=>m.value===null ? NaN : Date.parse(m.item.state.last_reported ||
+      this._overviewReports?.get(m.item.entry.entity_id)));
+    const age = reports.every(Number.isFinite) ? Date.now()-Math.min(...reports) : NaN;
+    const freshness = !Number.isFinite(age) || age<0
+      ? ["mdi:clock-question-outline","unknown","Нет данных о свежести"]
+      : age>freshnessLimit ? ["mdi:clock-alert-outline","stale","Данные в HA устарели"]
+      : ["mdi:check-circle-outline","current","Данные в HA актуальны"];
+    const detail = status => '<div class="overview-status">'+lamp(...status)+escape(status[2])+'</div>';
+    const suffix = Number.isFinite(age) && age>=0 ? ' · до '+Math.floor(age/60000)+' мин назад' : '';
+    return {
+      lamps: lamp(...connection,"Связь")+lamp(...freshness,"Свежесть"),
+      diagnostics: '<details class="overview-diagnostics" data-detail="zont-diagnostics"><summary>Диагностика ZONT</summary>'+
+        detail(connection)+detail(freshness)+'<small>Канал к контроллеру · '+escape(transport && !transport.unknown ? transport.text : "Не подтверждён")+
+        '</small><small>Отметка получения показаний в Home Assistant'+suffix+'</small>'+
+        readings.map(m=>'<small>'+escape(m.label)+' · '+escape(m.item?.entry.entity_id || "Источник не определён")+'</small>').join('')+'</details>',
+    };
   };
   p._dailyOverview = function(items, zones) {
-    const {metrics,active} = this._dailyOverviewModel(items);
-    const missing = metrics.filter(m=>m.value===null).length;
+    const {floors,metrics,active} = this._dailyOverviewModel(items);
+    const readings = [...floors,...metrics];
+    const missing = readings.filter(m=>m.value===null).length;
     const unavailableZones = zones.filter(z=>z.missing).length;
     const incompleteZones = zones.filter(z=>!z.missing && z.uncertain).length;
     const errors = items.filter(i=>this._role(i)==="error" && this._isActiveErrorV089(i)).length;
     const hasIssue = missing || unavailableZones || errors;
     const title = errors ? "Требует внимания" : hasIssue ? "Есть замечания" : "Показания получены";
     const notes = [errors ? `Ошибок оборудования: ${errors}` : "",unavailableZones ? `Зон без связи: ${unavailableZones}` : "",missing ? `Нет показаний: ${missing}` : "",incompleteZones ? `Активность неизвестна: ${incompleteZones}` : ""].filter(Boolean);
-    const online = items.find(i=>/online|подключ/.test([i.entry.original_name,i.entry.name,i.state?.attributes?.friendly_name].filter(Boolean).join(" ").toLowerCase()));
-    const connection = this._connectionStatusV096(items,online);
-    const ages = metrics.filter(m=>m.value!==null).map(m=>Date.parse(m.item.state.last_reported || m.item.state.last_updated)).filter(Number.isFinite);
-    const age = ages.length ? Math.max(0,Math.floor((Date.now()-Math.min(...ages))/60000)) : null;
-    const freshness = age===null ? "Время данных неизвестно" : age===0 ? "HA: менее минуты назад" : `HA: до ${age} мин назад`;
-    const cards = metrics.map(m=>`<div class="overview-metric"><div class="overview-label"><ha-icon icon="${m.icon}"></ha-icon>${m.label}</div><div class="overview-value">${m.value===null ? "Нет данных" : `${escape(m.value.toLocaleString("ru",{maximumFractionDigits:2}))}<span>${escape(m.item.state.attributes?.unit_of_measurement || "")}</span>`}</div><small>${m.value===null ? "Источник отсутствует или неоднозначен" : m.note}</small></div>`).join("");
+    const status = this._overviewStatus(items,readings);
+    const renderMetric = m => {
+      const value = m.value===null ? "Нет данных" : escape(m.value.toLocaleString("ru",{maximumFractionDigits:2}))+
+        '<span>'+escape(m.item.state.attributes?.unit_of_measurement || '')+'</span>';
+      const body = '<span class="overview-label"><ha-icon icon="'+m.icon+'" aria-hidden="true"></ha-icon>'+m.label+
+        '</span><span class="overview-value">'+value+'</span><small>'+escape(m.value===null && !m.room ? "Источник отсутствует или неоднозначен" : m.note)+'</small>';
+      return m.room ? '<button type="button" data-climate-room="'+m.room+'" class="overview-floor">'+body+'</button>'
+        : '<div class="overview-metric">'+body+'</div>';
+    };
     const nodes = active.map(n=>`<div class="overview-node"><ha-icon icon="${n.icon}"></ha-icon><strong>${n.name}</strong><span>${n.state}</span></div>`).join("");
     const outlets = (this._config().heating_outlets || []).map(outlet => {
       const state = this._hass?.states?.[outlet.entity_id];
@@ -107,7 +180,11 @@
       return `<div class="overview-node"><ha-icon icon="mdi:power-socket-eu"></ha-icon><div><strong>${escape(outlet.label)}</strong>${range}</div><span>${status}</span></div>`;
     }).join("");
     const heating = outlets ? `<div class="overview-section-title"><h2>Электрообогрев</h2></div><div class="overview-nodes">${outlets}</div>` : "";
-    return `<div class="overview"><div class="overview-hero"><div><p class="overview-eyebrow">Состояние дома</p><h1>${title}</h1><small>${escape(notes.join(" · ") || "Температуры и давление доступны")}</small></div><div class="overview-connection"><strong>${escape(connection.text)}</strong><small>${escape(freshness)}</small></div></div><div class="overview-metrics">${cards}</div><div class="overview-section-title"><h2>Работает сейчас</h2><small>${active.length} узл.</small></div><div class="overview-nodes">${nodes || '<div class="overview-empty">Нет подтверждённых активных узлов</div>'}</div>${heating}</div>`;
+    return '<div class="overview"><div class="overview-hero"><div class="overview-heading"><h1>Состояние дома</h1><div class="overview-lamps">'+
+      status.lamps+'</div></div><small>'+escape((hasIssue?title+' · ':'')+(notes.join(" · ") || "Температуры и давление доступны"))+'</small>'+
+      status.diagnostics+'</div><div class="overview-floors">'+floors.map(renderMetric).join('')+'</div><div class="overview-metrics">'+metrics.map(renderMetric).join('')+
+      '</div><div class="overview-section-title"><h2>Работает сейчас</h2><small>'+active.length+' узл.</small></div><div class="overview-nodes">'+
+      (nodes || '<div class="overview-empty">Нет подтверждённых активных узлов</div>')+'</div>'+heating+'</div>';
   };
   p._dailyHistory = function(items) {
     if (!this.__dailyHistory && !this.__dailyHistoryLoading) {
@@ -160,12 +237,7 @@
       if (rest.length) html += `<details><summary>Остальные зоны · ${rest.length}</summary>${rest.map(z=>this._dailyZoneRow(z)).join("")}</details>`;
       html += '<small>Δ — фактическое отличие от уставки, не аварийный порог. Режим auto не означает нагрев.</small>';
     } else if (active.id === "history") html = this._dailyHistory(items);
-    else if (active.id === "service") {
-      html = section("Состояние источников", row("Реестр ZONT", this._error ? "Ошибка чтения" : Array.isArray(this._registry) ? "Прочитан" : "Загрузка", this._error || "Транспорт и свежесть проверяются отдельно"));
-      html += section("Недоступные термостаты", zones.filter(z=>z.missing).map(z=>this._dailyZoneRow(z)).join("") || row("Термостаты", "Нет недоступных источников"));
-      html += this._diagnostics(items);
-      if (items.length) html += `<details><summary>Техническая схема системы</summary>${this._systemOverviewV089(items)}</details>`;
-    } else if (active.id === "equipment") {
+    else if (active.id === "equipment") {
       const measurements = items.filter(i=>!["button","select","number"].includes(i.entry.entity_id.split(".")[0]));
       const groups = [["Основной котёл", /ebus|основн/i], ["Резервный котёл", /резерв|reserve/i], ["Радиаторы", /радиатор/i], ["Тёплый пол", /т[её]пл.*пол|floor/i], ["ГВС и циркуляция", /гвс|dhw|циркуляц/i]];
       html = groups.map(([title, pattern]) => {

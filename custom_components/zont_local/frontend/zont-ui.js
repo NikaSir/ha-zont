@@ -1,5 +1,5 @@
 // GENERATED FILE. DO NOT EDIT DIRECTLY.
-// ZONT autonomous UI 0.11.0-beta004 production bundle.
+// ZONT autonomous UI 0.11.0-beta005 production bundle.
 // One active shell: zont-local-panel / NikaS shell kit v2.1.
 
 // BEGIN custom_components/zont_local/frontend/nikas-specialized-shell.js
@@ -342,6 +342,7 @@ function navigateNikasShell(path, { captureSource = false } = {}) {
       this._active = null;
       this._registry = null;
       this._devices = new Map();
+      this._areas = null;
       this._loading = null;
       this._error = null;
       this._queued = false;
@@ -388,7 +389,9 @@ function navigateNikasShell(path, { captureSource = false } = {}) {
       this._loading = Promise.all([
         this._hass.callWS({ type: "config/entity_registry/list" }),
         this._hass.callWS({ type: "config/device_registry/list" }),
-      ]).then(([entries, devices]) => {
+        this._hass.callWS({ type: "config/area_registry/list" }).catch(() => null),
+      ]).then(([entries, devices, areas]) => {
+        this._areas = Array.isArray(areas) ? new Map(areas.map(area => [area.area_id, area])) : null;
         this._registry = Array.isArray(entries) ? entries : [];
         this._devices = new Map((Array.isArray(devices) ? devices : []).filter((d) => d?.id).map((d) => [d.id, d]));
       }).catch((error) => {
@@ -805,8 +808,8 @@ function navigateNikasShell(path, { captureSource = false } = {}) {
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.11.0-beta004";
-const ASSET_VERSION = "0.11.0-beta004";
+const UI_VERSION = "0.11.0-beta005";
+const ASSET_VERSION = "0.11.0-beta005";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -1798,7 +1801,11 @@ function installV095() {
     fresh.dataset.view = view.dataset.view;
     fresh.hidden = view.hidden;
     fresh.innerHTML = html;
+    const openDetails = new Set([...view.querySelectorAll("details[data-detail][open]")].map(details => details.dataset.detail));
     morph(view, fresh);
+    for (const details of view.querySelectorAll("details[data-detail]")) {
+      details.open = openDetails.has(details.dataset.detail);
+    }
     this._bindWorkActionsV095(view);
   };
 
@@ -2072,14 +2079,15 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
   const unavailable = (s) => !s || ["unknown", "unavailable"].includes(s.state);
   const tabs = [
     {id:"overview", label:"Обзор", icon:"mdi:home-outline"},
+    {id:"climate", label:"Климат", icon:"mdi:thermometer"},
     {id:"zones", label:"Зоны", icon:"mdi:home-thermometer-outline"},
     {id:"equipment", label:"Оборуд.", icon:"mdi:water-boiler"},
     {id:"history", label:"История", icon:"mdi:chart-line"},
-    {id:"service", label:"Сервис", icon:"mdi:tools"},
   ];
   p._tabs = () => tabs;
   const load = p._load;
   p._load = function(force = false) {
+    if (force) this._overviewReportRequest = null;
     if (force && !this.__dailyHistoryLoading) this.__dailyHistory = null;
     return load.call(this, force);
   };
@@ -2118,9 +2126,17 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     .daily-row strong{font-size:15px;font-weight:500;overflow-wrap:anywhere}.daily-row div{text-align:right;font-size:16px;font-variant-numeric:tabular-nums}
     .daily small{display:block;font-size:12px;color:var(--secondary-text-color);margin-top:4px}.daily details{margin:12px 0}.daily summary{padding:14px;min-height:44px}.daily-note{padding:14px;background:var(--secondary-background-color);margin-bottom:14px;border-radius:12px}
     .daily button{min-height:44px;padding:8px 16px;color:var(--primary-color);background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:10px}
-    .overview{max-width:660px;margin:auto}.overview-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:16px;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:18px;margin-bottom:12px}.overview-eyebrow{font-size:12px;color:var(--secondary-text-color);margin:0 0 6px}.overview-hero h1{font-size:22px;margin:0;line-height:1.2}.overview-hero small{font-size:12px;line-height:1.4}.overview-connection{text-align:right;max-width:155px}.overview-connection strong{font-size:13px;color:var(--secondary-text-color)}
-    .overview-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.overview-metric{min-width:0;padding:14px;border-radius:16px;border:1px solid var(--divider-color);background:var(--card-background-color)}.overview-label{display:flex;align-items:center;gap:7px;color:var(--secondary-text-color);font-size:13px}.overview-label ha-icon{--mdc-icon-size:18px;color:var(--primary-color)}.overview-value{display:flex;align-items:baseline;flex-wrap:wrap;gap:5px;font-size:27px;font-weight:600;margin:8px 0 5px;font-variant-numeric:tabular-nums}.overview-value span{font-size:17px;font-weight:400;white-space:nowrap}.overview-metric small{font-size:12px;line-height:1.3}.overview-section-title{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 8px}.overview-section-title h2{font-size:16px;margin:0}.overview-nodes{overflow:hidden;border:1px solid var(--divider-color);border-radius:16px;background:var(--card-background-color)}.overview-node{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:10px;padding:13px;border-bottom:1px solid var(--divider-color);min-height:54px}.overview-node:last-child{border:0}.overview-node ha-icon{--mdc-icon-size:22px;color:var(--primary-color)}.overview-node strong{font-size:14px;font-weight:500}.overview-node span{font-size:12px;color:var(--secondary-text-color)}.overview-empty{padding:14px;color:var(--secondary-text-color);font-size:13px}
-    @container nikas-panel (max-width:400px){.daily{padding:10px}.daily-row{padding:12px;gap:8px}.daily-row strong{font-size:14px}.overview-hero{padding:12px;gap:8px;grid-template-columns:minmax(0,1fr)}.overview-connection{text-align:left;max-width:none;display:flex;justify-content:space-between;gap:8px;align-items:baseline}.overview-hero h1{font-size:21px}.overview-metric{padding:12px}.overview-value{font-size:25px}}
+    .overview{max-width:660px;margin:auto}.overview-hero{padding:14px;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:18px;margin-bottom:12px}.overview-eyebrow{font-size:12px;color:var(--secondary-text-color);margin:0 0 6px}.overview-hero h1{font-size:22px;margin:0;line-height:1.2}.overview-hero small{font-size:12px;line-height:1.4}
+    .overview-heading,.overview-lamps,.overview-status{display:flex;align-items:center;gap:7px}
+    .overview-heading{flex-wrap:wrap}.overview-lamp{display:inline-flex;color:var(--secondary-text-color)}
+    .overview-lamp ha-icon{--mdc-icon-size:20px}.overview-lamp.online{color:var(--primary-color)}.overview-lamp.offline{color:var(--error-color,#d64545)}.overview-lamp.stale{color:var(--warning-color,#b36b00)}
+    .overview-diagnostics small{overflow-wrap:anywhere}.overview-diagnostics{border-top:1px solid var(--divider-color);margin-top:10px}.overview-diagnostics summary{min-height:44px;padding:10px 0;box-sizing:border-box;font-size:13px}.overview-status{font-size:13px;margin-bottom:6px}
+    .overview-floors,.overview-metrics{display:grid;gap:8px}
+    .overview-floors{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:8px}
+    .overview-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .daily button.overview-floor{display:block;text-align:start;width:100%;border:1px solid var(--divider-color);border-radius:16px;color:var(--primary-text-color);padding:14px}.overview-floor small{overflow-wrap:anywhere}
+    .overview-metrics .overview-value{font-size:21px}.overview-metrics .overview-value span{font-size:13px}.overview-metric{min-width:0;padding:14px;border-radius:16px;border:1px solid var(--divider-color);background:var(--card-background-color)}.overview-label{display:flex;align-items:center;gap:7px;color:var(--secondary-text-color);font-size:13px}.overview-label ha-icon{--mdc-icon-size:18px;color:var(--primary-color)}.overview-value{display:flex;align-items:baseline;flex-wrap:wrap;gap:5px;font-size:27px;font-weight:600;margin:8px 0 5px;font-variant-numeric:tabular-nums}.overview-value span{font-size:17px;font-weight:400;white-space:nowrap}.overview-metric small{font-size:12px;line-height:1.3;overflow-wrap:anywhere}.overview-section-title{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 8px}.overview-section-title h2{font-size:16px;margin:0}.overview-nodes{overflow:hidden;border:1px solid var(--divider-color);border-radius:16px;background:var(--card-background-color)}.overview-node{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:10px;padding:13px;border-bottom:1px solid var(--divider-color);min-height:54px}.overview-node:last-child{border:0}.overview-node ha-icon{--mdc-icon-size:22px;color:var(--primary-color)}.overview-node strong{font-size:14px;font-weight:500}.overview-node span{font-size:12px;color:var(--secondary-text-color)}.overview-empty{padding:14px;color:var(--secondary-text-color);font-size:13px}
+    @container nikas-panel (max-width:400px){.daily{padding:10px}.daily-row{padding:12px;gap:8px}.daily-row strong{font-size:14px}.overview-hero{padding:12px}.overview-metrics{gap:5px}.overview-metrics .overview-metric{padding:8px}.overview-metrics .overview-label{gap:3px;font-size:11px}.overview-metrics .overview-label ha-icon{--mdc-icon-size:15px}.overview-hero h1{font-size:21px}.overview-metric{padding:12px}.overview-value{font-size:25px}}
   </style>`;
   p._dailyZoneRow = function(z) {
     const value = z.current === null ? "Нет данных" : `${z.current.toLocaleString("ru")} °C`;
@@ -2134,34 +2150,98 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     const isTemp = i => i.entry.entity_id.startsWith("sensor.") && (i.state?.attributes?.device_class === "temperature" || ["°C","°F","K"].includes(i.state?.attributes?.unit_of_measurement));
     const unique = pool => pool.length === 1 ? pool[0] : null;
     const temperatures = items.filter(isTemp);
-    const indoor = unique(temperatures.filter(i=>/гостиная|indoor|в доме/.test(text(i)) && !/целев|уставк|target/.test(text(i))));
+    const measured = temperatures.filter(i=>!/целев|уставк|target/.test(text(i)));
+    const living = unique(measured.filter(i=>/гостиная/.test(text(i))));
+    const namedChild = measured.filter(i=>/детск[а-яё]*[ _-]+ильи/.test(text(i)));
+    const child = unique(namedChild.length ? namedChild : measured.filter(i=>/детск[а-яё]*[ _-]+2(?:[^\d]|$)/.test(text(i))));
     const outdoor = unique(temperatures.filter(i=>/уличн.*датчик|outdoor.*sensor/.test(text(i)))) || unique(temperatures.filter(i=>/улиц|outdoor/.test(text(i)) && !/интернет|internet|целев|target/.test(text(i))));
     const dhw = unique(temperatures.filter(i=>/гвс|dhw|горяч/.test(text(i)) && !/целев|уставк|target|циркуляц|обрат|return|расч[её]т/.test(text(i))));
     const pressure = unique(items.filter(i=>(i.state?.attributes?.device_class === "pressure" || ["bar","бар","kPa"].includes(i.state?.attributes?.unit_of_measurement)) && /теплонос|систем|system/.test(text(i)) && !/хвс|питьев|полив/.test(text(i))));
     const metric = (label, item, icon, note) => ({label,item,icon,note,value:!unavailable(item?.state) ? number(item.state.state?.replace?.(",",".") ?? item.state.state) : null});
-    const metrics = [metric("В доме",indoor,"mdi:home-thermometer-outline","Гостиная · датчик"),metric("На улице",outdoor,"mdi:weather-partly-cloudy","Уличный датчик"),metric("ГВС",dhw,"mdi:water-thermometer-outline","Температура воды"),metric("Давление",pressure,"mdi:gauge","Теплоноситель")];
+    const floors = [
+      {...metric("1 этаж",living,"mdi:thermometer","Гостиная · ZONT"),room:"living"},
+      {...metric("2 этаж",child,"mdi:thermometer","Детская Ильи · ZONT"),room:"ilya"},
+    ];
+    const metrics = [metric("На улице",outdoor,"mdi:weather-partly-cloudy","Уличный датчик"),metric("ГВС",dhw,"mdi:water-thermometer-outline","Температура воды"),metric("Давление",pressure,"mdi:gauge","Теплоноситель")];
     const active = [];
     for (const [name,pattern,icon] of [["Основной котёл",/горелк|burner/,"mdi:fire"],["Радиаторы",/радиатор|radiator/,"mdi:radiator"],["Тёплый пол",/т[её]пл.*пол|floor/,"mdi:heating-coil"],["Циркуляция",/циркуляц|circulation/,"mdi:pump"]]) {
       const signal = unique(items.filter(i=>i.entry.entity_id.startsWith("binary_sensor.") && pattern.test(text(i)) && !/разреш|enable/.test(text(i))));
       if(signal && ["on","active","running","heating"].includes(signal.state?.state))active.push({name,icon,state:name === "Основной котёл" ? "Горелка активна" : "Включено"});
     }
-    return {metrics,active};
+    return {floors,metrics,active};
+  };
+  const freshnessLimit = 15 * 60 * 1000;
+  const reportPollInterval = 60 * 1000;
+  p._refreshOverviewReports = function(readings) {
+    if(!this._hass?.callApi || readings.some(m=>m.value===null))return;
+    const ids=readings.filter(m=>!Number.isFinite(Date.parse(m.item.state.last_reported)))
+      .map(m=>m.item.entry.entity_id);
+    if(!ids.length)return;
+    const key=ids.join(',');
+    const last=this._overviewReportRequest;
+    if(last?.key===key && (last.pending || Date.now()-last.started<reportPollInterval))return;
+    const request={key,started:Date.now(),pending:true};
+    this._overviewReportRequest=request;
+    Promise.allSettled(ids.map(id=>Promise.resolve().then(()=>this._hass.callApi('GET','states/'+encodeURIComponent(id)))))
+      .then(results=>{
+        if(this._overviewReportRequest!==request)return;
+        request.pending=false;
+        this._overviewReports=new Map(results.flatMap((result,index)=>
+          result.status==='fulfilled' && Number.isFinite(Date.parse(result.value?.last_reported))
+            ? [[ids[index],result.value.last_reported]] : []));
+        if(this.__zontShellV095?.active==='overview')this._queue();
+      });
+  };
+  const lamp = (icon, tone, label, kind) => '<span class="overview-lamp '+tone+'"'+
+    (kind ? ' role="img" aria-label="'+escape(kind+' · '+label)+'" title="'+escape(label)+'"' : ' aria-hidden="true"')+
+    '><ha-icon icon="'+icon+'" aria-hidden="true"></ha-icon></span>';
+  p._overviewStatus = function(items, readings) {
+    const connections = items.filter(i=>i.entry.entity_id.startsWith("binary_sensor.") && i.state?.attributes?.device_class==="connectivity");
+    const online = connections.length===1 ? connections[0] : null;
+    const state = online?.state?.state;
+    const connection = state==="on" ? ["mdi:cloud-outline","online","ZONT на связи"]
+      : state==="off" ? ["mdi:cloud-off-outline","offline","Нет связи с ZONT"]
+      : ["mdi:cloud-question-outline","unknown","Нет данных о связи"];
+    const transport = state==="on" ? this._connectionStatusV096(items,online) : null;
+    this._refreshOverviewReports(readings);
+    // The compressed frontend stream may only include last_updated, which
+    // does not advance when an unchanged measurement is reported again.
+    const reports = readings.map(m=>m.value===null ? NaN : Date.parse(m.item.state.last_reported ||
+      this._overviewReports?.get(m.item.entry.entity_id)));
+    const age = reports.every(Number.isFinite) ? Date.now()-Math.min(...reports) : NaN;
+    const freshness = !Number.isFinite(age) || age<0
+      ? ["mdi:clock-question-outline","unknown","Нет данных о свежести"]
+      : age>freshnessLimit ? ["mdi:clock-alert-outline","stale","Данные в HA устарели"]
+      : ["mdi:check-circle-outline","current","Данные в HA актуальны"];
+    const detail = status => '<div class="overview-status">'+lamp(...status)+escape(status[2])+'</div>';
+    const suffix = Number.isFinite(age) && age>=0 ? ' · до '+Math.floor(age/60000)+' мин назад' : '';
+    return {
+      lamps: lamp(...connection,"Связь")+lamp(...freshness,"Свежесть"),
+      diagnostics: '<details class="overview-diagnostics" data-detail="zont-diagnostics"><summary>Диагностика ZONT</summary>'+
+        detail(connection)+detail(freshness)+'<small>Канал к контроллеру · '+escape(transport && !transport.unknown ? transport.text : "Не подтверждён")+
+        '</small><small>Отметка получения показаний в Home Assistant'+suffix+'</small>'+
+        readings.map(m=>'<small>'+escape(m.label)+' · '+escape(m.item?.entry.entity_id || "Источник не определён")+'</small>').join('')+'</details>',
+    };
   };
   p._dailyOverview = function(items, zones) {
-    const {metrics,active} = this._dailyOverviewModel(items);
-    const missing = metrics.filter(m=>m.value===null).length;
+    const {floors,metrics,active} = this._dailyOverviewModel(items);
+    const readings = [...floors,...metrics];
+    const missing = readings.filter(m=>m.value===null).length;
     const unavailableZones = zones.filter(z=>z.missing).length;
     const incompleteZones = zones.filter(z=>!z.missing && z.uncertain).length;
     const errors = items.filter(i=>this._role(i)==="error" && this._isActiveErrorV089(i)).length;
     const hasIssue = missing || unavailableZones || errors;
     const title = errors ? "Требует внимания" : hasIssue ? "Есть замечания" : "Показания получены";
     const notes = [errors ? `Ошибок оборудования: ${errors}` : "",unavailableZones ? `Зон без связи: ${unavailableZones}` : "",missing ? `Нет показаний: ${missing}` : "",incompleteZones ? `Активность неизвестна: ${incompleteZones}` : ""].filter(Boolean);
-    const online = items.find(i=>/online|подключ/.test([i.entry.original_name,i.entry.name,i.state?.attributes?.friendly_name].filter(Boolean).join(" ").toLowerCase()));
-    const connection = this._connectionStatusV096(items,online);
-    const ages = metrics.filter(m=>m.value!==null).map(m=>Date.parse(m.item.state.last_reported || m.item.state.last_updated)).filter(Number.isFinite);
-    const age = ages.length ? Math.max(0,Math.floor((Date.now()-Math.min(...ages))/60000)) : null;
-    const freshness = age===null ? "Время данных неизвестно" : age===0 ? "HA: менее минуты назад" : `HA: до ${age} мин назад`;
-    const cards = metrics.map(m=>`<div class="overview-metric"><div class="overview-label"><ha-icon icon="${m.icon}"></ha-icon>${m.label}</div><div class="overview-value">${m.value===null ? "Нет данных" : `${escape(m.value.toLocaleString("ru",{maximumFractionDigits:2}))}<span>${escape(m.item.state.attributes?.unit_of_measurement || "")}</span>`}</div><small>${m.value===null ? "Источник отсутствует или неоднозначен" : m.note}</small></div>`).join("");
+    const status = this._overviewStatus(items,readings);
+    const renderMetric = m => {
+      const value = m.value===null ? "Нет данных" : escape(m.value.toLocaleString("ru",{maximumFractionDigits:2}))+
+        '<span>'+escape(m.item.state.attributes?.unit_of_measurement || '')+'</span>';
+      const body = '<span class="overview-label"><ha-icon icon="'+m.icon+'" aria-hidden="true"></ha-icon>'+m.label+
+        '</span><span class="overview-value">'+value+'</span><small>'+escape(m.value===null && !m.room ? "Источник отсутствует или неоднозначен" : m.note)+'</small>';
+      return m.room ? '<button type="button" data-climate-room="'+m.room+'" class="overview-floor">'+body+'</button>'
+        : '<div class="overview-metric">'+body+'</div>';
+    };
     const nodes = active.map(n=>`<div class="overview-node"><ha-icon icon="${n.icon}"></ha-icon><strong>${n.name}</strong><span>${n.state}</span></div>`).join("");
     const outlets = (this._config().heating_outlets || []).map(outlet => {
       const state = this._hass?.states?.[outlet.entity_id];
@@ -2172,7 +2252,11 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
       return `<div class="overview-node"><ha-icon icon="mdi:power-socket-eu"></ha-icon><div><strong>${escape(outlet.label)}</strong>${range}</div><span>${status}</span></div>`;
     }).join("");
     const heating = outlets ? `<div class="overview-section-title"><h2>Электрообогрев</h2></div><div class="overview-nodes">${outlets}</div>` : "";
-    return `<div class="overview"><div class="overview-hero"><div><p class="overview-eyebrow">Состояние дома</p><h1>${title}</h1><small>${escape(notes.join(" · ") || "Температуры и давление доступны")}</small></div><div class="overview-connection"><strong>${escape(connection.text)}</strong><small>${escape(freshness)}</small></div></div><div class="overview-metrics">${cards}</div><div class="overview-section-title"><h2>Работает сейчас</h2><small>${active.length} узл.</small></div><div class="overview-nodes">${nodes || '<div class="overview-empty">Нет подтверждённых активных узлов</div>'}</div>${heating}</div>`;
+    return '<div class="overview"><div class="overview-hero"><div class="overview-heading"><h1>Состояние дома</h1><div class="overview-lamps">'+
+      status.lamps+'</div></div><small>'+escape((hasIssue?title+' · ':'')+(notes.join(" · ") || "Температуры и давление доступны"))+'</small>'+
+      status.diagnostics+'</div><div class="overview-floors">'+floors.map(renderMetric).join('')+'</div><div class="overview-metrics">'+metrics.map(renderMetric).join('')+
+      '</div><div class="overview-section-title"><h2>Работает сейчас</h2><small>'+active.length+' узл.</small></div><div class="overview-nodes">'+
+      (nodes || '<div class="overview-empty">Нет подтверждённых активных узлов</div>')+'</div>'+heating+'</div>';
   };
   p._dailyHistory = function(items) {
     if (!this.__dailyHistory && !this.__dailyHistoryLoading) {
@@ -2225,12 +2309,7 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
       if (rest.length) html += `<details><summary>Остальные зоны · ${rest.length}</summary>${rest.map(z=>this._dailyZoneRow(z)).join("")}</details>`;
       html += '<small>Δ — фактическое отличие от уставки, не аварийный порог. Режим auto не означает нагрев.</small>';
     } else if (active.id === "history") html = this._dailyHistory(items);
-    else if (active.id === "service") {
-      html = section("Состояние источников", row("Реестр ZONT", this._error ? "Ошибка чтения" : Array.isArray(this._registry) ? "Прочитан" : "Загрузка", this._error || "Транспорт и свежесть проверяются отдельно"));
-      html += section("Недоступные термостаты", zones.filter(z=>z.missing).map(z=>this._dailyZoneRow(z)).join("") || row("Термостаты", "Нет недоступных источников"));
-      html += this._diagnostics(items);
-      if (items.length) html += `<details><summary>Техническая схема системы</summary>${this._systemOverviewV089(items)}</details>`;
-    } else if (active.id === "equipment") {
+    else if (active.id === "equipment") {
       const measurements = items.filter(i=>!["button","select","number"].includes(i.entry.entity_id.split(".")[0]));
       const groups = [["Основной котёл", /ebus|основн/i], ["Резервный котёл", /резерв|reserve/i], ["Радиаторы", /радиатор/i], ["Тёплый пол", /т[её]пл.*пол|floor/i], ["ГВС и циркуляция", /гвс|dhw|циркуляц/i]];
       html = groups.map(([title, pattern]) => {
@@ -2257,11 +2336,20 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
   const fmt = value => value === null ? 'Нет данных' : Number(value).toLocaleString('ru',{maximumFractionDigits:1,minimumFractionDigits:1});
   const value = item => missing(item?.state) ? 'Нет данных' : `${esc(item.state.state)} ${esc(item.state.attributes?.unit_of_measurement || '')}`;
   const line = (name,v) => `<div class="ht-line"><span>${esc(name)}</span><strong>${v}</strong></div>`;
-  const detail = (key,title,html) => `<details class="ht-card" data-detail="${key}"><summary>${esc(title)}</summary><div class="ht-detail">${html}</div></details>`;
+  const detail = (key,title,html) => `<details class="ht-card" data-detail="${esc(key)}"><summary>${esc(title)}</summary><div class="ht-detail">${html}</div></details>`;
+  const inlineDetail = (key, html) => '<details class="ht-inline-diagnostics" data-detail="'+esc(key)+
+    '"><summary>Диагностика</summary><div class="ht-detail">'+html+'</div></details>';
   const title = text => `<h2 class="ht-title">${text}</h2>`;
   const warning = text => `<div class="ht-warning">${esc(text)}</div>`;
   const styles = `<style>
     .ht{max-width:660px;margin:0 auto;color:var(--primary-text-color)}.ht-title{font-size:24px!important;margin:0 0 16px!important}.ht h3{font-size:14px;font-weight:500;color:var(--secondary-text-color);margin:17px 0 9px}.ht-card{background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:16px;overflow:hidden;margin:0 0 10px}.ht-pad{padding:15px}.ht-head{display:flex;justify-content:space-between;align-items:start;gap:10px;font-size:16px;font-weight:500}.ht small{font-size:12px;line-height:1.45;color:var(--secondary-text-color)}.ht-status{font-size:12px;color:var(--secondary-text-color);font-weight:400}.ht-heating{color:var(--warning-color,#d78c35)}.ht-values{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}.ht-values>div+div{border-left:1px solid var(--divider-color);padding-left:14px}.ht-values strong{font-size:27px;display:block;margin-top:4px;font-weight:500;font-variant-numeric:tabular-nums}.ht-values em{font-style:normal;font-size:15px}.ht-foot{border-top:1px solid var(--divider-color);padding-top:10px;margin-top:12px;font-size:12px;color:var(--secondary-text-color)}.ht-line{display:flex;justify-content:space-between;gap:14px;align-items:center;min-height:40px;padding:8px 0;border-bottom:1px solid var(--divider-color);font-size:13px;overflow-wrap:anywhere}.ht-line:last-child{border:0}.ht-line span{color:var(--secondary-text-color)}.ht-line strong{font-size:13px;font-weight:500;text-align:right;min-width:0}.ht summary{list-style:none;padding:13px 15px;min-height:48px;font-size:14px;display:flex;justify-content:space-between;gap:10px;align-items:center}.ht summary::-webkit-details-marker{display:none}.ht summary:after{content:'⌄';color:var(--secondary-text-color)}.ht details[open]>summary:after{content:'⌃'}.ht-detail{padding:0 15px 14px}.ht-warning{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--warning-color,#d78c35) 12%,var(--card-background-color));font-size:13px;margin-bottom:12px}.ht-count{font-size:13px;color:var(--secondary-text-color);margin-bottom:15px}.ht-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.ht-pills{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--secondary-background-color);margin-bottom:12px}.ht .ht-pills button{flex:1;min-width:0;border:0;background:transparent;color:var(--secondary-text-color);font-size:13px;padding:7px 5px;min-height:40px}.ht .ht-pills button[aria-pressed=true]{background:var(--card-background-color);color:var(--primary-color)}.ht-chart{display:block;width:100%;height:auto}.ht-chart text{fill:var(--secondary-text-color);font-size:12px}.ht-range{font-size:12px;color:var(--secondary-text-color);padding:8px 0}.ht-band{height:12px;background:var(--secondary-background-color);border-radius:4px;position:relative;overflow:hidden;margin:8px 0 14px}.ht-band i{position:absolute;top:0;height:100%;background:var(--primary-color);border-radius:2px}.ht-source-id{font-size:11px;overflow-wrap:anywhere;display:block;color:var(--secondary-text-color)}
+    .ht-inline-diagnostics{border-top:1px solid var(--divider-color)}.ht > .ht-card,.ht-grid > .ht-card{min-width:0}
+    .ht-climate-head,.ht .ht-climate-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(57px,75px) minmax(49px,64px) 12px;align-items:center;gap:7px}
+    .ht-climate-head{padding:6px 15px;color:var(--secondary-text-color);font-size:12px}
+    .ht-climate-head span:not(:first-child),.ht-climate-row .ht-reading{text-align:end}
+    .ht-climate-row strong{font-weight:550;overflow-wrap:anywhere}
+    .ht-climate-row .ht-reading{font-variant-numeric:tabular-nums;font-weight:500;font-size:13px}
+    .ht-climate>details+details{border-top:1px solid var(--divider-color)}
     @container nikas-panel (max-width:359px){.ht-pad{padding:12px}.ht-head{font-size:15px}.ht-values strong{font-size:24px}.ht-title{font-size:22px!important}}
   </style>`;
   const baseContent = p._content;
@@ -2271,8 +2359,13 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     if(view.__htBound)return;
     view.__htBound=true;
     view.addEventListener('click',event=>{
-      const button=event.target.closest?.('button[data-ht-metric],button[data-ht-period]');
+      const button=event.target.closest?.('button[data-ht-metric],button[data-ht-period],button[data-climate-room]');
       if(!button || !view.contains(button))return;
+      if(button.dataset.climateRoom){
+        this._climateTarget=button.dataset.climateRoom;
+        this._selectTab('climate');
+        return;
+      }
       if(button.dataset.htMetric)this.__htMetric=button.dataset.htMetric;
       if(button.dataset.htPeriod)this.__htPeriod=Number(button.dataset.htPeriod);
       this._queue();
@@ -2280,13 +2373,108 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
   };
   const originalLoad=p._load;
   p._load=function(force=false){if(force){this.__htRequest=(this.__htRequest||0)+1;this.__htHistory=null;}return originalLoad.call(this,force);};
+  const render = p._render;
+  p._render = function() {
+    render.call(this);
+    const shell=this.__zontShellV095;
+    if(shell?.active==='overview' && !this._overviewReportTimer){
+      this._overviewReportTimer=setTimeout(()=>{
+        this._overviewReportTimer=null;
+        if(this.isConnected && this.__zontShellV095?.active==='overview')this._queue();
+      },60*1000);
+    }else if(shell?.active!=='overview' && this._overviewReportTimer){
+      clearTimeout(this._overviewReportTimer);
+      this._overviewReportTimer=null;
+    }
+    if(!this._climateTarget || shell?.active!=='climate' || this._loading)return;
+    const room=shell.views.get('climate')?.querySelector('details[data-climate-room="'+this._climateTarget+'"]');
+    this._climateTarget=null;
+    if(!room)return;
+    room.open=true;
+    room.querySelector('summary').focus({preventScroll:true});
+    const offset=room.getBoundingClientRect().top-shell.viewport.getBoundingClientRect().top;
+    if(!shell.viewport.classList.contains('zoomed'))shell.viewport.scrollTop+=offset-8;
+  };
+
+  const disconnect = p.disconnectedCallback;
+  p.disconnectedCallback = function() {
+    clearTimeout(this._overviewReportTimer);
+    this._overviewReportTimer=null;
+    return disconnect.call(this);
+  };
+
+  const climateLabel = 'datchik_klimata_pomeshcheniia';
+  const climateKinds = ['temperature','humidity','battery'];
+  const roomName = name => name.replace(/^\s*\d+(?:\.\d+)?\.?\s*[-–—]\s*/,'');
+  p._htClimate = function() {
+    const intro=title('Температура и влажность')+'<small>Home Assistant · ярлык «Датчик климата помещения»</small>';
+    if(this._loading&&!this._areas)return intro+warning('Загружаю реестр помещений…');
+    if(!this._areas||!this._registry)return intro+warning('Реестр помещений недоступен');
+    const rooms=new Map();
+    const devices=[...this._devices.values()].filter(device=>device.labels?.includes(climateLabel));
+    const taggedIds=new Set(devices.map(device=>device.id));
+    const entriesByDevice=new Map();
+    for(const entry of this._registry){
+      if(entry.disabled_by||!entry.entity_id.startsWith('sensor.')||!taggedIds.has(entry.device_id))continue;
+      if(!entriesByDevice.has(entry.device_id))entriesByDevice.set(entry.device_id,[]);
+      entriesByDevice.get(entry.device_id).push(entry);
+    }
+    for(const device of devices){
+      const entries=entriesByDevice.get(device.id)||[];
+      const assigned=new Set(entries.map(e=>e.area_id).filter(Boolean));
+      const areaId=device.area_id || (assigned.size===1 ? assigned.values().next().value : null);
+      const area=this._areas.get(areaId);
+      if(!area)continue;
+      const states={temperature:[],humidity:[],battery:[]};
+      for(const entry of entries){
+        const state=this._hass?.states?.[entry.entity_id];
+        const kind=entry.device_class || entry.original_device_class || state?.attributes?.device_class;
+        if(climateKinds.includes(kind))states[kind].push(state);
+      }
+      if(!rooms.has(areaId))rooms.set(areaId,{area,sources:[]});
+      rooms.get(areaId).sources.push({device,states});
+    }
+    if(!rooms.size)return intro+warning('Нет помещений с основным датчиком');
+    const asReading = state => {
+      const reading=num(state?.state);
+      return reading===null ? 'Нет данных' : fmt(reading)+' '+esc(state.attributes?.unit_of_measurement || '');
+    };
+    const timestamp = state => {
+      const time=Date.parse(state?.last_updated);
+      return Number.isFinite(time) ? esc(new Date(time).toLocaleString('ru',{dateStyle:'short',timeStyle:'short',
+        timeZone:this._hass?.config?.time_zone})) : 'Нет данных';
+    };
+    const cards=[...rooms.values()].sort((a,b)=>a.area.name.localeCompare(b.area.name,'ru',{numeric:true})).map(({area,sources})=>{
+      const name=roomName(area.name);
+      const target=name.toLowerCase()==='гостиная'?'living':/^детск[а-яё]*\s+ильи$/i.test(name)?'ilya':'';
+      const source=unique(sources);
+      const temp=unique(source?.states.temperature||[]);
+      const humidity=unique(source?.states.humidity||[]);
+      const battery=unique(source?.states.battery||[]);
+      const note = source ? line('Основной датчик',esc(source.device.name_by_user || source.device.name || 'Датчик климата'))+
+        line('Температура обновлена в HA',timestamp(temp))+line('Влажность обновлена в HA',timestamp(humidity))+
+        (battery ? line('Батарея датчика',asReading(battery)) : '')+
+        (source.states.temperature.length>1||source.states.humidity.length>1 ? '<small>Несколько показаний одного типа. Проверьте сущности устройства.</small>' : '')
+        : '<small>Несколько устройств с ярлыком. Оставьте один основной датчик для помещения.</small>';
+      return '<details data-detail="room-'+esc(area.area_id)+'"'+(target?' data-climate-room="'+target+'"':'')+
+        '><summary class="ht-climate-row"><strong>'+esc(name)+'</strong><span class="ht-reading">'+asReading(temp)+
+        '</span><span class="ht-reading">'+asReading(humidity)+'</span></summary><div class="ht-detail">'+note+'</div></details>';
+    }).join('');
+    return intro+'<div class="ht-climate-head"><span>Помещение</span><span>Темп.</span><span>Влажн.</span></div><div class="ht-card ht-climate">'+cards+'</div>';
+  };
   p._htZoneName=function(zone){
     return this._config().zone_labels?.[zone.id] || zone.name.replace(/^🌡️\s*/,'').replace(/^ТГ\s*\d*\s*/,'').replace(/^Пол\s+/,'').trim() || 'Зона';
   };
   p._htZoneCard=function(zone){
     const delta=zone.delta===null?'Отклонение неизвестно':zone.delta===0?'Температура у цели':`${zone.delta<0?'Ниже':'Выше'} цели на ${fmt(Math.abs(zone.delta))} °C`;
     const source=zone.sourceNote?`<small${zone.sourceWarning?' class="ht-heating"':''}>${esc(zone.sourceNote)}</small>`:'';
-    return `<div class="ht-card ht-pad" data-zone="${esc(zone.id)}"><div class="ht-head"><span>${esc(this._htZoneName(zone))}</span><span class="ht-status ${zone.active?'ht-heating':''}">${esc(zone.action)}</span></div><div class="ht-values"><div><small>Сейчас</small><strong>${fmt(zone.current)}${zone.current===null?'':' <em>°C</em>'}</strong>${source}</div><div><small>Цель</small><strong>${fmt(zone.target)}${zone.target===null?'':' <em>°C</em>'}</strong></div></div><div class="ht-foot">${esc(zone.uncertain?'Часть данных не передаётся · '+delta:delta)}</div></div>`;
+    const diagnostic=line('Статус термоголовки',esc(zone.missing?'Нет связи':zone.action))+
+      line('Источник температуры',esc(zone.sourceNote||'Термоголовка'))+line('Сущность',esc(zone.id));
+    return '<div class="ht-card" data-zone="'+esc(zone.id)+'"><div class="ht-pad"><div class="ht-head"><span>'+esc(this._htZoneName(zone))+
+      '</span><span class="ht-status '+(zone.active?'ht-heating':'')+'">'+esc(zone.action)+'</span></div><div class="ht-values"><div><small>Сейчас</small><strong>'+
+      fmt(zone.current)+(zone.current===null?'':' <em>°C</em>')+'</strong>'+source+'</div><div><small>Цель</small><strong>'+
+      fmt(zone.target)+(zone.target===null?'':' <em>°C</em>')+'</strong></div></div><div class="ht-foot">'+
+      esc(zone.uncertain?'Часть данных не передаётся · '+delta:delta)+'</div></div>'+inlineDetail('zone-'+zone.id,diagnostic)+'</div>';
   };
   p._htZones=function(zones){
     const active=zones.filter(z=>z.active&&!z.missing), absent=zones.filter(z=>z.missing), check=zones.filter(z=>!z.missing&&!z.active&&(z.sourceWarning||z.uncertain||(z.delta!==null&&z.delta!==0))), rest=zones.filter(z=>!active.includes(z)&&!absent.includes(z)&&!check.includes(z));
@@ -2299,7 +2487,7 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     return title('Зоны')+(zones.length?`<div class="ht-count">${active.length} нагревает · ${absent.length} без связи · ${zones.filter(z=>!z.missing&&z.uncertain).length} с неполными данными</div>`:'')+
       (active.length?'<h3>Сейчас нагревается</h3>'+active.map(z=>this._htZoneCard(z)).join(''):'')+
       (check.length?'<h3>Требуют проверки</h3>'+check.map(z=>this._htZoneCard(z)).join(''):'')+
-      (absent.length?detail('absent',`Нет связи · ${absent.length} термостата`,absent.map(z=>line(this._htZoneName(z),z.current===null?'Нет данных':`${fmt(z.current)} °C · датчик комнаты`)).join('')):'')+
+      (absent.length?detail('absent',`Нет связи · ${absent.length} термостата`,absent.map(z=>line(this._htZoneName(z),z.current===null?'Нет данных':`${fmt(z.current)} °C · датчик комнаты`)+inlineDetail('zone-'+z.id,line('Статус термоголовки','Недоступна')+line('Сущность',esc(z.id)))).join('')):'')+
       (rest.length?detail('rest',`Остальные зоны · ${rest.length}`,rest.map(z=>this._htZoneCard(z)).join('')):'')+
       (roomSensors?`<h3>Датчики температуры</h3><div class="ht-card ht-pad">${roomSensors}</div>`:'')+
       (!zones.length&&!roomSensors?warning('Термостаты не настроены'):'')+
@@ -2335,23 +2523,41 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
       radiators:signal(/радиатор|radiator/),
       floor:signal(/т[её]пл.*пол|floor/),
       circulation:signal(/циркуляц|circulation/),
-      dhw:this._dailyOverviewModel(items).metrics[2].item,
+      dhw:this._dailyOverviewModel(items).metrics[1].item,
     };
   };
   const signalValue=item=>missing(item?.state)?'Нет данных':['on','heating','active','running'].includes(item.state.state)?'Включено':['off','idle','standby'].includes(item.state.state)?'Выключено':'Состояние неизвестно';
   p._htEquipment=function(items){
     const m=this._htEquipmentModel(items);
     const dhwStatus=this._dhwStateV096(items.filter(i=>/гвс|dhw/.test(ownText(i))));
-    const pair=(a,b)=>`<div class="ht-values"><div><small>Подача</small><strong>${value(a)}</strong></div><div><small>Обратка</small><strong>${value(b)}</strong></div></div>`;
-    return title('Оборудование')+`<div class="ht-card"><div class="ht-pad"><div class="ht-head"><span>Котёл 1</span><span class="ht-status">Основной</span></div><small>Отопление и ГВС</small>${pair(m.supply,m.ret)}</div>`+
-      `<details data-detail="boiler"><summary>Подробности</summary><div class="ht-detail">${m.boilerActivity?line('Работа котла',signalValue(m.boilerActivity)):''}${m.burner?line('Горелка',signalValue(m.burner)):''}${line('Модуляция',value(m.modulation))}</div></details></div>`+
-      `<div class="ht-card ht-pad"><div class="ht-head"><span>Котёл 2</span><span class="ht-status">Резерв</span></div>${line('Температура',value(m.reserve))}${m.reserveActivity?line('Работа котла',signalValue(m.reserveActivity)):''}</div>`+
-      `<div class="ht-grid">${[['Радиаторы',m.radiators],['Тёплый пол',m.floor]].map(([name,item])=>`<div class="ht-card ht-pad"><div class="ht-head">${name}</div><div class="ht-foot">${signalValue(item)}</div></div>`).join('')}</div>`+
-      `<div class="ht-card ht-pad"><div class="ht-head"><span>Горячая вода</span><span>${value(m.dhw)}</span></div>${line('Циркуляция',signalValue(m.circulation))}${dhwStatus?line(this._dhwSignalV096(dhwStatus)==='readiness'?'Готовность':'Состояние ГВС',esc(this._dhwStatusV096(dhwStatus))):''}</div>`;
+    const pair=(a,b)=>'<div class="ht-values"><div><small>Подача</small><strong>'+value(a)+
+      '</strong></div><div><small>Обратка</small><strong>'+value(b)+'</strong></div></div>';
+    const errors=pattern=>{
+      const sources=items.filter(i=>pattern.test(ownText(i))&&/ошиб|error|fault/.test(ownText(i)));
+      return sources.length?sources.map(i=>line('Ошибки',value(i))).join(''):line('Ошибки','Нет данных');
+    };
+    const source=(label,item)=>line(label,esc(item?.entry.entity_id || 'Источник не определён'));
+    const card=(key,header,body,diagnostics)=>'<div class="ht-card"><div class="ht-pad"><div class="ht-head">'+header+
+      '</div>'+body+'</div>'+inlineDetail(key,diagnostics)+'</div>';
+    const main=card('boiler','<span>Котёл 1</span><span class="ht-status">Основной</span>',
+      '<small>Отопление и ГВС</small>'+pair(m.supply,m.ret),
+      (m.boilerActivity?line('Работа котла',signalValue(m.boilerActivity)):'')+
+      (m.burner?line('Горелка',signalValue(m.burner)):'')+line('Модуляция',value(m.modulation))+
+      errors(/основн|main|[eе]bus/)+source('Источник подачи',m.supply)+source('Источник обратки',m.ret));
+    const reserve=card('reserve-diagnostics','<span>Котёл 2</span><span class="ht-status">Резерв</span>',
+      line('Температура',value(m.reserve)),(m.reserveActivity?line('Работа котла',signalValue(m.reserveActivity)):'')+
+      errors(/резерв|reserve/)+source('Источник температуры',m.reserve));
+    const circuits=[['radiators','Радиаторы',m.radiators],['floor','Тёплый пол',m.floor]].map(([key,name,item])=>
+      card(key+'-diagnostics',name,'<div class="ht-foot">'+signalValue(item)+'</div>',source('Источник состояния',item))).join('');
+    const water=card('dhw-diagnostics','<span>Горячая вода</span><span>'+value(m.dhw)+'</span>',
+      line('Циркуляция',signalValue(m.circulation))+(dhwStatus?line(this._dhwSignalV096(dhwStatus)==='readiness'?'Готовность':'Состояние ГВС',esc(this._dhwStatusV096(dhwStatus))):''),
+      source('Источник температуры ГВС',m.dhw)+source('Источник циркуляции',m.circulation));
+    const scheme=items.length?detail('scheme','Гидравлическая схема',this._systemOverviewV089(items)):'';
+    return title('Оборудование')+main+reserve+'<div class="ht-grid">'+circuits+'</div>'+water+scheme;
   };
   p._htHistoryData=function(items){
-    const days=this.__htPeriod===7?7:1,m=this._htEquipmentModel(items),metrics=this._dailyOverviewModel(items).metrics;
-    const ids=[...new Set([metrics[0].item,metrics[1].item,m.dhw,m.radiators,m.floor].filter(Boolean).map(i=>i.entry.entity_id))];
+    const days=this.__htPeriod===7?7:1, m=this._htEquipmentModel(items), {floors,metrics}=this._dailyOverviewModel(items);
+    const ids=[...new Set([...floors.map(floor=>floor.item),metrics[0].item,m.dhw,m.radiators,m.floor].filter(Boolean).map(i=>i.entry.entity_id))];
     const key=days+':'+ids.join(',');
     if(this.__htHistory?.key!==key){
       const request=(this.__htRequest||0)+1;this.__htRequest=request;
@@ -2381,38 +2587,22 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     return `<div class="ht-band" role="img" aria-label="Подтверждённые интервалы включения">${segments}</div>`;
   };
   p._htHistory=function(items){
-    const selected=['home','dhw','outside'].includes(this.__htMetric)?this.__htMetric:'home',days=this.__htPeriod===7?7:1;
+    const selected=['floor1','floor2','dhw','outside'].includes(this.__htMetric)?this.__htMetric:'floor1',days=this.__htPeriod===7?7:1;
     const button=(key,name,attr,on)=>`<button type="button" ${attr}="${key}" aria-pressed="${on}">${name}</button>`;
-    const controls=`<div class="ht-pills">${[['home','В доме'],['dhw','ГВС'],['outside','На улице']].map(([key,name])=>button(key,name,'data-ht-metric',selected===key)).join('')}</div><div class="ht-pills">${button(1,'24 ч','data-ht-period',days===1)}${button(7,'7 дн','data-ht-period',days===7)}</div>`;
-    const history=this._htHistoryData(items),m=this._htEquipmentModel(items),metrics=this._dailyOverviewModel(items).metrics;
+    const controls=`<div class="ht-pills">${[['floor1','1 этаж'],['floor2','2 этаж'],['outside','На улице'],['dhw','ГВС']].map(([key,name])=>button(key,name,'data-ht-metric',selected===key)).join('')}</div><div class="ht-pills">${button(1,'24 ч','data-ht-period',days===1)}${button(7,'7 дн','data-ht-period',days===7)}</div>`;
+    const history=this._htHistoryData(items),m=this._htEquipmentModel(items),{floors,metrics}=this._dailyOverviewModel(items);
     if(history.loading)return title('История')+controls+warning('Загружаю историю…');
     if(history.error)return title('История')+controls+warning('История недоступна: '+history.error);
-    const item=selected==='home'?metrics[0].item:selected==='outside'?metrics[1].item:m.dhw;
+    const item={floor1:floors[0].item,floor2:floors[1].item,outside:metrics[0].item,dhw:m.dhw}[selected];
     const series=id=>history.data.find(s=>s[0]?.entity_id===id)||[];
-    const name=selected==='home'?'Гостиная':selected==='dhw'?'Горячая вода':'Уличный датчик';
+    const name={floor1:floors[0].note,floor2:floors[1].note,outside:'Уличный датчик',dhw:'Горячая вода'}[selected];
     return title('История')+controls+`<div class="ht-card ht-pad"><div class="ht-head"><span>${name}</span><span>${value(item)}</span></div>${this._htChart(series(item?.entry.entity_id),history,item?.state?.attributes?.unit_of_measurement||'°C')}</div><h3>Активность контуров</h3><div class="ht-card ht-pad">`+
       [['Радиаторы',m.radiators],['Тёплый пол',m.floor]].map(([name,item])=>`<small>${name}</small>${this._htActivity(series(item?.entry.entity_id),history)}`).join('')+'</div>'+line('Циклы котла','Нет подтверждённого источника')+'<small>Полосы означают включение контура. Пропуски не считаются нормальной работой.</small>';
-  };
-  p._htService=function(items,zones){
-    const absent=zones.filter(z=>z.missing),m=this._htEquipmentModel(items);
-    const channel=this._connectionStatusV096(items,m.online);
-    const connection=m.online?.state?.state;
-    const onlineStatus=connection==='on'?'На связи':connection==='off'?'Нет связи':'Не подтверждён';
-    const dates=items.map(i=>Date.parse(i.state?.last_reported||i.state?.last_updated)).filter(Number.isFinite);
-    const age=dates.length?Math.max(0,Math.floor((Date.now()-Math.max(...dates))/60000)):null;
-    const errors=items.filter(i=>this._role(i)==='error');
-    return title('Сервис')+(absent.length?warning(`${absent.length} термостата недоступны`):'')+
-      `<div class="ht-card ht-pad"><div class="ht-head">ZONT → Home Assistant</div>${line('Получение данных HA',this._error?'Ошибка реестра':items.length?'Есть':'Нет данных')}${line('Контроллер ZONT',onlineStatus)}${line('Канал к контроллеру',channel.unknown?'Не подтверждён':esc(channel.text))}${line('Обновление в HA',age===null?'Нет отметки времени':age===0?'Менее минуты назад':age+' мин назад')}<small>Время получения HA не подтверждает свежесть измерения контроллера.</small></div><h3>Замечания и неполные данные</h3>`+
-      (absent.length?detail('lost','Недоступные термостаты',absent.map(z=>line(this._htZoneName(z),'Нет данных')).join('')):'')+
-      zones.filter(z=>!z.missing&&z.uncertain).map(z=>detail('zone-'+z.id,this._htZoneName(z)+' · неполные данные','<small>Проверьте наличие температуры, уставки и hvac_action у источника. Auto не означает нагрев.</small>')).join('')+
-      detail('errors','Ошибки оборудования',errors.length?errors.map(i=>line(this._semanticName(i),value(i))).join(''):'<small>Источники состояния ошибок не найдены.</small>')+
-      '<h3>Технические сведения</h3>'+detail('sources','Источники показаний',[...this._dailyOverviewModel(items).metrics,{label:'Подача котла',item:m.supply},{label:'Обратка котла',item:m.ret},{label:'Температура резервного котла',item:m.reserve},{label:'Работа основного котла',item:m.boilerActivity}].map(metric=>line(metric.label,metric.item?`<span class="ht-source-id">${esc(metric.item.entry.entity_id)}</span>`:'Не определён')).join(''))+
-      detail('scheme','Схема системы',items.length?this._systemOverviewV089(items):'<small>Телеметрия ZONT не получена.</small>');
   };
   p._content=function(active,items){
     if(active.id==='overview')return baseContent.call(this,active,items);
     const zones=this._dailyZones();
-    const html=active.id==='zones'?this._htZones(zones):active.id==='equipment'?this._htEquipment(items):active.id==='history'?this._htHistory(items):this._htService(items,zones);
+    const html=active.id==='zones'?this._htZones(zones):active.id==='equipment'?this._htEquipment(items):active.id==='history'?this._htHistory(items):this._htClimate();
     return `${styles}<div class="ht" style="padding:14px">${html}</div>`;
   };
 })();

@@ -23,6 +23,7 @@
       this._active = null;
       this._registry = null;
       this._devices = new Map();
+      this._areas = null;
       this._loading = null;
       this._error = null;
       this._queued = false;
@@ -69,7 +70,9 @@
       this._loading = Promise.all([
         this._hass.callWS({ type: "config/entity_registry/list" }),
         this._hass.callWS({ type: "config/device_registry/list" }),
-      ]).then(([entries, devices]) => {
+        this._hass.callWS({ type: "config/area_registry/list" }).catch(() => null),
+      ]).then(([entries, devices, areas]) => {
+        this._areas = Array.isArray(areas) ? new Map(areas.map(area => [area.area_id, area])) : null;
         this._registry = Array.isArray(entries) ? entries : [];
         this._devices = new Map((Array.isArray(devices) ? devices : []).filter((d) => d?.id).map((d) => [d.id, d]));
       }).catch((error) => {
@@ -486,8 +489,8 @@
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.11.0-beta004";
-const ASSET_VERSION = "0.11.0-beta004";
+const UI_VERSION = "0.11.0-beta005";
+const ASSET_VERSION = "0.11.0-beta005";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -1479,7 +1482,11 @@ function installV095() {
     fresh.dataset.view = view.dataset.view;
     fresh.hidden = view.hidden;
     fresh.innerHTML = html;
+    const openDetails = new Set([...view.querySelectorAll("details[data-detail][open]")].map(details => details.dataset.detail));
     morph(view, fresh);
+    for (const details of view.querySelectorAll("details[data-detail]")) {
+      details.open = openDetails.has(details.dataset.detail);
+    }
     this._bindWorkActionsV095(view);
   };
 

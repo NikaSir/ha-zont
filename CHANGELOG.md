@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.0-beta005
+
+- Shows separate ZONT temperatures for both floors on Overview and in Recorder history.
+- Adds «Климат» for temperature and humidity from tagged Home Assistant room devices.
+- Adds independent connectivity and HA receipt freshness indicators. Places diagnostics under the controller, equipment and thermostat cards.
+- Frontend cache build b033.
+
 ## 0.11.0-beta004
 
 - Restores the main boiler eBUS supply temperature and the reserve boiler circuit temperature.

@@ -40,6 +40,7 @@ assert.equal(p._htEquipmentModel([item('binary_sensor.permission','Основн�
 flow.state.state='unavailable';
 assert.equal(p._htEquipmentModel(entries).supply,flow,'known unavailable eBUS source must not be silently replaced');
 flow.state.state='49';
+p._systemOverviewV089=()=>'';
 p._dhwStateV096=()=>null;
 p._dhwStatusV096=()=> 'Нет данных';
 const equipment=p._htEquipment(entries);
@@ -51,10 +52,34 @@ assert.doesNotMatch(equipment,/Горелка|Готовность/);
 p._connectionStatusV096=()=>({unknown:true});
 p._role=()=>'';
 p._systemOverviewV089=()=>'';
-const service=p._htService(entries,[]);
-assert.match(service,/Контроллер ZONT.*На связи/);
-assert.match(service,/Канал к контроллеру.*Не подтверждён/);
-assert.doesNotMatch(service,/Горелка · нет источника/);
+assert.match(equipment,/data-detail="boiler".*Диагностика/);
+assert.match(equipment,/data-detail="reserve-diagnostics"/);
+assert.match(equipment,/data-detail="dhw-diagnostics"/);
+assert.deepEqual(Array.from(p._tabs(),t=>t.id),['overview','climate','zones','equipment','history']);
+p._areas=new Map([['living',{area_id:'living',name:'11.2 - Гостиная'}],['child',{area_id:'child',name:'05 - Детская Ильи'}]]);
+p._devices=new Map([
+ ['tagged',{id:'tagged',area_id:'living',labels:['datchik_klimata_pomeshcheniia'],name:'Zigbee <датчик>'}],
+ ['untagged',{id:'untagged',area_id:'living',labels:[]}],
+ ['child',{id:'child',area_id:'child',labels:['datchik_klimata_pomeshcheniia'],name:'Zigbee Илья'}],
+]);
+p._registry=[
+ ['sensor.room_temp','tagged','temperature','24','°C'],
+ ['sensor.room_humidity','tagged','humidity','47','%'],
+ ['sensor.zont_temp','untagged','temperature','22','°C'],
+ ['sensor.child_temp','child','temperature','unavailable','°C'],
+].map(([entity_id,device_id,device_class,state,unit_of_measurement])=>{
+  p._hass.states[entity_id]={state,attributes:{device_class,unit_of_measurement}};
+  return {entity_id,device_id,original_device_class:device_class};
+});
+let climate=p._content({id:'climate'},[]);
+assert.match(climate,/Гостиная.*24,0 °C.*47,0 %/);
+assert.match(climate,/Детская Ильи.*Нет данных/);
+assert.match(climate,/Zigbee &lt;датчик&gt;/);
+assert.doesNotMatch(climate,/22,0 °C/);
+p._devices.get('untagged').labels.push('datchik_klimata_pomeshcheniia');
+climate=p._content({id:'climate'},[]);
+assert.match(climate,/Несколько.*датчик/);
+assert.doesNotMatch(climate,/24,0 °C|22,0 °C/);
 const zone={id:'climate.a',name:'technical device name',current:0,target:22,delta:-22,active:true,uncertain:false,missing:false,action:'Нагрев'};
 assert.ok(p._htZoneCard(zone).includes('Гардероб'));
 assert.ok(!p._htZoneCard(zone).includes('technical device name'));
