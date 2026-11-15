@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0-beta011
+
+- Apply the restrained NikaS Header style and show the complete UI and installed integration versions on one line.
+- Use a white refresh arrow with a dark neutral button surface for contrast in both themes.
+- Frontend cache build b039.
+
 ## 0.11.0-beta010
 
 - The Header refresh requests a ZONT coordinator poll through one telemetry sensor per config entry.

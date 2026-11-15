@@ -1,5 +1,5 @@
 // GENERATED FILE. DO NOT EDIT DIRECTLY.
-// ZONT autonomous UI 0.11.0-beta010 production bundle.
+// ZONT autonomous UI 0.11.0-beta011 production bundle.
 // One active shell: zont-local-panel / NikaS shell kit v2.1.
 
 // BEGIN custom_components/zont_local/frontend/nikas-specialized-shell.js
@@ -73,17 +73,18 @@ function nikasShellV2Styles() {
       display:grid;place-items:center;color:var(--primary-text-color,#17191c);cursor:pointer
     }
     .nikas-shell__side-action--right{justify-self:end;color:var(--primary-color,#03a9d9)}
+    .nikas-shell__side-action--refresh{color:#fff;background:#1c1c1c;background:color-mix(in srgb,var(--card-background-color,#fff) 8%,#1c1c1c)}
     .nikas-shell__side-action:disabled{opacity:.55;cursor:wait}
     .nikas-shell__side-action ha-icon{--mdc-icon-size:25px}
     .nikas-shell__title{
       justify-self:center;inline-size:min(360px,100%);block-size:52px;padding:5px 14px;
-      border:1px solid color-mix(in srgb,var(--primary-color,#03a9d9) 24%,var(--divider-color,#dfe3e8));
-      border-radius:16px;background:color-mix(in srgb,var(--primary-color,#03a9d9) 5%,var(--card-background-color,#fff));
-      box-shadow:0 5px 16px rgba(23,45,76,.06);color:inherit;display:grid;place-content:center;
+      border:1px solid color-mix(in srgb,var(--primary-color,#03a9d9) 12%,var(--divider-color,#dfe3e8));
+      border-radius:16px;background:color-mix(in srgb,var(--primary-color,#03a9d9) 3%,var(--card-background-color,#fff));
+      box-shadow:0 5px 16px rgba(23,45,76,.06);color:inherit;display:grid;grid-template-columns:minmax(0,1fr);align-content:center;justify-items:center;
       text-align:center;cursor:pointer;line-height:1.08
     }
-    .nikas-shell__title strong{display:block;max-inline-size:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:23px;font-weight:800}
-    .nikas-shell__title small{display:block;font-size:14px;font-weight:560;color:var(--secondary-text-color,#68737d)}
+    .nikas-shell__title strong{display:block;max-inline-size:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:22px;font-weight:700}
+    .nikas-shell__title small{display:block;max-inline-size:100%;white-space:nowrap;font-size:clamp(11px,calc((100cqi - 150px) * .057),14px);font-weight:500;font-variant-numeric:tabular-nums;color:var(--secondary-text-color,#68737d)}
     .nikas-shell__title:active{
       transform:scale(.985);border-color:color-mix(in srgb,var(--primary-color,#03a9d9) 42%,var(--divider-color,#dfe3e8));
       background:color-mix(in srgb,var(--primary-color,#03a9d9) 13%,var(--card-background-color,#fff));
@@ -127,7 +128,7 @@ function nikasShellV2Styles() {
     @container nikas-panel (max-width:359px){
       .nikas-shell__header{grid-template-columns:48px minmax(0,1fr) 48px}
       .nikas-shell__title{inline-size:100%;padding-inline:8px}
-      .nikas-shell__title strong{font-size:21px}.nikas-shell__title small{font-size:13px}
+      .nikas-shell__title strong{font-size:20px}.nikas-shell__title small{font-size:clamp(11px,calc((100cqi - 135px) * .055),12px)}
     }
   `;
 }
@@ -810,8 +811,8 @@ function navigateNikasShell(path, { captureSource = false } = {}) {
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.11.0-beta010";
-const ASSET_VERSION = "0.11.0-beta010";
+const UI_VERSION = "0.11.0-beta011";
+const ASSET_VERSION = "0.11.0-beta011";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -1805,8 +1806,8 @@ function installV095() {
     shell.innerHTML = `
       <header class="nikas-shell__header">
         <button id="zont-menu" class="nikas-shell__side-action" type="button" aria-label="Открыть меню Home Assistant"><ha-icon icon="mdi:menu"></ha-icon></button>
-        <button id="zont-title" class="nikas-shell__title" type="button" aria-label="Вернуться в исходную базовую панель NikaS"><strong>Отопление</strong><small>UI v${UI_VERSION}</small></button>
-        <button id="zont-refresh" class="nikas-shell__side-action nikas-shell__side-action--right" type="button" aria-label="Обновить"><ha-icon icon="mdi:refresh" aria-hidden="true"></ha-icon></button>
+        <button id="zont-title" class="nikas-shell__title" type="button" aria-label="Вернуться в исходную базовую панель NikaS" aria-describedby="zont-versions"><strong>Отопление</strong><small id="zont-versions">UI v${UI_VERSION} / —</small></button>
+        <button id="zont-refresh" class="nikas-shell__side-action nikas-shell__side-action--right nikas-shell__side-action--refresh" type="button" aria-label="Обновить"><ha-icon icon="mdi:refresh" aria-hidden="true"></ha-icon></button>
         <span class="zont-refresh-status" role="status" aria-live="polite" aria-atomic="true"></span>
       </header>
       <div id="zont-work" class="zont-viewport nikas-shell__viewport" role="main" aria-label="Рабочая область панели Отопление. Масштабирование двумя пальцами">
@@ -1858,6 +1859,7 @@ function installV095() {
       viewport,
       stage,
       refresh,
+      versionCaption: shell.querySelector("#zont-versions"),
       refreshStatus: shell.querySelector(".zont-refresh-status"),
       navButtons,
       views: new Map([[active.id, initialView]]),
@@ -1889,6 +1891,9 @@ function installV095() {
     let shell = this.__zontShellV095;
     if (!shell?.shell?.isConnected) shell = this._mountNikasShellV095();
     if (!shell) return;
+    const integrationVersion = this._config().integration_version;
+    const versions = `UI v${UI_VERSION} / ${integrationVersion || "—"}`;
+    if (shell.versionCaption.textContent !== versions) shell.versionCaption.textContent = versions;
     const active = this._activeTab();
     if (!active) return;
     const items = this._entries();

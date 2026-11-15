@@ -92,7 +92,7 @@ assert.match(source, /class="z82-loop-pump/, "DHW circulation pump must be a phy
 assert.match(source, /z82-pump-art[\s\S]{0,160}<ha-icon icon="mdi:pump"/, "heating circuit status rows must use a pump symbol");
 
 const panelManifest = JSON.parse(fs.readFileSync("custom_components/zont_local/frontend/panel_manifest.json", "utf8"));
-assert.equal(panelManifest.ui_version, "0.11.0-beta010");
+assert.equal(panelManifest.ui_version, "0.11.0-beta011");
 assert.equal(panelManifest.shell_version, "2.1");
 assert.equal(panelManifest.title, "Отопление");
 assert.equal(panelManifest.path, "/dashboard-zont");
@@ -123,7 +123,7 @@ assert.match(fullSource, /\/dashboard-house-v13\/home/, "House return must use t
 assert.match(fullSource, /\/dashboard-rooms-v11\/rooms/, "Rooms return must use the canonical v11 entry");
 assert.match(fullSource, /\/dashboard-actions\/home/, "Actions return must use its canonical entry");
 assert.match(fullSource, /\/dashboard-infrastructure\/overview/, "Infrastructure return must use its canonical entry");
-assert.match(fullSource, /<small>UI v\$\{UI_VERSION\}<\/small>/, "Header second line must contain version only");
+assert.match(fullSource, /<small id="zont-versions">UI v\$\{UI_VERSION\} \/ —<\/small>/, "Header starts with the UI version and an explicit unknown integration version");
 assert.doesNotMatch(fullSource, /history\.back\s*\(/, "browser history is not a navigation contract");
 assert.doesNotMatch(fullSource, /mdi:arrow-left/, "the permanent Header must not retain a legacy Back arrow");
 assert.doesNotMatch(fullSource, /["']\/dashboard-house["']/, "legacy House root must not be a return route");
