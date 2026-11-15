@@ -61,21 +61,37 @@ p._connectionStatusV096=()=>({unknown:true});
 const signal=measured('binary_sensor.online','Controller online','on','');
 signal.state.attributes.device_class='connectivity';
 for(const metric of fixture) metric.state.last_reported=new Date().toISOString();
+fixture.push(
+ measured('binary_sensor.radiators','Радиаторы','off',''),
+ measured('binary_sensor.circulation','Циркуляция','unavailable',''),
+);
 const overview=p._dailyOverview([...fixture,signal],[]);
+assert.match(overview,/<h2>Отопление и циркуляция<\/h2><small>3 узл\.<\/small>/);
+assert.match(overview,/overview-node is-on"><ha-icon [^>]+><\/ha-icon><strong>Тёплый пол<\/strong><span>Включено<\/span>/);
+assert.match(overview,/overview-node is-off"><ha-icon [^>]+><\/ha-icon><strong>Радиаторы<\/strong><span>Выключено<\/span>/);
+assert.match(overview,/overview-node is-unavailable"><ha-icon [^>]+><\/ha-icon><strong>Циркуляция<\/strong><span>Недоступно<\/span>/);
 assert.equal((overview.match(/class="overview-metric"/g)||[]).length,3);
 assert.equal((overview.match(/data-climate-room=/g)||[]).length,2);
-assert.match(overview,/mdi:cloud-outline/);
-assert.match(overview,/mdi:check-circle-outline/);
+assert.match(overview,/overview-lamp online[^>]*aria-label="Связь · ZONT на связи"[^]*?<ha-icon icon="mdi:cloud"/);
+assert.match(overview,/overview-lamp current[^>]*aria-label="Свежесть · Данные в HA актуальны"[^]*?<ha-icon icon="mdi:check-circle-outline"/);
 assert.match(overview,/Канал к контроллеру.*Не подтверждён/);
 signal.state.state='off';
 const offline=p._dailyOverview([...fixture,signal],[]);
-assert.match(offline,/mdi:cloud-off-outline/);
+assert.match(offline,/overview-lamp offline[^>]*aria-label="Связь · Нет связи с ZONT"[^]*?<ha-icon icon="mdi:cloud-off-outline"/);
 assert.match(offline,/mdi:check-circle-outline/);
 fixture.find(i=>i.entry.entity_id==="sensor.room").state.last_reported=new Date(Date.now()-16*60000).toISOString();
-assert.match(p._dailyOverview([...fixture,signal],[]),/mdi:clock-alert-outline/);
+signal.state.state='on';
+const stale=p._dailyOverview([...fixture,signal],[]);
+assert.match(stale,/overview-lamp online/);
+assert.match(stale,/overview-lamp stale[^>]*aria-label="Свежесть · Данные в HA устарели"[^]*?<ha-icon icon="mdi:check-circle-outline"/);
 signal.state.state='unknown';
 assert.match(p._dailyOverview([...fixture,signal],[]),/mdi:cloud-question-outline/);
-assert.match(p._dailyOverview(fixture.filter(i=>i.entry.entity_id!=='sensor.zont_child2'),[]),/mdi:clock-question-outline/);
+assert.match(p._dailyOverview(fixture.filter(i=>i.entry.entity_id!=='sensor.zont_child2'),[]),/overview-lamp unknown[^>]*aria-label="Свежесть · Нет данных о свежести"[^]*?<ha-icon icon="mdi:check-circle-outline"/);
+const burner=measured('binary_sensor.burner','Горелка основного котла','off','');
+const overviewWithBurner=()=>p._dailyOverview([...fixture,burner],[]);
+assert.match(overviewWithBurner(),/overview-node is-off"><ha-icon [^>]+><\/ha-icon><strong>Основной котёл<\/strong><span>Горелка неактивна<\/span>/);
+burner.state.state='unavailable';
+assert.match(overviewWithBurner(),/overview-node is-unavailable"><ha-icon [^>]+><\/ha-icon><strong>Основной котёл<\/strong><span>Данные горелки недоступны<\/span>/);
 assert.ok(!overview.includes('Погода из интернета'));
 assert.ok(overview.includes('Тёплый пол'));
 console.log('Overview: ZONT floor sources and independent status lamps passed');
@@ -83,7 +99,7 @@ console.log('Overview: ZONT floor sources and independent status lamps passed');
 const stable=fixture.find(i=>i.entry.entity_id==='sensor.room');
 stable.state.last_updated=stable.state.last_reported;
 delete stable.state.last_reported;
-assert.match(p._dailyOverview([...fixture,signal],[]),/mdi:clock-question-outline/);
+assert.match(p._dailyOverview([...fixture,signal],[]),/overview-lamp unknown[^>]*aria-label="Свежесть · Нет данных о свежести"[^]*?<ha-icon icon="mdi:check-circle-outline"/);
 stable.state.last_reported=new Date().toISOString();
 const now = Date.now();
 const sample = (v, offset) => ({entity_id:'sensor.temperature',state:v,last_changed:new Date(now+offset).toISOString(),attributes:{}});
@@ -121,10 +137,10 @@ assert.equal(p._dailyTemperatureChart([sample('unknown',-1000)],'sensor.temperat
  }};
  const {floors,metrics}=panel._dailyOverviewModel(items);
  const readings=[...floors,...metrics];
- assert.match(panel._overviewStatus(items,readings).lamps,/mdi:clock-question-outline/);
+ assert.match(panel._overviewStatus(items,readings).lamps,/overview-lamp unknown[^>]*aria-label="Свежесть · Нет данных о свежести"[^]*?<ha-icon icon="mdi:check-circle-outline"/);
  panel._overviewStatus(items,readings);
  await new Promise(resolve=>setTimeout(resolve,0));
- assert.match(panel._overviewStatus(items,readings).lamps,/mdi:check-circle-outline/);
+ assert.match(panel._overviewStatus(items,readings).lamps,/overview-lamp current[^>]*aria-label="Свежесть · Данные в HA актуальны"/);
  assert.deepEqual(calls,[
    ['GET','states/sensor.room'],['GET','states/sensor.zont_child2'],
    ['GET','states/sensor.street'],['GET','states/sensor.water'],['GET','states/sensor.pressure'],
