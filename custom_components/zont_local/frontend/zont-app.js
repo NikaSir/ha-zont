@@ -491,8 +491,8 @@
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.11.0-beta010";
-const ASSET_VERSION = "0.11.0-beta010";
+const UI_VERSION = "0.11.0-beta011";
+const ASSET_VERSION = "0.11.0-beta011";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -1486,8 +1486,8 @@ function installV095() {
     shell.innerHTML = `
       <header class="nikas-shell__header">
         <button id="zont-menu" class="nikas-shell__side-action" type="button" aria-label="Открыть меню Home Assistant"><ha-icon icon="mdi:menu"></ha-icon></button>
-        <button id="zont-title" class="nikas-shell__title" type="button" aria-label="Вернуться в исходную базовую панель NikaS"><strong>Отопление</strong><small>UI v${UI_VERSION}</small></button>
-        <button id="zont-refresh" class="nikas-shell__side-action nikas-shell__side-action--right" type="button" aria-label="Обновить"><ha-icon icon="mdi:refresh" aria-hidden="true"></ha-icon></button>
+        <button id="zont-title" class="nikas-shell__title" type="button" aria-label="Вернуться в исходную базовую панель NikaS" aria-describedby="zont-versions"><strong>Отопление</strong><small id="zont-versions">UI v${UI_VERSION} / —</small></button>
+        <button id="zont-refresh" class="nikas-shell__side-action nikas-shell__side-action--right nikas-shell__side-action--refresh" type="button" aria-label="Обновить"><ha-icon icon="mdi:refresh" aria-hidden="true"></ha-icon></button>
         <span class="zont-refresh-status" role="status" aria-live="polite" aria-atomic="true"></span>
       </header>
       <div id="zont-work" class="zont-viewport nikas-shell__viewport" role="main" aria-label="Рабочая область панели Отопление. Масштабирование двумя пальцами">
@@ -1539,6 +1539,7 @@ function installV095() {
       viewport,
       stage,
       refresh,
+      versionCaption: shell.querySelector("#zont-versions"),
       refreshStatus: shell.querySelector(".zont-refresh-status"),
       navButtons,
       views: new Map([[active.id, initialView]]),
@@ -1570,6 +1571,9 @@ function installV095() {
     let shell = this.__zontShellV095;
     if (!shell?.shell?.isConnected) shell = this._mountNikasShellV095();
     if (!shell) return;
+    const integrationVersion = this._config().integration_version;
+    const versions = `UI v${UI_VERSION} / ${integrationVersion || "—"}`;
+    if (shell.versionCaption.textContent !== versions) shell.versionCaption.textContent = versions;
     const active = this._activeTab();
     if (!active) return;
     const items = this._entries();

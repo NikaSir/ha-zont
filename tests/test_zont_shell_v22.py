@@ -26,7 +26,7 @@ class ZontShellV22Tests(unittest.TestCase):
         digest = hashlib.sha256(self.source_kit.encode("utf-8")).hexdigest()
         self.assertEqual(
             digest,
-            "b7dbb84bb2f950fce75591266d6de7dbff824f4d480f455f0b8cbb0866a1c176",
+            "ced4c2cc9b223c8d3765c28c34988384b63d7433ba2a7eb9c037a0ef97c6b909",
         )
         self.assertEqual(self.profile["source_kit"]["sha256"], digest)
         shell_marker = (

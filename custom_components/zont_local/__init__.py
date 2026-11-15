@@ -28,6 +28,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         PANEL_TITLE,
         PANEL_URL_PATH,
         PANEL_WEB_COMPONENT_NAME,
+        VERSION,
     )
 
     domain_data = hass.data.setdefault(DOMAIN, {})
@@ -68,6 +69,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         config={
             "id": "zont",
             "title": PANEL_TITLE,
+            "integration_version": VERSION,
             "subtitle": "Отопление и ГВС",
             "parent": {
                 "id": "home",
