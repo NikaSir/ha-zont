@@ -61,6 +61,11 @@ async function assertFits(locator,label) {
    panel._hass.states['switch.socket_wf4']={state:'on',attributes:{}};
    panel._hass.states['switch.socket_wf2']={state:'off',attributes:{}};
    panel._hass.states['switch.socket_wf3']={state:'unavailable',attributes:{}};
+   for(const [socket,state] of [['wf4','1187.5'],['wf2','0.0'],['wf3','unavailable']]){
+    const sensor=`sensor.${socket}_power`;
+    panel._registry.push({entity_id:`switch.socket_${socket}`,device_id:socket},{entity_id:sensor,device_id:socket});
+    panel._hass.states[sensor]={state,attributes:{device_class:'power',unit_of_measurement:'W'}};
+   }
    panel._hass.callApi=async(method,path)=>{
     if(method==='GET' && path.startsWith('states/')){
      return {last_reported:new Date().toISOString()};
@@ -80,7 +85,7 @@ async function assertFits(locator,label) {
    panel.hass={...panel.hass,themes:{darkMode}};
    panel.panel={...panel.panel,config:{...panel.panel.config,integration_version:'1.9.11-beta007'}};
   },!light);
-  await title.getByText('UI v0.11.0-beta012 / 1.9.11-beta007',{exact:true}).waitFor({timeout:3000});
+  await title.getByText('UI v0.11.0-beta013 / 1.9.11-beta007',{exact:true}).waitFor({timeout:3000});
   const heading=await title.evaluate(el=>{
    const rail=el.parentElement.getBoundingClientRect(), box=el.getBoundingClientRect();
    const version=el.querySelector('small'), style=getComputedStyle(version);
@@ -118,17 +123,29 @@ async function assertFits(locator,label) {
   }
   const overview=page.locator('zont-local-panel .overview');
   const indicatorColor=el=>el.evaluate(node=>getComputedStyle(node).color);
-  for(const [equipment, equipmentStatus, outlet, outletStatus, expectedTone] of [
-   ['Тёплый пол','Включено','Тамбур · WF4','Включена','orange'],
-   ['Радиаторы','Выключено','Веранда · WF2','Выключена','blue'],
-   ['Циркуляция','Недоступно','Веранда · WF3','Нет связи','gray'],
+  for(const [equipment, equipmentStatus, outlet, outletStatus, expectedTone, watts] of [
+   ['Тёплый пол','Включено','Тамбур · WF4','Включена','orange',/^1\s?187,5\sВт$/],
+   ['Радиаторы','Выключено','Веранда · WF2','Выключена','blue',/^0\sВт$/],
+   ['Циркуляция','Недоступно','Веранда · WF3','Нет связи','gray',/^—$/],
   ]){
    const equipmentRow=overview.locator('.overview-node').filter({has:page.getByText(equipment,{exact:true})});
    const outletRow=overview.locator('.overview-node').filter({has:page.getByText(outlet,{exact:true})});
    const color=await indicatorColor(equipmentRow.getByText(equipmentStatus,{exact:true}));
-   assert.equal(await indicatorColor(equipmentRow.locator('ha-icon')),color);
+   assert.equal(await indicatorColor(equipmentRow.locator(':scope > ha-icon')),color);
    assert.equal(await indicatorColor(outletRow.locator('ha-icon')),color);
    assert.equal(await indicatorColor(outletRow.getByText(outletStatus,{exact:true})),color);
+   const rotor=equipmentRow.getByRole('img',{name:/^Насос/}).locator('ha-icon');
+   assert.equal(await rotor.evaluate(el=>getComputedStyle(el).animationName),equipmentStatus==='Включено'?'overview-pump-spin':'none');
+   const rotorPosition=await rotor.evaluate(el=>{
+    const pump=el.parentElement.getBoundingClientRect();
+    const row=el.closest('.overview-node').getBoundingClientRect();
+    return (pump.left+pump.width/2-row.left)/row.width;
+   });
+   assert.ok(rotorPosition>=0.5 && rotorPosition<=0.73,`rotor stays in the middle column at ${width}px`);
+   const power=outletRow.locator('.overview-node-power');
+   assert.match(await power.textContent(),watts);
+   const powerFits=await power.evaluate(el=>el.scrollWidth<=el.clientWidth+1 && el.getBoundingClientRect().right<el.nextElementSibling.getBoundingClientRect().left);
+   assert.ok(powerFits,`power stays left of ${outletStatus} at ${width}px`);
    const {tone,contrast}=await equipmentRow.getByText(equipmentStatus,{exact:true}).evaluate(node=>{
     const context=document.createElement('canvas').getContext('2d',{willReadFrequently:true});
     const rgb=value=>{
@@ -155,23 +172,39 @@ async function assertFits(locator,label) {
   assert.equal(await indicatorColor(connection),'rgb(67, 160, 71)');
   assert.equal(await indicatorColor(freshness),'rgb(67, 160, 71)');
   if(width===390){
+   const rotor=overview.locator('.overview-node').filter({has:page.getByText('Тёплый пол',{exact:true})}).locator('.overview-node-pump ha-icon');
+   await page.emulateMedia({reducedMotion:'reduce'});
+   assert.equal(await rotor.evaluate(el=>getComputedStyle(el).animationName),'none');
+   await page.emulateMedia({reducedMotion:'no-preference'});
+   const rotorBefore=await rotor.elementHandle();
    await page.evaluate(()=>{
     const panel=window.testPanel;
     const states=panel.hass.states;
     panel.hass={...panel.hass,states:{...states,
-     'binary_sensor.online':{...states['binary_sensor.online'],state:'off'},
      'sensor.room':{...states['sensor.room'],last_reported:new Date(Date.now()-16*60000).toISOString()},
+     'sensor.wf4_power':{...states['sensor.wf4_power'],state:'924'},
     }};
    });
    await lamps.getByRole('img',{name:'Свежесть · Данные в HA устарели'}).waitFor();
-   assert.equal(await indicatorColor(connection),'rgb(255, 152, 0)');
+   assert.equal(await indicatorColor(connection),'rgb(67, 160, 71)');
    assert.equal(await indicatorColor(freshness),'rgb(255, 152, 0)');
+   assert.equal(await freshness.locator('ha-icon').getAttribute('icon'),'mdi:clock-alert-outline');
+   assert.ok(await rotor.evaluate((el,previous)=>el===previous,rotorBefore),'a new reading keeps the running rotor mounted');
+   await overview.getByText('924 Вт',{exact:true}).waitFor();
    await page.evaluate(()=>{
     const panel=window.testPanel, states=panel.hass.states;
-    panel.hass={...panel.hass,states:{...states,'sensor.room':{...states['sensor.room'],state:'unavailable'}}};
+    panel.hass={...panel.hass,states:{...states,
+     'binary_sensor.online':{...states['binary_sensor.online'],state:'off'},
+     'sensor.room':{...states['sensor.room'],state:'unavailable'},
+    }};
    });
    await lamps.getByRole('img',{name:'Свежесть · Нет данных о свежести'}).waitFor();
+   assert.equal(await indicatorColor(connection),'rgb(255, 152, 0)');
    assert.equal(await indicatorColor(freshness),'rgb(170, 170, 170)');
+   assert.equal(await freshness.locator('ha-icon').getAttribute('icon'),'mdi:clock-outline');
+   assert.equal(await freshness.locator('.overview-lamp-question').textContent(),'?');
+   assert.equal(await rotor.evaluate(el=>getComputedStyle(el).animationName),'none');
+   await rotorBefore.dispose();
    await page.evaluate(()=>{
     const panel=window.testPanel, states=panel.hass.states;
     panel.hass={...panel.hass,states:{...states,'sensor.room':{...states['sensor.room'],state:'23.2',last_reported:new Date().toISOString()}}};

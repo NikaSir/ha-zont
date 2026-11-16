@@ -67,9 +67,22 @@ fixture.push(
 );
 const overview=p._dailyOverview([...fixture,signal],[]);
 assert.match(overview,/<h2>Отопление и циркуляция<\/h2><small>3 узл\.<\/small>/);
-assert.match(overview,/overview-node is-on"><ha-icon [^>]+><\/ha-icon><strong>Тёплый пол<\/strong><span>Включено<\/span>/);
-assert.match(overview,/overview-node is-off"><ha-icon [^>]+><\/ha-icon><strong>Радиаторы<\/strong><span>Выключено<\/span>/);
-assert.match(overview,/overview-node is-unavailable"><ha-icon [^>]+><\/ha-icon><strong>Циркуляция<\/strong><span>Недоступно<\/span>/);
+const nodeRow = (html, name) => html.split('<div class="overview-node ').find(row => row.includes(`<strong>${name}</strong>`)) || '';
+for(const [name,tone,status,pump] of [
+ ['Тёплый пол','is-on','Включено','Насос · Включён по данным ZONT'],
+ ['Радиаторы','is-off','Выключено','Насос · Выключен по данным ZONT'],
+ ['Циркуляция','is-unavailable','Недоступно','Насос · Нет данных'],
+]){
+ const row=nodeRow(overview,name);
+ assert.ok(row.startsWith(tone));
+ assert.ok(row.includes(`aria-label="${pump}"`));
+ assert.match(row,/<ha-icon icon="mdi:fan"/);
+ assert.ok(row.includes(`>${status}</span>`));
+}
+const radiatorFault=measured('binary_sensor.radiator_pump_fault','Ошибка насоса Радиаторы','on','');
+radiatorFault.state.attributes.device_class='problem';
+assert.equal(p._dailyOverviewModel([radiatorFault]).nodes.length,0,'a pump fault does not indicate operation');
+assert.ok(nodeRow(p._dailyOverview([...fixture,signal,radiatorFault],[]),'Радиаторы').startsWith('is-off'),'a fault does not obscure the circuit signal');
 assert.equal((overview.match(/class="overview-metric"/g)||[]).length,3);
 assert.equal((overview.match(/data-climate-room=/g)||[]).length,2);
 assert.match(overview,/overview-lamp online[^>]*aria-label="Связь · ZONT на связи"[^]*?<ha-icon icon="mdi:cloud"/);
@@ -78,20 +91,22 @@ assert.match(overview,/Канал к контроллеру.*Не подтвер
 signal.state.state='off';
 const offline=p._dailyOverview([...fixture,signal],[]);
 assert.match(offline,/overview-lamp offline[^>]*aria-label="Связь · Нет связи с ZONT"[^]*?<ha-icon icon="mdi:cloud-off-outline"/);
-assert.match(offline,/mdi:check-circle-outline/);
+assert.match(offline,/overview-lamp current[^>]*aria-label="Свежесть · Данные в HA актуальны"[^]*?<ha-icon icon="mdi:check-circle-outline"/);
+assert.ok(nodeRow(offline,'Тёплый пол').startsWith('is-unavailable'),'connection loss invalidates the last retained pump state');
 fixture.find(i=>i.entry.entity_id==="sensor.room").state.last_reported=new Date(Date.now()-16*60000).toISOString();
 signal.state.state='on';
 const stale=p._dailyOverview([...fixture,signal],[]);
 assert.match(stale,/overview-lamp online/);
-assert.match(stale,/overview-lamp stale[^>]*aria-label="Свежесть · Данные в HA устарели"[^]*?<ha-icon icon="mdi:check-circle-outline"/);
+assert.match(stale,/overview-lamp stale[^>]*aria-label="Свежесть · Данные в HA устарели"[^>]*><ha-icon icon="mdi:clock-alert-outline"/);
+const unknownFreshness = /overview-lamp unknown[^>]*aria-label="Свежесть · Нет данных о свежести"[^>]*><ha-icon icon="mdi:clock-outline"[^>]*><\/ha-icon><span [^>]*aria-hidden="true">\?<\/span>/;
 signal.state.state='unknown';
 assert.match(p._dailyOverview([...fixture,signal],[]),/mdi:cloud-question-outline/);
-assert.match(p._dailyOverview(fixture.filter(i=>i.entry.entity_id!=='sensor.zont_child2'),[]),/overview-lamp unknown[^>]*aria-label="Свежесть · Нет данных о свежести"[^]*?<ha-icon icon="mdi:check-circle-outline"/);
+assert.match(p._dailyOverview(fixture.filter(i=>i.entry.entity_id!=='sensor.zont_child2'),[]),unknownFreshness);
 const burner=measured('binary_sensor.burner','Горелка основного котла','off','');
 const overviewWithBurner=()=>p._dailyOverview([...fixture,burner],[]);
-assert.match(overviewWithBurner(),/overview-node is-off"><ha-icon [^>]+><\/ha-icon><strong>Основной котёл<\/strong><span>Горелка неактивна<\/span>/);
+assert.match(nodeRow(overviewWithBurner(),'Основной котёл'),/^is-off"[^]*><span class="overview-node-status">Горелка неактивна<\/span>/);
 burner.state.state='unavailable';
-assert.match(overviewWithBurner(),/overview-node is-unavailable"><ha-icon [^>]+><\/ha-icon><strong>Основной котёл<\/strong><span>Данные горелки недоступны<\/span>/);
+assert.match(nodeRow(overviewWithBurner(),'Основной котёл'),/^is-unavailable"[^]*><span class="overview-node-status">Данные горелки недоступны<\/span>/);
 assert.ok(!overview.includes('Погода из интернета'));
 assert.ok(overview.includes('Тёплый пол'));
 console.log('Overview: ZONT floor sources and independent status lamps passed');
@@ -99,7 +114,7 @@ console.log('Overview: ZONT floor sources and independent status lamps passed');
 const stable=fixture.find(i=>i.entry.entity_id==='sensor.room');
 stable.state.last_updated=stable.state.last_reported;
 delete stable.state.last_reported;
-assert.match(p._dailyOverview([...fixture,signal],[]),/overview-lamp unknown[^>]*aria-label="Свежесть · Нет данных о свежести"[^]*?<ha-icon icon="mdi:check-circle-outline"/);
+assert.match(p._dailyOverview([...fixture,signal],[]),unknownFreshness);
 stable.state.last_reported=new Date().toISOString();
 const now = Date.now();
 const sample = (v, offset) => ({entity_id:'sensor.temperature',state:v,last_changed:new Date(now+offset).toISOString(),attributes:{}});
@@ -137,7 +152,7 @@ assert.equal(p._dailyTemperatureChart([sample('unknown',-1000)],'sensor.temperat
  }};
  const {floors,metrics}=panel._dailyOverviewModel(items);
  const readings=[...floors,...metrics];
- assert.match(panel._overviewStatus(items,readings).lamps,/overview-lamp unknown[^>]*aria-label="Свежесть · Нет данных о свежести"[^]*?<ha-icon icon="mdi:check-circle-outline"/);
+ assert.match(panel._overviewStatus(items,readings).lamps,unknownFreshness);
  panel._overviewStatus(items,readings);
  await new Promise(resolve=>setTimeout(resolve,0));
  assert.match(panel._overviewStatus(items,readings).lamps,/overview-lamp current[^>]*aria-label="Свежесть · Данные в HA актуальны"/);
@@ -153,6 +168,21 @@ p._config = () => ({heating_outlets:[{entity_id:'switch.socket_wf4',label:'Та�
 p._hass.states['switch.socket_wf4']={state:'on',attributes:{}};
 p._hass.states['switch.socket_wf2']={state:'off',attributes:{}};
 p._hass.states['switch.socket_wf3']={state:'unavailable',attributes:{}};
+p._registry = [
+ {entity_id:'sensor.other_power',device_id:'other'},
+ {entity_id:'switch.socket_wf4',device_id:'wf4'},
+ {entity_id:'sensor.wf4_power',device_id:'wf4'},
+ {entity_id:'sensor.wf4_voltage',device_id:'wf4'},
+ {entity_id:'switch.socket_wf2',device_id:'wf2'},
+ {entity_id:'sensor.wf2_power',device_id:'wf2'},
+ {entity_id:'switch.socket_wf3',device_id:'wf3'},
+ {entity_id:'sensor.wf3_power',device_id:'wf3',original_device_class:'power'},
+];
+p._hass.states['sensor.other_power']={state:'123',attributes:{device_class:'power',unit_of_measurement:'W'}};
+p._hass.states['sensor.wf4_power']={state:'1.1875',attributes:{device_class:'power',unit_of_measurement:'kW'}};
+p._hass.states['sensor.wf4_voltage']={state:'230',attributes:{device_class:'voltage',unit_of_measurement:'V'}};
+p._hass.states['sensor.wf2_power']={state:'0.0',attributes:{device_class:'power',unit_of_measurement:'W'}};
+p._hass.states['sensor.wf3_power']={state:'unavailable',attributes:{}};
 let outlets=p._dailyOverview(fixture,[]);
 assert.ok(outlets.includes('Электрообогрев'));
 assert.ok(outlets.includes('Тамбур · WF4'));
@@ -162,6 +192,12 @@ assert.ok(outlets.includes('Включена'));
 assert.ok(outlets.includes('Выключена'));
 assert.ok(outlets.includes('Нет связи'));
 assert.equal((outlets.match(/Вкл\. ниже 8 °C · Выкл\. выше 10 °C/g)||[]).length,3);
+assert.match(nodeRow(outlets,'Тамбур · WF4'),/overview-node-power[^>]*>1\s?187,5\sВт</);
+assert.match(nodeRow(outlets,'Веранда · WF2'),/overview-node-power[^>]*>0\sВт</);
+assert.match(nodeRow(outlets,'Веранда · WF3'),/overview-node-power[^>]*>—</);
+p._registry.push({entity_id:'sensor.wf2_other_power',device_id:'wf2'});
+p._hass.states['sensor.wf2_other_power']={state:'5',attributes:{device_class:'power',unit_of_measurement:'W'}};
+assert.match(nodeRow(p._dailyOverview(fixture,[]),'Веранда · WF2'),/overview-node-power[^>]*>—</,'ambiguous readings must not be assigned to a socket');
 delete p._hass.states['switch.socket_wf3'];
 outlets=p._dailyOverview(fixture,[]);
 assert.ok(outlets.includes('Нет данных'));
