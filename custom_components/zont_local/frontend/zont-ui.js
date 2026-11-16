@@ -1,5 +1,5 @@
 // GENERATED FILE. DO NOT EDIT DIRECTLY.
-// ZONT autonomous UI 0.11.0-beta012 production bundle.
+// ZONT autonomous UI 0.11.0-beta013 production bundle.
 // One active shell: zont-local-panel / NikaS shell kit v2.1.
 
 // BEGIN custom_components/zont_local/frontend/nikas-specialized-shell.js
@@ -812,8 +812,8 @@ function navigateNikasShell(path, { captureSource = false } = {}) {
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.11.0-beta012";
-const ASSET_VERSION = "0.11.0-beta012";
+const UI_VERSION = "0.11.0-beta013";
+const ASSET_VERSION = "0.11.0-beta013";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -2215,8 +2215,9 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     .daily button{min-height:44px;padding:8px 16px;color:var(--primary-color);background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:10px}
     .overview{max-width:660px;margin:auto}.overview-hero{padding:14px;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:18px;margin-bottom:12px}.overview-eyebrow{font-size:12px;color:var(--secondary-text-color);margin:0 0 6px}.overview-hero h1{font-size:22px;margin:0;line-height:1.2}.overview-hero small{font-size:12px;line-height:1.4}
     .overview-heading,.overview-lamps,.overview-status{display:flex;align-items:center;gap:7px}
-    .overview-heading{flex-wrap:wrap}.overview-lamp{display:inline-flex;color:var(--secondary-text-color)}
+    .overview-heading{flex-wrap:wrap}.overview-lamp{position:relative;display:inline-flex;color:var(--secondary-text-color)}
     .overview-lamp ha-icon{--mdc-icon-size:20px}
+    .overview-lamp-question{position:absolute;inset-inline-end:-2px;bottom:-1px;width:11px;height:11px;display:grid;place-items:center;border-radius:50%;background:var(--card-background-color);font-size:10px;font-weight:700;line-height:1}
     .overview-lamp.online,.overview-lamp.current{color:var(--success-color,#43a047)}
     .overview-lamp.offline,.overview-lamp.stale{color:var(--warning-color,#ff9800)}
     .overview-hero:has(>.overview-diagnostics:not([open])){padding-bottom:4px}
@@ -2231,13 +2232,27 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     .overview-node.is-on{--node-color:color-mix(in srgb,#ec7b2f 60%,var(--primary-text-color))}
     .overview-node.is-off{--node-color:color-mix(in srgb,var(--primary-color,#03a9cf) 60%,var(--primary-text-color))}
     .overview-node.is-unavailable{--node-color:var(--secondary-text-color)}
+    .overview-node.has-reading{grid-template-columns:var(--overview-node-icon-width,26px) minmax(0,1fr) minmax(62px,17%) minmax(74px,21%);gap:4px 8px}
+    .overview-node.has-reading > small{grid-column:2 / -1;margin-top:0}
+    .overview-node-status{text-align:end}
+    .overview-node-pump{display:grid;place-items:center;justify-self:center;width:25px;height:25px;border:1px solid currentColor;border-radius:50%}
+    .overview-node-pump ha-icon{display:block;--mdc-icon-size:19px;transform-origin:center}
+    @keyframes overview-pump-spin{to{transform:rotate(1turn)}}
+    @media (prefers-reduced-motion:no-preference){.overview-node.is-on .overview-node-pump ha-icon{animation:overview-pump-spin 1.4s linear infinite}}
+    .overview-node > .overview-node-power{color:var(--primary-text-color);text-align:center;font-variant-numeric:tabular-nums}
+    .overview-node > .overview-node-power.is-missing{color:var(--secondary-text-color)}
     @container nikas-panel (max-width:400px){.daily{padding:10px}.daily-row{padding:12px;gap:8px}.daily-row strong{font-size:14px}.overview-hero{padding:12px}.overview-metrics{gap:5px}.overview-metrics .overview-metric{padding:8px}.overview-metrics .overview-label{gap:3px;font-size:11px}.overview-metrics .overview-label ha-icon{--mdc-icon-size:15px}.overview-hero h1{font-size:21px}.overview-metric{padding:12px}.overview-value{font-size:25px}}
+    @container nikas-panel (max-width:400px){.overview-node.has-reading{--overview-node-icon-width:22px;column-gap:6px;padding-inline:9px}}
   </style>`;
   p._dailyZoneRow = function(z) {
     const value = z.current === null ? "Нет данных" : `${z.current.toLocaleString("ru")} °C`;
     const goal = z.target === null ? "цель неизвестна" : `цель ${z.target.toLocaleString("ru")} °C`;
     const delta = z.delta === null ? "" : ` · Δ ${z.delta > 0 ? "+" : ""}${z.delta.toLocaleString("ru")} °C`;
     return row(z.name, value, z.missing ? "Источник недоступен" : `${goal}${delta} · ${z.action}`);
+  };
+  const controllerConnectivity = (items) => {
+    const signals = items.filter(i => i.entry.entity_id.startsWith("binary_sensor.") && i.state?.attributes?.device_class === "connectivity");
+    return signals.length === 1 ? signals[0] : null;
   };
   p._dailyOverviewModel = function(items) {
     // Match the measured quantity using entity metadata, never controller/device names.
@@ -2259,17 +2274,25 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     ];
     const metrics = [metric("На улице",outdoor,"mdi:weather-partly-cloudy","Уличный датчик"),metric("ГВС",dhw,"mdi:water-thermometer-outline","Температура воды"),metric("Давление",pressure,"mdi:gauge","Теплоноситель")];
     const nodes = [];
+    const controllerOffline = controllerConnectivity(items)?.state?.state === "off";
+    const operatingSignals = items.filter(item => {
+      const entry = item.entry;
+      const deviceClass = item.state?.attributes?.device_class || entry.device_class || entry.original_device_class;
+      return entry.entity_id.startsWith("binary_sensor.") &&
+        (!deviceClass || ["running", "power", "heat"].includes(deviceClass)) &&
+        !/разреш|enable|ошиб|авари|неисправ|перегрев|блокир|error|fault|alarm|problem|overheat|lockout/.test(`${text(item)} ${entry.entity_id}`);
+    });
     for (const [name,pattern,icon] of [["Основной котёл",/горелк|burner/,"mdi:fire"],["Радиаторы",/радиатор|radiator/,"mdi:radiator"],["Тёплый пол",/т[её]пл.*пол|floor/,"mdi:heating-coil"],["Циркуляция",/циркуляц|circulation/,"mdi:pump"]]) {
-      const signal = unique(items.filter(i=>i.entry.entity_id.startsWith("binary_sensor.") && pattern.test(text(i)) && !/разреш|enable/.test(text(i))));
+      const signal = unique(operatingSignals.filter(item => pattern.test(text(item))));
       if (!signal) continue;
-      const state = signal.state?.state;
-      const isBurner = name === "Основной котёл";
+      const pump = name !== "Основной котёл";
+      const state = pump && controllerOffline ? "unavailable" : signal.state?.state;
       if (["on","active","running","heating"].includes(state)) {
-        nodes.push({name,icon,tone:"is-on",label:isBurner ? "Горелка активна" : "Включено"});
+        nodes.push({name,icon,pump,tone:"is-on",label:pump ? "Включено" : "Горелка активна"});
       } else if (state === "off") {
-        nodes.push({name,icon,tone:"is-off",label:isBurner ? "Горелка неактивна" : "Выключено"});
+        nodes.push({name,icon,pump,tone:"is-off",label:pump ? "Выключено" : "Горелка неактивна"});
       } else {
-        nodes.push({name,icon,tone:"is-unavailable",label:isBurner ? "Данные горелки недоступны" : "Недоступно"});
+        nodes.push({name,icon,pump,tone:"is-unavailable",label:pump ? "Недоступно" : "Данные горелки недоступны"});
       }
     }
     return {floors,metrics,nodes};
@@ -2298,10 +2321,10 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
   };
   const lamp = (icon, tone, label, kind) => '<span class="overview-lamp '+tone+'"'+
     (kind ? ' role="img" aria-label="'+escape(kind+' · '+label)+'" title="'+escape(label)+'"' : ' aria-hidden="true"')+
-    '><ha-icon icon="'+icon+'" aria-hidden="true"></ha-icon></span>';
+    '><ha-icon icon="'+icon+'" aria-hidden="true"></ha-icon>'+
+    (icon === "mdi:clock-outline" ? '<span class="overview-lamp-question" aria-hidden="true">?</span>' : '')+'</span>';
   p._overviewStatus = function(items, readings) {
-    const connections = items.filter(i=>i.entry.entity_id.startsWith("binary_sensor.") && i.state?.attributes?.device_class==="connectivity");
-    const online = connections.length===1 ? connections[0] : null;
+    const online = controllerConnectivity(items);
     const state = online?.state?.state;
     const connection = state==="on" ? ["mdi:cloud","online","ZONT на связи"]
       : state==="off" ? ["mdi:cloud-off-outline","offline","Нет связи с ZONT"]
@@ -2313,10 +2336,10 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     const reports = readings.map(m=>m.value===null ? NaN : Date.parse(m.item.state.last_reported ||
       this._overviewReports?.get(m.item.entry.entity_id)));
     const age = reports.every(Number.isFinite) ? Date.now()-Math.min(...reports) : NaN;
-    const freshness = ["mdi:check-circle-outline", ...(!Number.isFinite(age) || age<0
-      ? ["unknown","Нет данных о свежести"]
-      : age>freshnessLimit ? ["stale","Данные в HA устарели"]
-      : ["current","Данные в HA актуальны"])];
+    const freshness = !Number.isFinite(age) || age<0
+      ? ["mdi:clock-outline","unknown","Нет данных о свежести"]
+      : age>freshnessLimit ? ["mdi:clock-alert-outline","stale","Данные в HA устарели"]
+      : ["mdi:check-circle-outline","current","Данные в HA актуальны"];
     const detail = status => '<div class="overview-status">'+lamp(...status)+escape(status[2])+'</div>';
     const suffix = Number.isFinite(age) && age>=0 ? ' · до '+Math.floor(age/60000)+' мин назад' : '';
     return {
@@ -2326,6 +2349,25 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
         '</small><small>Отметка получения показаний в Home Assistant'+suffix+'</small>'+
         readings.map(m=>'<small>'+escape(m.label)+' · '+escape(m.item?.entry.entity_id || "Источник не определён")+'</small>').join('')+'</details>',
     };
+  };
+  const pumpLabels = {
+    "is-on": "Насос · Включён по данным ZONT",
+    "is-off": "Насос · Выключен по данным ZONT",
+    "is-unavailable": "Насос · Нет данных",
+  };
+  const outletPowerWatts = (registry, states, entityId) => {
+    const deviceId = registry.find(entry => entry.entity_id === entityId && !entry.disabled_by)?.device_id;
+    if (!deviceId) return null;
+    const candidates = registry.filter(entry => entry.device_id === deviceId && !entry.disabled_by &&
+      entry.entity_id.startsWith("sensor.") &&
+      (states[entry.entity_id]?.attributes?.device_class || entry.device_class || entry.original_device_class) === "power");
+    if (candidates.length !== 1) return null;
+    const reading = states[candidates[0].entity_id];
+    const value = number(reading?.state);
+    if (value === null) return null;
+    const unit = reading.attributes?.unit_of_measurement;
+    if (unit === "W") return value;
+    return unit === "kW" ? number(value * 1000) : null;
   };
   p._dailyOverview = function(items, zones) {
     const {floors,metrics,nodes} = this._dailyOverviewModel(items);
@@ -2346,15 +2388,23 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
       return m.room ? '<button type="button" data-climate-room="'+m.room+'" class="overview-floor">'+body+'</button>'
         : '<div class="overview-metric">'+body+'</div>';
     };
-    const nodeRows = nodes.map(n=>`<div class="overview-node ${n.tone}"><ha-icon icon="${n.icon}" aria-hidden="true"></ha-icon><strong>${n.name}</strong><span>${n.label}</span></div>`).join("");
+    const nodeRows = nodes.map(n => {
+      const pumpLabel = pumpLabels[n.tone];
+      const pump = n.pump ? `<span class="overview-node-pump" role="img" aria-label="${pumpLabel}" title="${pumpLabel}"><ha-icon icon="mdi:fan" aria-hidden="true"></ha-icon></span>` : "";
+      return `<div class="overview-node ${n.tone}${n.pump ? " has-reading" : ""}"><ha-icon icon="${n.icon}" aria-hidden="true"></ha-icon><strong>${n.name}</strong>${pump}<span class="overview-node-status">${n.label}</span></div>`;
+    }).join("");
+    const states = this._hass?.states || {};
     const outlets = (this._config().heating_outlets || []).map(outlet => {
-      const state = this._hass?.states?.[outlet.entity_id]?.state;
+      const state = states[outlet.entity_id]?.state;
       const tone = state === "on" ? "is-on" : state === "off" ? "is-off" : "is-unavailable";
       const status = state === "on" ? "Включена" : state === "off" ? "Выключена" : state === "unavailable" ? "Нет связи" : "Нет данных";
+      const power = outletPowerWatts(this._registry || [], states, outlet.entity_id);
+      const reading = power === null ? '<span class="overview-node-power is-missing" title="Нет данных о мощности">—</span>'
+        : `<span class="overview-node-power" title="Потребляемая мощность">${power.toLocaleString("ru", {maximumFractionDigits:1})}\u00a0Вт</span>`;
       const range = Number.isFinite(outlet.on_below) && Number.isFinite(outlet.off_above)
         ? `<small>Вкл. ниже ${outlet.on_below.toLocaleString("ru")} °C · Выкл. выше ${outlet.off_above.toLocaleString("ru")} °C</small>`
         : "";
-      return `<div class="overview-node ${tone}"><ha-icon icon="mdi:power-socket-eu" aria-hidden="true"></ha-icon><div><strong>${escape(outlet.label)}</strong>${range}</div><span>${status}</span></div>`;
+      return `<div class="overview-node ${tone} has-reading"><ha-icon icon="mdi:power-socket-eu" aria-hidden="true"></ha-icon><strong>${escape(outlet.label)}</strong>${reading}<span class="overview-node-status">${status}</span>${range}</div>`;
     }).join("");
     const heating = outlets ? `<div class="overview-section-title"><h2>Электрообогрев</h2></div><div class="overview-nodes">${outlets}</div>` : "";
     return '<div class="overview"><div class="overview-hero"><div class="overview-heading"><h1>Состояние дома</h1><div class="overview-lamps">'+

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.0-beta013
+
+- Show animated pump indicators on the Overview using the ZONT circuit states. A confirmed outage marks the pump states unavailable.
+- Show measured power in watts for electric heating outlets using the power sensor on each switch's Home Assistant device.
+- Use the NikaS freshness icons for current, stale and unknown readings.
+- Frontend cache build b041.
+
 ## 0.11.0-beta012
 
 - Use a white refresh button with a black arrow in the light Home Assistant theme.
