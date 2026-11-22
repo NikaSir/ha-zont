@@ -30,16 +30,18 @@
       const missing = unavailable(state);
       const roomSource = config.zone_room_sources?.[id];
       const sourceStatus = states?.[roomSource?.selector]?.state;
-      const sourceWarning = sourceStatus === "remote_source_offline" || sourceStatus === "local_temperature";
+      const sourceWarning = Boolean(roomSource && sourceStatus !== "remote_temperature");
       const sourceNote = !roomSource ? "" : {
+        remote_temperature: "Внешний датчик",
         remote_source_offline: "Внешний датчик: термоголовка не получает данные",
         local_temperature: "Внешний датчик: термоголовка использует встроенный датчик",
-      }[sourceStatus] || "Внешний датчик";
+      }[sourceStatus] || "Режим датчика термоголовки неизвестен";
       const current = roomSource ? number(states?.[roomSource.temperature]?.state)
         : missing ? null : number(a.current_temperature);
       const target = missing ? null : number(a.temperature);
       const action = missing ? null : a.hvac_action;
-      return {id, name:a.friendly_name || id, current, target, missing, sourceNote, sourceWarning,
+      return {id, name:config.zone_labels?.[id] || a.friendly_name || id, current, target, missing, sourceNote, sourceWarning,
+        roomTemperatureEntity: roomSource?.temperature,
         active: action === "heating", uncertain:missing || current === null || target === null || !["heating", "idle", "off"].includes(action),
         delta:current !== null && target !== null ? current - target : null,
         action:action === "heating" ? "Нагрев" : ["idle", "off"].includes(action) ? "Не нагревается" : "Активность неизвестна"};
@@ -215,11 +217,11 @@
     const readings = [...floors,...metrics];
     const missing = readings.filter(m=>m.value===null).length;
     const unavailableZones = zones.filter(z=>z.missing).length;
-    const incompleteZones = zones.filter(z=>!z.missing && z.uncertain).length;
+    const zonesToCheck = zones.filter(z=>!z.missing && (z.uncertain || z.sourceWarning)).length;
     const errors = items.filter(i=>this._role(i)==="error" && this._isActiveErrorV089(i)).length;
-    const hasIssue = missing || unavailableZones || errors;
+    const hasIssue = missing || unavailableZones || errors || zonesToCheck;
     const title = errors ? "Требует внимания" : hasIssue ? "Есть замечания" : "Показания получены";
-    const notes = [errors ? `Ошибок оборудования: ${errors}` : "",unavailableZones ? `Зон без связи: ${unavailableZones}` : "",missing ? `Нет показаний: ${missing}` : "",incompleteZones ? `Активность неизвестна: ${incompleteZones}` : ""].filter(Boolean);
+    const notes = [errors ? `Ошибок оборудования: ${errors}` : "",unavailableZones ? `Зон без связи: ${unavailableZones}` : "",missing ? `Нет показаний: ${missing}` : "",zonesToCheck ? `Зон для проверки: ${zonesToCheck}` : ""].filter(Boolean);
     const status = this._overviewStatus(items,readings);
     const renderMetric = m => {
       const value = m.value===null ? "Нет данных" : escape(m.value.toLocaleString("ru",{maximumFractionDigits:2}))+

@@ -185,16 +185,18 @@
   };
   p._htZoneCard=function(zone,windowStates){
     const delta=zone.delta===null?'Отклонение неизвестно':zone.delta===0?'Температура у цели':`${zone.delta<0?'Ниже':'Выше'} цели на ${fmt(Math.abs(zone.delta))} °C`;
-    const source=zone.sourceNote?`<small${zone.sourceWarning?' class="ht-heating"':''}>${esc(zone.sourceNote)}</small>`:'';
+    const source=zone.roomTemperatureEntity?'<small>Датчик комнаты</small>':'';
+    const sourceWarning=zone.sourceWarning?`<div class="ht-foot"><span class="ht-heating">${esc(zone.sourceNote)}</span></div>`:'';
     const diagnostic=line('Статус термоголовки',esc(zone.missing?'Нет связи':zone.action))+
-      line('Источник температуры',esc(zone.sourceNote||'Термоголовка'))+line('Сущность',esc(zone.id));
+      line('Источник температуры в карточке',esc(zone.roomTemperatureEntity||'Термоголовка'))+
+      (zone.sourceNote?line('Режим датчика термоголовки',esc(zone.sourceNote)):'')+line('Сущность',esc(zone.id));
     const entityId=esc(zone.id);
     return '<div class="ht-card" data-zone="'+entityId+'"><div class="ht-pad"><div class="ht-head">'+
       '<button type="button" class="ht-zone-title" data-ht-zone-entity="'+entityId+'">'+esc(this._htZoneName(zone))+
       '</button><span class="ht-status '+(zone.active?'ht-heating':'')+'">'+esc(zone.action)+'</span></div><div class="ht-values"><div><small>Сейчас</small><strong>'+
       fmt(zone.current)+(zone.current===null?'':' <em>°C</em>')+'</strong>'+source+'</div><div><small>Цель</small><strong>'+
       fmt(zone.target)+(zone.target===null?'':' <em>°C</em>')+'</strong></div></div><div class="ht-foot ht-zone-foot"><span>'+
-      esc(zone.uncertain?'Часть данных не передаётся · '+delta:delta)+'</span>'+windowIcon(windowStates)+'</div></div>'+inlineDetail('zone-'+zone.id,diagnostic)+'</div>';
+      esc(zone.uncertain?'Часть данных не передаётся · '+delta:delta)+'</span>'+windowIcon(windowStates)+'</div>'+sourceWarning+'</div>'+inlineDetail('zone-'+zone.id,diagnostic)+'</div>';
   };
   p._htZones=function(zones){
     const active=zones.filter(z=>z.active&&!z.missing);
@@ -204,10 +206,10 @@
     const rest=idle.filter(z=>!z.sourceWarning&&!z.uncertain);
     const windows=this._htZoneWindows();
     const card=zone=>this._htZoneCard(zone,windows.get(zone.id));
-    const incomplete=zones.filter(z=>!z.missing&&z.uncertain).length;
+    const zonesToCheck=zones.filter(z=>!z.missing&&(z.uncertain||z.sourceWarning)).length;
     const count=(total,label,tone)=>`<span${total ? ` class="${tone}"` : ''}>${total} ${label}</span>`;
     const summary=[count(active.length,'нагревает','ht-heating'),count(absent.length,'без связи','ht-offline'),
-      count(incomplete,'с неполными данными','ht-heating')].join(' · ');
+      count(zonesToCheck,zonesToCheck===1?'требует проверки':'требуют проверки','ht-heating')].join(' · ');
     return title('Зоны')+(zones.length?`<div class="ht-count">${summary}</div>`:'')+
       (active.length?'<h3>Сейчас нагревается</h3>'+active.map(card).join(''):'')+
       (check.length?'<h3>Требуют проверки</h3>'+check.map(card).join(''):'')+

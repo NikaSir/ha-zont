@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0-beta014
+
+- Use six Sonoff TRV Gen2 valve entities and three garage thermostats in Zones. Restore the bathroom and switch the hall and both living-room radiators to Gen2.
+- Display room temperature separately from the valve's temperature sensor mode. Flag missing sensor mode or use of the valve's internal sensor.
+- Frontend cache build b042.
+
 ## 0.11.0-beta013
 
 - Show animated pump indicators on the Overview using the ZONT circuit states. A confirmed outage marks the pump states unavailable.

@@ -38,12 +38,20 @@ assert.equal(roomZone.target,22);
 assert.equal(roomZone.active,true);
 assert.equal(roomZone.delta,-2.5);
 assert.equal(roomZone.sourceNote,'Внешний датчик: термоголовка не получает данные');
+assert.equal(roomZone.sourceWarning,true);
+assert.equal(roomZone.roomTemperatureEntity,'sensor.b_room');
+p._hass.states['select.b_source'].state='unavailable';
+[roomZone]=p._dailyZones();
+assert.equal(roomZone.current,19.5,'room temperature remains available independently of the selector');
+assert.equal(roomZone.sourceWarning,true);
+assert.equal(roomZone.sourceNote,'Режим датчика термоголовки неизвестен');
 p._hass.states['select.b_source'].state='remote_temperature';
 p._hass.states['sensor.b_room'].state='unavailable';
 [roomZone]=p._dailyZones();
 assert.equal(roomZone.current,null,'missing room sensor must not fall back to valve temperature');
 assert.equal(roomZone.uncertain,true);
 assert.equal(roomZone.sourceNote,'Внешний датчик');
+assert.equal(roomZone.sourceWarning,false);
 console.log('Daily overview: zones and read-only checks passed');
 const measured = (id,name,value,unit='°C') => ({entry:{entity_id:id,original_name:name},state:{state:value,attributes:{friendly_name:name,unit_of_measurement:unit}}});
 const fixture = [measured('sensor.internet','Погода из интернета','4'),measured('sensor.street','Уличный датчик','4.5'),measured('sensor.room','Гостиная (t°)','23.2'),measured('sensor.child','Детская 1','22.9'),measured('sensor.water','eBUS Основной №2 t° ГВС','45'),measured('sensor.pressure','Теплоноситель','1.9','bar'),measured('binary_sensor.floor','Тёплый пол','on','')];
@@ -66,6 +74,7 @@ fixture.push(
  measured('binary_sensor.circulation','Циркуляция','unavailable',''),
 );
 const overview=p._dailyOverview([...fixture,signal],[]);
+assert.match(p._dailyOverview([...fixture,signal],[{missing:false,uncertain:false,sourceWarning:true}]), /Есть замечания · Зон для проверки: 1/);
 assert.match(overview,/<h2>Отопление и циркуляция<\/h2><small>3 узл\.<\/small>/);
 const nodeRow = (html, name) => html.split('<div class="overview-node ').find(row => row.includes(`<strong>${name}</strong>`)) || '';
 for(const [name,tone,status,pump] of [

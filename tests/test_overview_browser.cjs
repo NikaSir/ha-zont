@@ -85,7 +85,7 @@ async function assertFits(locator,label) {
    panel.hass={...panel.hass,themes:{darkMode}};
    panel.panel={...panel.panel,config:{...panel.panel.config,integration_version:'1.9.11-beta007'}};
   },!light);
-  await title.getByText('UI v0.11.0-beta013 / 1.9.11-beta007',{exact:true}).waitFor({timeout:3000});
+  await title.getByText('UI v0.11.0-beta014 / 1.9.11-beta007',{exact:true}).waitFor({timeout:3000});
   const heading=await title.evaluate(el=>{
    const rail=el.parentElement.getBoundingClientRect(), box=el.getBoundingClientRect();
    const version=el.querySelector('small'), style=getComputedStyle(version);
@@ -308,9 +308,9 @@ async function assertFits(locator,label) {
     const count=view.locator('.ht-count');
     const heating=count.getByText('1 нагревает',{exact:true});
     const offline=count.getByText('1 без связи',{exact:true});
-    const incomplete=count.getByText('0 с неполными данными',{exact:true});
+    const needsCheck=count.getByText('0 требуют проверки',{exact:true});
     assert.notEqual(await heating.evaluate(el=>getComputedStyle(el).color),await offline.evaluate(el=>getComputedStyle(el).color));
-    assert.equal(await incomplete.evaluate(el=>getComputedStyle(el).color),await count.evaluate(el=>getComputedStyle(el).color));
+    assert.equal(await needsCheck.evaluate(el=>getComputedStyle(el).color),await count.evaluate(el=>getComputedStyle(el).color));
     const card=view.locator('[data-zone="climate.a"]');
     const windowIcon=card.locator('.ht-zone-foot .ht-window');
     assert.equal(await windowIcon.getAttribute('aria-label'),'Окно закрыто');
