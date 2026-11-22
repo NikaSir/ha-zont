@@ -71,10 +71,10 @@ def main() -> None:
     assert removed == ["dashboard-zont"]
     assert panel["frontend_url_path"] == "dashboard-zont"
     assert panel["webcomponent_name"] == "zont-local-panel"
-    assert panel["module_url"].endswith("?v=0.11.0-beta013&build=b041")
+    assert panel["module_url"].endswith("?v=0.11.0-beta014&build=b042")
     assert panel["sidebar_title"] == "Отопление"
     assert panel["config"]["title"] == "Отопление"
-    assert panel["config"]["integration_version"] == "0.11.0-beta013"
+    assert panel["config"]["integration_version"] == "0.11.0-beta014"
     assert panel["config"]["parent"]["path"] == "/home/overview"
     assert panel["config"]["source"]["transport"] == {
         "kind": "unknown",
@@ -82,17 +82,24 @@ def main() -> None:
         "evidence": "upstream_entities_do_not_expose_transport",
     }
     assert len(panel["config"]["tabs"]) == 5
-    assert "climate.thermostat_zb_sn_02" in panel["config"]["zone_entities"]
-    assert "climate.tambur_2" not in panel["config"]["zone_entities"]
-    assert "climate.thermostat_zb_sn_03" in panel["config"]["zone_entities"]
-    assert "climate.thermostat_zb_03" not in panel["config"]["zone_entities"]
-    assert {
-        key: source["temperature"]
-        for key, source in panel["config"]["zone_room_sources"].items()
-    } == {
-        "climate.thermostat_zb_sn_02": "sensor.sensor_th_zb_02_temperature",
-        "climate.thermostat_zb_sn_03": "sensor.sensor_th_zb_03_temperature",
+    room_sources = {
+        "01": "01", "02": "02", "03": "03", "08": "08", "11_1": "11", "11_2": "11",
     }
+    expected_sources = {
+        f"climate.thermostat_zb_sn_{head}": {
+            "temperature": f"sensor.sensor_th_zb_{room}_temperature",
+            "selector": f"select.thermostat_zb_sn_{head}_temperature_sensor_select",
+        }
+        for head, room in room_sources.items()
+    }
+    assert panel["config"]["zone_room_sources"] == expected_sources
+    assert panel["config"]["zone_entities"] == [
+        *expected_sources,
+        "climate.thermostat_zb_15_1",
+        "climate.thermostat_zb_15_2",
+        "climate.thermostat_zb_15_3",
+    ]
+    assert set(panel["config"]["zone_labels"]) == set(panel["config"]["zone_entities"])
     assert "zone_sensors" not in panel["config"]
     assert [
         (outlet["entity_id"], outlet["on_below"], outlet["off_above"])

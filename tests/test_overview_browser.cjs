@@ -85,7 +85,7 @@ async function assertFits(locator,label) {
    panel.hass={...panel.hass,themes:{darkMode}};
    panel.panel={...panel.panel,config:{...panel.panel.config,integration_version:'1.9.11-beta007'}};
   },!light);
-  await title.getByText('UI v0.11.0-beta013 / 1.9.11-beta007',{exact:true}).waitFor({timeout:3000});
+  await title.getByText('UI v0.11.0-beta014 / 1.9.11-beta007',{exact:true}).waitFor({timeout:3000});
   const heading=await title.evaluate(el=>{
    const rail=el.parentElement.getBoundingClientRect(), box=el.getBoundingClientRect();
    const version=el.querySelector('small'), style=getComputedStyle(version);

@@ -491,8 +491,8 @@
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.11.0-beta013";
-const ASSET_VERSION = "0.11.0-beta013";
+const UI_VERSION = "0.11.0-beta014";
+const ASSET_VERSION = "0.11.0-beta014";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;

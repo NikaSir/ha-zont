@@ -1,5 +1,5 @@
 // GENERATED FILE. DO NOT EDIT DIRECTLY.
-// ZONT autonomous UI 0.11.0-beta013 production bundle.
+// ZONT autonomous UI 0.11.0-beta014 production bundle.
 // One active shell: zont-local-panel / NikaS shell kit v2.1.
 
 // BEGIN custom_components/zont_local/frontend/nikas-specialized-shell.js
@@ -812,8 +812,8 @@ function navigateNikasShell(path, { captureSource = false } = {}) {
 // The generic renderer is embedded above; no runtime import chain is required.
 
 const ELEMENT_NAME = "zont-local-panel";
-const UI_VERSION = "0.11.0-beta013";
-const ASSET_VERSION = "0.11.0-beta013";
+const UI_VERSION = "0.11.0-beta014";
+const ASSET_VERSION = "0.11.0-beta014";
 const ASSET_ROOT = "/zont_local_panel/assets";
 const BOILER_CASING_IMAGE = `${ASSET_ROOT}/zont-boiler-casing-v0812.webp?v=${ASSET_VERSION}`;
 const DHW_SHELL_IMAGE = `${ASSET_ROOT}/zont-dhw-shell-v0812.webp?v=${ASSET_VERSION}`;
@@ -2189,16 +2189,18 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
       const missing = unavailable(state);
       const roomSource = config.zone_room_sources?.[id];
       const sourceStatus = states?.[roomSource?.selector]?.state;
-      const sourceWarning = sourceStatus === "remote_source_offline" || sourceStatus === "local_temperature";
+      const sourceWarning = Boolean(roomSource && sourceStatus !== "remote_temperature");
       const sourceNote = !roomSource ? "" : {
+        remote_temperature: "Внешний датчик",
         remote_source_offline: "Внешний датчик: термоголовка не получает данные",
         local_temperature: "Внешний датчик: термоголовка использует встроенный датчик",
-      }[sourceStatus] || "Внешний датчик";
+      }[sourceStatus] || "Режим датчика термоголовки неизвестен";
       const current = roomSource ? number(states?.[roomSource.temperature]?.state)
         : missing ? null : number(a.current_temperature);
       const target = missing ? null : number(a.temperature);
       const action = missing ? null : a.hvac_action;
-      return {id, name:a.friendly_name || id, current, target, missing, sourceNote, sourceWarning,
+      return {id, name:config.zone_labels?.[id] || a.friendly_name || id, current, target, missing, sourceNote, sourceWarning,
+        roomTemperatureEntity: roomSource?.temperature,
         active: action === "heating", uncertain:missing || current === null || target === null || !["heating", "idle", "off"].includes(action),
         delta:current !== null && target !== null ? current - target : null,
         action:action === "heating" ? "Нагрев" : ["idle", "off"].includes(action) ? "Не нагревается" : "Активность неизвестна"};
@@ -2374,11 +2376,11 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     const readings = [...floors,...metrics];
     const missing = readings.filter(m=>m.value===null).length;
     const unavailableZones = zones.filter(z=>z.missing).length;
-    const incompleteZones = zones.filter(z=>!z.missing && z.uncertain).length;
+    const zonesToCheck = zones.filter(z=>!z.missing && (z.uncertain || z.sourceWarning)).length;
     const errors = items.filter(i=>this._role(i)==="error" && this._isActiveErrorV089(i)).length;
-    const hasIssue = missing || unavailableZones || errors;
+    const hasIssue = missing || unavailableZones || errors || zonesToCheck;
     const title = errors ? "Требует внимания" : hasIssue ? "Есть замечания" : "Показания получены";
-    const notes = [errors ? `Ошибок оборудования: ${errors}` : "",unavailableZones ? `Зон без связи: ${unavailableZones}` : "",missing ? `Нет показаний: ${missing}` : "",incompleteZones ? `Активность неизвестна: ${incompleteZones}` : ""].filter(Boolean);
+    const notes = [errors ? `Ошибок оборудования: ${errors}` : "",unavailableZones ? `Зон без связи: ${unavailableZones}` : "",missing ? `Нет показаний: ${missing}` : "",zonesToCheck ? `Зон для проверки: ${zonesToCheck}` : ""].filter(Boolean);
     const status = this._overviewStatus(items,readings);
     const renderMetric = m => {
       const value = m.value===null ? "Нет данных" : escape(m.value.toLocaleString("ru",{maximumFractionDigits:2}))+
@@ -2666,16 +2668,18 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
   };
   p._htZoneCard=function(zone,windowStates){
     const delta=zone.delta===null?'Отклонение неизвестно':zone.delta===0?'Температура у цели':`${zone.delta<0?'Ниже':'Выше'} цели на ${fmt(Math.abs(zone.delta))} °C`;
-    const source=zone.sourceNote?`<small${zone.sourceWarning?' class="ht-heating"':''}>${esc(zone.sourceNote)}</small>`:'';
+    const source=zone.roomTemperatureEntity?'<small>Датчик комнаты</small>':'';
+    const sourceWarning=zone.sourceWarning?`<div class="ht-foot"><span class="ht-heating">${esc(zone.sourceNote)}</span></div>`:'';
     const diagnostic=line('Статус термоголовки',esc(zone.missing?'Нет связи':zone.action))+
-      line('Источник температуры',esc(zone.sourceNote||'Термоголовка'))+line('Сущность',esc(zone.id));
+      line('Источник температуры в карточке',esc(zone.roomTemperatureEntity||'Термоголовка'))+
+      (zone.sourceNote?line('Режим датчика термоголовки',esc(zone.sourceNote)):'')+line('Сущность',esc(zone.id));
     const entityId=esc(zone.id);
     return '<div class="ht-card" data-zone="'+entityId+'"><div class="ht-pad"><div class="ht-head">'+
       '<button type="button" class="ht-zone-title" data-ht-zone-entity="'+entityId+'">'+esc(this._htZoneName(zone))+
       '</button><span class="ht-status '+(zone.active?'ht-heating':'')+'">'+esc(zone.action)+'</span></div><div class="ht-values"><div><small>Сейчас</small><strong>'+
       fmt(zone.current)+(zone.current===null?'':' <em>°C</em>')+'</strong>'+source+'</div><div><small>Цель</small><strong>'+
       fmt(zone.target)+(zone.target===null?'':' <em>°C</em>')+'</strong></div></div><div class="ht-foot ht-zone-foot"><span>'+
-      esc(zone.uncertain?'Часть данных не передаётся · '+delta:delta)+'</span>'+windowIcon(windowStates)+'</div></div>'+inlineDetail('zone-'+zone.id,diagnostic)+'</div>';
+      esc(zone.uncertain?'Часть данных не передаётся · '+delta:delta)+'</span>'+windowIcon(windowStates)+'</div>'+sourceWarning+'</div>'+inlineDetail('zone-'+zone.id,diagnostic)+'</div>';
   };
   p._htZones=function(zones){
     const active=zones.filter(z=>z.active&&!z.missing);
@@ -2685,10 +2689,10 @@ if (!installV095()) customElements.whenDefined(ELEMENT_NAME).then(() => installV
     const rest=idle.filter(z=>!z.sourceWarning&&!z.uncertain);
     const windows=this._htZoneWindows();
     const card=zone=>this._htZoneCard(zone,windows.get(zone.id));
-    const incomplete=zones.filter(z=>!z.missing&&z.uncertain).length;
+    const zonesToCheck=zones.filter(z=>!z.missing&&(z.uncertain||z.sourceWarning)).length;
     const count=(total,label,tone)=>`<span${total ? ` class="${tone}"` : ''}>${total} ${label}</span>`;
     const summary=[count(active.length,'нагревает','ht-heating'),count(absent.length,'без связи','ht-offline'),
-      count(incomplete,'с неполными данными','ht-heating')].join(' · ');
+      count(zonesToCheck,zonesToCheck===1?'требует проверки':'требуют проверки','ht-heating')].join(' · ');
     return title('Зоны')+(zones.length?`<div class="ht-count">${summary}</div>`:'')+
       (active.length?'<h3>Сейчас нагревается</h3>'+active.map(card).join(''):'')+
       (check.length?'<h3>Требуют проверки</h3>'+check.map(card).join(''):'')+
